@@ -43,7 +43,7 @@ from guardrag.utils.safety import check_input_safety, check_output_safety
 # Load environment variables
 load_dotenv()
 
-def display_banner(mode="CLI", version="1.0.6"):
+def display_banner(mode="CLI", version="1.0.7"):
     """Display a unified, premium centered banner for GuardRAG."""
     # Big Project Name
     title = Text("G U A R D - R A G", style="bold magenta")
@@ -52,11 +52,11 @@ def display_banner(mode="CLI", version="1.0.6"):
     
     # Header Content centered in a panel
     header_content = Text.assemble(
-        ("\n", ""),
-        (title, "bold magenta"),
-        ("\n", ""),
-        (subtitle, "italic cyan"),
-        ("\n", "")
+        "\n",
+        title,
+        "\n",
+        subtitle,
+        "\n"
     )
 
     console.print(Align.center(Panel(
