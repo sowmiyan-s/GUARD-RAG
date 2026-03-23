@@ -1,15 +1,15 @@
-# GuragChat Installation Guide
+# GuardRAG Installation Guide
 
-## What is GuragChat?
+## What is GuardRAG?
 
-GuragChat is a privacy-first, fully offline AI document assistant that has been restructured as a pip-installable Python package. You can now install and use it via the command line with a single command.
+GuardRAG is a privacy-first, fully offline AI document assistant that has been restructured as a pip-installable Python package. You can now install and use it via the command line with a single command.
 
 ## Installation
 
 ### Using pip (Recommended)
 
 ```bash
-pip install guragchat
+pip install guard-rag
 ```
 
 To install from the local source directory:
@@ -48,16 +48,16 @@ pip install -e .[all]
 
 ### Command Line Interface
 
-Once installed, you can use GuragChat from the command line with the `guragchat` command:
+Once installed, you can use GuardRAG from the command line with the `guardrag` command:
 
 ```bash
-guragchat --pdf /path/to/document.pdf
+guard-rag --pdf /path/to/document.pdf
 ```
 
 #### Available Options
 
 ```
-guragchat --help
+guard-rag --help
 ```
 
 - `--pdf PATH` (required): Path to the document to query (PDF, TXT, or DOCX)
@@ -76,28 +76,28 @@ guragchat --help
 
 ```bash
 # Basic usage
-guragchat --pdf document.pdf
+guard-rag --pdf document.pdf
 
 # With custom model
-guragchat --pdf document.pdf --model llama2
+guard-rag --pdf document.pdf --model llama2
 
 # With remote Ollama instance
-guragchat --pdf document.pdf --ollama-host http://remote-server:11434
+guard-rag --pdf document.pdf --ollama-host http://remote-server:11434
 
 # With maximum security
-guragchat --pdf document.pdf --sensitivity Restricted
+guard-rag --pdf document.pdf --sensitivity Restricted
 
 # Disable guardrails (not recommended)
-guragchat --pdf document.pdf --no-guardrails
+guard-rag --pdf document.pdf --no-guardrails
 ```
 
 ### Python API
 
-You can also use GuragChat programmatically:
+You can also use GuardRAG programmatically:
 
 ```python
-from guragchat import build_rag_chain
-from guragchat.utils.ollama import is_ollama_running
+from guardrag import build_rag_chain
+from guardrag.utils.ollama import is_ollama_running
 from langchain_core.messages import HumanMessage, AIMessage
 
 # Check if Ollama is running
@@ -132,7 +132,7 @@ messages.append(AIMessage(content=result["answer"]))
 
 ### Ollama
 
-GuragChat requires Ollama for local LLM execution. Download and install from:
+GuardRAG requires Ollama for local LLM execution. Download and install from:
 https://ollama.ai
 
 After installation, start the Ollama server:
@@ -157,7 +157,7 @@ Supported models:
 ## Package Structure
 
 ```
-guragchat/
+guardrag/
 ├── __init__.py           # Package entry point
 ├── cli/
 │   ├── __init__.py
@@ -280,11 +280,11 @@ https://github.com/sowmiyan-s/GUARDRAILS-LOCAL-RAG-WEBSITE
 
 ## Citation
 
-If you use GuragChat in your research or project, please cite:
+If you use GuardRAG in your research or project, please cite:
 
 ```bibtex
-@software{guragchat2024,
-  title = {GuragChat: Privacy-First Offline AI Document Assistant},
+@software{guardrag2024,
+  title = {GuardRAG: Privacy-First Offline AI Document Assistant},
   author = {Sowmiyan S},
   year = {2024},
   url = {https://github.com/sowmiyan-s/GUARDRAILS-LOCAL-RAG-WEBSITE}

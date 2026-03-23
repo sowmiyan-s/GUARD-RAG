@@ -4,4 +4,6 @@ include requirements.txt
 include INSTALL.md
 include QUICK_REFERENCE.md
 include .env.example
-recursive-include guragchat *.py *.typed
+recursive-include guardrag *.py *.typed
+recursive-include guardrag/api/frontend *
+

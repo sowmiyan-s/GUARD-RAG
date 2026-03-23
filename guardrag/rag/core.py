@@ -41,7 +41,7 @@ def build_rag_chain(
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
     ollama_host: str = "http://localhost:11434",
-    storage_dir: str = ".guragchat_storage"
+    storage_dir: str = ".guardrag_storage"
 ) -> Tuple[str, Any]:
     """
     Build a RAG chain from document files.
@@ -159,7 +159,7 @@ def load_stored_rag_chain(
     db_id: str,
     model: str = "gemma3:1b",
     ollama_host: str = "http://localhost:11434",
-    storage_dir: str = ".guragchat_storage"
+    storage_dir: str = ".guardrag_storage"
 ):
     """
     Load a previously persisted FAISS index and build the RAG chain.

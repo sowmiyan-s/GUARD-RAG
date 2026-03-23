@@ -1,5 +1,5 @@
 """
-GuragChat - Privacy-first, fully offline AI document assistant
+GuardRAG - Privacy-first, fully offline AI document assistant
 Setup configuration for pip installation
 """
 
@@ -15,7 +15,7 @@ requirements = (here / "requirements.txt").read_text(encoding="utf-8").strip().s
 requirements = [r.strip() for r in requirements if r.strip() and not r.startswith("#")]
 
 setup(
-    name="guragchat",
+    name="guard-rag",
     version="1.0.0",
     description="Privacy-first, fully offline AI document assistant secured by tiered safety guardrails",
     long_description=long_description,
@@ -30,7 +30,7 @@ setup(
         "Bug Tracker": "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL/issues",
     },
     
-    packages=find_packages(include=["guragchat", "guragchat.*"]),
+    packages=find_packages(include=["guardrag", "guardrag.*"]),
     
     python_requires=">=3.9",
     
@@ -38,7 +38,7 @@ setup(
     
     entry_points={
         "console_scripts": [
-            "guragchat=guragchat.cli.main:main",
+            "guard-rag=guardrag.cli.main:main",
         ],
     },
     

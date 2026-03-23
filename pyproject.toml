@@ -3,12 +3,11 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "guragchat"
+name = "guard-rag"
 version = "1.0.0"
 description = "Privacy-first, fully offline AI document assistant secured by tiered safety guardrails"
-readme = "README.md"
-long_description_content_type = "text/markdown"
-license = {text = "MIT"}
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {file = "LICENSE"}
 authors = [
     {name = "Sowmiyan S"},
 ]
@@ -38,6 +37,7 @@ dependencies = [
     "docx2txt>=0.8",
     "python-dotenv>=1.0.1",
     "nest_asyncio>=1.6.0",
+    "rich>=13.0.0",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -62,11 +62,11 @@ Repository = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL"
 "Bug Tracker" = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL/issues"
 
 [project.scripts]
-guragchat = "guragchat.cli.main:main"
+guard-rag = "guardrag.cli.main:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["guragchat*"]
+include = ["guardrag*"]
 
 [tool.setuptools.package-data]
-guragchat = ["py.typed"]
+guardrag = ["py.typed"]

@@ -28,5 +28,6 @@ docx2txt>=0.8
 # Utilities
 python-dotenv>=1.0.1
 nest_asyncio>=1.6.0
+rich>=13.0.0
 pydantic>=2.7.0
 gunicorn>=22.0.0

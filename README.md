@@ -12,7 +12,7 @@
 
 <br/><br/>
 
-# GuragChat
+# GuardRAG
 
 ### A privacy-first, fully offline AI document assistant — secured by a tiered safety guardrails system
 
@@ -20,7 +20,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3b82f6?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![PyPI](https://img.shields.io/pypi/v/guragchat?style=flat-square)](https://pypi.org/project/guragchat/)
+[![PyPI](https://img.shields.io/pypi/v/guard-rag?style=flat-square)](https://pypi.org/project/guard-rag/)
 [![Offline](https://img.shields.io/badge/Mode-100%25%20Offline-76b900?style=flat-square)](#)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-a78bfa?style=flat-square)](#contributing)
 
@@ -37,13 +37,13 @@
 
 ## Architecture
 
-The GuragChat package provides a command-line interface for building and querying RAG (Retrieval-Augmented Generation) chatbots with local LLMs.
+The GuardRAG package provides a command-line interface for building and querying RAG (Retrieval-Augmented Generation) chatbots with local LLMs.
 
 ---
 
-## Why GuragChat?
+## Why GuardRAG?
 
-Most RAG chatbots rely on cloud APIs, which creates **privacy risks** for sensitive documents — contracts, medical records, internal reports. GuragChat solves that by:
+Most RAG chatbots rely on cloud APIs, which creates **privacy risks** for sensitive documents — contracts, medical records, internal reports. GuardRAG solves that by:
 
 - Running the **LLM locally** via Ollama (no data transmitted)
 - Embedding documents **offline** using HuggingFace sentence-transformers
@@ -121,10 +121,10 @@ ollama pull gemma3:1b
 
 ## Installation
 
-Install GuragChat from PyPI:
+Install GuardRAG from PyPI:
 
 ```bash
-pip install guragchat
+pip install guard-rag
 ```
 
 Or install from source:
@@ -142,7 +142,7 @@ pip install .
 After installation, run the CLI:
 
 ```bash
-guragchat --pdf path/to/your/document.pdf
+guard-rag --pdf path/to/your/document.pdf
 ```
 
 This will start an interactive chat session with your document.
@@ -150,7 +150,7 @@ This will start an interactive chat session with your document.
 ### CLI Options
 
 ```
-guragchat --pdf <file>             Load and chat with a PDF document
+guard-rag --pdf <file>             Load and chat with a PDF document
           --model <model>          Ollama model to use (default: gemma3:1b)
           --ollama-host <url>      Ollama server URL (default: http://localhost:11434)
           --chunk-size <int>       Document chunk size (default: 1000)
@@ -164,7 +164,7 @@ guragchat --pdf <file>             Load and chat with a PDF document
 
 ```bash
 # Start with a PDF using Llama 3.1
-guragchat --pdf report.pdf --model llama3.1 --sensitivity Confidential
+guard-rag --pdf report.pdf --model llama3.1 --sensitivity Confidential
 
 # You: What are the key findings?
 # Chatbot: Based on the document, the key findings are...
@@ -177,10 +177,10 @@ guragchat --pdf report.pdf --model llama3.1 --sensitivity Confidential
 ```
 GUADRAILS-RAG-CHAT-TOOL/
 │
-├── guragchat/                 # Main installable package
+├── guardrag/                 # Main installable package
 │   ├── __init__.py
 │   ├── cli/
-│   │   └── main.py            # CLI entry point (guragchat command)
+│   │   └── main.py            # CLI entry point (guardrag command)
 │   ├── rag/
 │   │   └── core.py            # RAG pipeline: load, embed, retrieve, answer
 │   └── utils/
@@ -198,7 +198,7 @@ GUADRAILS-RAG-CHAT-TOOL/
 └── README.md
 ```
 
-> `.guragchat_storage/` is auto-generated on first document load (FAISS cache) and excluded from version control.
+> `.guardrag_storage/` is auto-generated on first document load (FAISS cache) and excluded from version control.
 
 ---
 
@@ -233,7 +233,7 @@ Different chunk settings for the same file produce a separate FAISS index automa
 ### From PyPI (recommended)
 
 ```bash
-pip install guragchat
+pip install guard-rag
 ```
 
 ### From Source
@@ -253,7 +253,7 @@ python -m venv .venv
 # macOS / Linux:
 source .venv/bin/activate
 
-pip install guragchat
+pip install guard-rag
 ```
 
 ---

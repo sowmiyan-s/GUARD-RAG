@@ -1,9 +1,9 @@
 """
-GuragChat CLI - Command-line interface for the RAG chatbot.
+GuardRAG CLI - Command-line interface for the RAG chatbot.
 
 Usage:
-    guragchat --pdf path/to/document.pdf
-    guragchat --pdf document.pdf --model llama2
+    guard-rag --pdf path/to/document.pdf
+    guard-rag --pdf document.pdf --model llama2
 """
 
 import os
@@ -11,25 +11,60 @@ import sys
 import argparse
 from pathlib import Path
 
+# Add rich for console GUI
+from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
+from rich.prompt import Prompt
+from rich.markdown import Markdown
+from rich.theme import Theme
+
+custom_theme = Theme({
+    "info": "dim cyan",
+    "warning": "magenta",
+    "danger": "bold red"
+})
+console = Console(theme=custom_theme)
+
 # Fix OMP error for FAISS
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-from langchain_core.messages import HumanMessage, AIMessage
 from dotenv import load_dotenv
 
-from guragchat.rag.core import build_rag_chain
-from guragchat.utils.ollama import is_ollama_running, start_ollama_server
-from guragchat.utils.safety import check_input_safety, check_output_safety
+from guardrag.rag.core import build_rag_chain
+from guardrag.utils.ollama import is_ollama_running, start_ollama_server
+from guardrag.utils.safety import check_input_safety, check_output_safety
 
 # Load environment variables
 load_dotenv()
 
+def run_web_ui():
+    """Launch the internal FastAPI web application."""
+    import uvicorn
+    import threading
+    import time
+    import webbrowser
+
+    print("\n🚀 Starting GuardRAG Local Web Interface on port 8000...\n")
+    
+    def open_browser():
+        time.sleep(1.5)
+        webbrowser.open("http://127.0.0.1:8000")
+        
+    threading.Thread(target=open_browser, daemon=True).start()
+    uvicorn.run("guardrag.api.main:app", host="127.0.0.1", port=8000, log_level="warning")
+    sys.exit(0)
+
+
 
 def main():
     """Main CLI entry point."""
+    if len(sys.argv) == 1:
+        run_web_ui()
+        
     parser = argparse.ArgumentParser(
-        prog="guragchat",
-        description="GuragChat - Privacy-first, offline AI document assistant",
+        prog="guardrag",
+        description="GuardRAG - Privacy-first, offline AI document assistant",
         epilog="GitHub: https://github.com/sowmiyan-s | License: MIT"
     )
     parser.add_argument(
@@ -85,21 +120,23 @@ def main():
     
     # Check Ollama
     ollama_host = args.ollama_host.rstrip("/")
-    print(f"Checking Ollama at {ollama_host}...")
+    console.print(f"[info]Checking Ollama at[/info] [bold white]{ollama_host}[/bold white]...")
     
     if not is_ollama_running(ollama_host):
-        print("Ollama is not running. Attempting to start...")
+        console.print("[yellow]Ollama is not running. Attempting to start...[/yellow]")
         if start_ollama_server():
-            print("✓ Ollama started successfully")
+            console.print("[bold green]✓ Ollama started successfully[/bold green]")
         else:
-            print(f"✗ Failed to start Ollama. Ensure it's installed and configured.")
-            print(f"  Download from: https://ollama.ai")
+            console.print(Panel(
+                "[bold red]✗ Failed to start Ollama.[/bold red]\nEnsure it's installed and configured.\nDownload from: [blue]https://ollama.ai[/blue]",
+                title="Error", border_style="red"
+            ))
             sys.exit(1)
     else:
-        print("✓ Ollama is running")
+        console.print("[bold green]✓ Ollama is running[/bold green]")
     
     # Build RAG pipeline
-    print(f"\nBuilding RAG pipeline with {args.model}...")
+    console.print(f"\n[cyan]Building RAG pipeline with[/cyan] [bold white]{args.model}[/bold white]...")
     try:
         db_id, rag_chain = build_rag_chain(
             [str(pdf_path)],
@@ -109,33 +146,42 @@ def main():
             ollama_host=ollama_host
         )
     except Exception as e:
-        print(f"✗ Error building RAG pipeline: {e}")
+        console.print(f"[bold red]✗ Error building RAG pipeline: {e}[/bold red]")
         sys.exit(1)
     
     # Start chat loop
-    print("\n" + "="*70)
-    print(" GuragChat - Privacy-first, Offline AI Document Assistant")
-    print(" Powered by LangChain + Ollama + HuggingFace Embeddings (100% Offline)")
-    print("="*70)
-    print(f"\nDocument: {pdf_path.name}")
-    print(f"Model: {args.model}")
-    print(f"Sensitivity: {args.sensitivity}")
+    welcome_text = (
+        f"📄 [bold]Document:[/bold] {pdf_path.name}\n"
+        f"🤖 [bold]Model:[/bold] {args.model}\n"
+        f"🔒 [bold]Sensitivity:[/bold] {args.sensitivity}\n\n"
+        f"[dim]Type 'exit', 'quit', or press Ctrl+C to stop.[/dim]"
+    )
+    
     if args.no_guardrails:
-        print("⚠️  Guardrails DISABLED")
-    print("\nType 'exit', 'quit', or press Ctrl+C to stop.\n")
+        welcome_text = "[bold yellow]⚠️  Guardrails DISABLED[/bold yellow]\n\n" + welcome_text
+        
+    console.print()
+    console.print(Panel(
+        welcome_text,
+        title="[bold green]GuardRAG[/bold green] - Privacy-first AI",
+        subtitle="[bold]Developer:[/bold] Sowmiyan S | [blue]github.com/sowmiyan-s[/blue]",
+        border_style="green",
+        expand=False
+    ))
+    console.print()
     
     messages = []
     enable_guardrails = not args.no_guardrails
     
     while True:
         try:
-            question = input("You: ").strip()
+            question = Prompt.ask("[bold cyan]You[/bold cyan]").strip()
             
             if not question:
                 continue
             
             if question.lower() in ["exit", "quit"]:
-                print("\nGoodbye!")
+                console.print("\n[dim]Goodbye![/dim]")
                 break
             
             # Safety check: input
@@ -146,10 +192,11 @@ def main():
                     enabled=True
                 )
                 if blocked:
-                    print(f"\nChatbot: {blocked}\n")
+                    console.print(Panel(f"[bold red]{blocked}[/bold red]", title="🛡️ GuardRAG Block", border_style="red"))
                     continue
             
             # Build message history
+            from langchain_core.messages import HumanMessage, AIMessage
             chat_history = []
             for msg in messages:
                 if msg["role"] == "user":
@@ -159,10 +206,12 @@ def main():
             
             # Get response
             try:
-                result = rag_chain.invoke({
-                    "input": question,
-                    "chat_history": chat_history
-                })
+                import time
+                with console.status("[bold green]Thinking...[/bold green]"):
+                    result = rag_chain.invoke({
+                        "input": question,
+                        "chat_history": chat_history
+                    })
                 
                 if isinstance(result, dict) and "answer" in result:
                     answer = result["answer"]
@@ -177,19 +226,21 @@ def main():
                         enabled=True
                     )
                     if blocked_out:
-                        answer = blocked_out
+                        answer = f"[bold red]{blocked_out}[/bold red]"
                 
-                print(f"\nChatbot: {answer}\n")
+                console.print()
+                console.print(Panel(Markdown(answer), title="[bold green]Assistant[/bold green]", border_style="green", title_align="left"))
+                console.print()
                 
                 # Store in history
                 messages.append({"role": "user", "content": question})
                 messages.append({"role": "assistant", "content": answer})
                 
             except Exception as e:
-                print(f"\n✗ Error generating response: {e}\n")
+                console.print(f"\n[bold red]✗ Error generating response: {e}[/bold red]\n")
         
         except KeyboardInterrupt:
-            print("\n\nGoodbye!")
+            console.print("\n\n[dim]Goodbye![/dim]")
             break
 
 

@@ -1,46 +1,46 @@
-# GuragChat Quick Reference
+# GuardRAG Quick Reference
 
 ## Installation
 ```bash
-pip install guragchat
+pip install guard-rag
 ```
 
 ## Usage
 ```bash
-guragchat --pdf document.pdf
+guard-rag --pdf document.pdf
 ```
 
 ## Basic Examples
 
 ### Simple Query
 ```bash
-guragchat --pdf report.pdf
+guard-rag --pdf report.pdf
 ```
 
 ### With Custom Model
 ```bash
-guragchat --pdf report.pdf --model llama2
+guard-rag --pdf report.pdf --model llama2
 ```
 
 ### With Sensitivity
 ```bash
-guragchat --pdf sensitive.pdf --sensitivity Restricted
+guard-rag --pdf sensitive.pdf --sensitivity Restricted
 ```
 
 ### Remote Ollama
 ```bash
-guragchat --pdf doc.pdf --ollama-host http://remote:11434
+guard-rag --pdf doc.pdf --ollama-host http://remote:11434
 ```
 
 ### Disable Guardrails
 ```bash
-guragchat --pdf doc.pdf --no-guardrails
+guard-rag --pdf doc.pdf --no-guardrails
 ```
 
 ## Python API
 
 ```python
-from guragchat import build_rag_chain
+from guardrag import build_rag_chain
 from langchain_core.messages import HumanMessage, AIMessage
 
 # Build RAG
@@ -80,9 +80,9 @@ messages.append(AIMessage(content=result["answer"]))
 - Run: `ollama serve`
 - Pull model: `ollama pull gemma3:1b`
 
-### 2. Install GuragChat
+### 2. Install GuardRAG
 ```bash
-pip install guragchat
+pip install guard-rag
 ```
 
 ### 3. Test Installation
@@ -92,7 +92,7 @@ python test_installation.py
 
 ### 4. Run
 ```bash
-guragchat --pdf document.pdf
+guard-rag --pdf document.pdf
 ```
 
 ## Supported Models
@@ -138,16 +138,16 @@ ollama run gemma3:1b
 
 **Module not found**
 ```bash
-pip install --upgrade guragchat
+pip install --upgrade guardrag
 ```
 
 **Permission error**
 ```bash
-pip install --user guragchat
+pip install --user guardrag
 # or use virtual environment
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install guragchat
+pip install guard-rag
 ```
 
 ## Useful Commands
@@ -160,13 +160,13 @@ ollama list
 curl http://localhost:11434/api/tags
 
 # Show CLI help
-guragchat --help
+guard-rag --help
 
 # Test installation
 python test_installation.py
 
 # Interactive query
-guragchat --pdf document.pdf
+guard-rag --pdf document.pdf
 ```
 
 ## Performance Tips
@@ -181,7 +181,7 @@ guragchat --pdf document.pdf
 
 ### Document Analysis
 ```bash
-guragchat --pdf research.pdf --sensitivity Confidential
+guard-rag --pdf research.pdf --sensitivity Confidential
 # Follow prompts to ask questions
 ```
 
@@ -189,7 +189,7 @@ guragchat --pdf research.pdf --sensitivity Confidential
 ```bash
 for file in *.pdf; do
   echo "Analyzing $file"
-  guragchat --pdf "$file" --model gemma3:1b
+  guard-rag --pdf "$file" --model gemma3:1b
 done
 ```
 
@@ -198,8 +198,8 @@ done
 import sys
 sys.path.insert(0, '.')
 
-from guragchat.rag.core import build_rag_chain
-from guragchat.utils.safety import check_input_safety
+from guardrag.rag.core import build_rag_chain
+from guardrag.utils.safety import check_input_safety
 
 # Your custom logic here
 ```
@@ -207,7 +207,7 @@ from guragchat.utils.safety import check_input_safety
 ## Package Structure
 
 ```
-guragchat/
+guardrag/
 ├── cli/main.py          - CLI interface
 ├── rag/core.py          - RAG pipeline
 ├── utils/
@@ -218,10 +218,10 @@ guragchat/
 
 ## Links
 
-- 📦 PyPI: https://pypi.org/project/guragchat/
+- 📦 PyPI: https://pypi.org/project/guardrag/
 - 📖 Docs: See INSTALL.md
 - 🐛 Issues: GitHub Issues
-- 🎮 Demo: Try `guragchat --help`
+- 🎮 Demo: Try `guard-rag --help`
 
 ---
 
