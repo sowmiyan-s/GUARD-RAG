@@ -74,10 +74,9 @@ def display_web_ui_banner():
     )))
     
     table = Table(box=None, show_header=False, padding=(0, 2))
-    table.add_row("🚀 [bold white]STATUS:[/bold white]", "[bold green]FIRING UP LOCAL ENGINES...[/bold green]")
-    table.add_row("🔗 [bold white]ACCESS:[/bold white]", "[bold blue underline]http://127.0.0.1:8000[/bold blue underline]")
-    table.add_row("🛡️  [bold white]SAFETY:[/bold white]", "[bold cyan]ACTIVE (OFFLINE MODE)[/bold cyan]")
-    table.add_row("🧠 [bold white]OLLAMA:[/bold white]", ollama_status)
+    table.add_row("🚀 [bold white]STATUS:[/bold white]", "[bold green] LOCAL ENGINES STARTED[/bold green]")
+    table.add_row("🚀 [bold white]ACCESS:[/bold white]", "[bold blue underline]http://127.0.0.1:8000[/bold blue underline]")
+    table.add_row("🚀 [bold white]OLLAMA:[/bold white]", ollama_status)
     
     console.print(Align.center(table))
     console.print(Align.center(footer))
