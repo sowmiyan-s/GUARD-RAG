@@ -21,7 +21,7 @@ from rich.theme import Theme
 from rich.table import Table
 from rich.live import Live
 from rich.align import Align
-from rich.box import DOUBLE
+from rich.box import ROUNDED
 from rich.rule import Rule
 
 custom_theme = Theme({
@@ -43,7 +43,7 @@ from guardrag.utils.safety import check_input_safety, check_output_safety
 # Load environment variables
 load_dotenv()
 
-def display_banner(mode="CLI", version="1.0.5"):
+def display_banner(mode="CLI", version="1.0.6"):
     """Display a unified, premium centered banner for GuardRAG."""
     # Big Project Name
     title = Text("G U A R D - R A G", style="bold magenta")
@@ -61,7 +61,7 @@ def display_banner(mode="CLI", version="1.0.5"):
 
     console.print(Align.center(Panel(
         Align.center(header_content),
-        box=DOUBLE,
+        box=ROUNDED,
         border_style="bold magenta",
         padding=(1, 10),
         subtitle=f"[bold yellow]v{version}[/bold yellow]",
@@ -128,7 +128,7 @@ def display_session_info(pdf_name, model, sensitivity, guardrails):
     table.add_row("📄 Document", pdf_name)
     table.add_row("🤖 Model", model)
     table.add_row("🔒 Sensitivity", f"[{'green' if sensitivity == 'Public' else 'yellow' if sensitivity == 'Internal' else 'orange3' if sensitivity == 'Confidential' else 'red'}]{sensitivity}[/]")
-    table.add_row("🛡️ Guardrails", "[green]Enabled[/green]" if guardrails else "[red]Disabled[/red]")
+    table.add_row("⚙️ Guardrails", "[green]Enabled[/green]" if guardrails else "[red]Disabled[/red]")
     table.add_row("👤 Developer", "Sowmiyan S")
     table.add_row("🔗 GitHub", "[blue]sowmiyan-s[/blue]")
     
@@ -263,7 +263,7 @@ def main():
                 if blocked:
                     console.print(Panel(
                         f"[bold red]{blocked}[/bold red]", 
-                        title="🛡️ GuardRAG Security Block", 
+                        title="Security Block", 
                         border_style="red",
                         subtitle=f"Sensitivity: {args.sensitivity}"
                     ))
