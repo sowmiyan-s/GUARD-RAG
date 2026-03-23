@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guragchat"
+version = "1.0.0"
+description = "Privacy-first, fully offline AI document assistant secured by tiered safety guardrails"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Sowmiyan S"},
+]
+keywords = [
+    "rag",
+    "retrieval-augmented-generation",
+    "langchain",
+    "ollama",
+    "faiss",
+    "embeddings",
+    "chatbot",
+    "llm",
+    "privacy",
+    "offline",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.0",
+    "langchain-community>=0.3.0",
+    "langchain-text-splitters>=0.3.0",
+    "langchain-ollama>=0.2.0",
+    "langchain-huggingface>=0.1.0",
+    "sentence-transformers>=2.7.0",
+    "faiss-cpu>=1.8.0",
+    "pypdf>=4.2.0",
+    "docx2txt>=0.8",
+    "python-dotenv>=1.0.1",
+    "nest_asyncio>=1.6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL"
+Documentation = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL#readme"
+Repository = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL"
+"Bug Tracker" = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL/issues"
+
+[project.scripts]
+guragchat = "guragchat.cli.main:main"
+
+[tool.setuptools]
+packages = ["guragchat"]
+
+[tool.setuptools.package-data]
+guragchat = ["py.typed"]

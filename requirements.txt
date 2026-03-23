@@ -1,0 +1,32 @@
+# Root-level requirements — used by Render and other PaaS platforms
+# that look for requirements.txt in the project root.
+
+uvicorn[standard]>=0.29.0
+fastapi>=0.111.0
+python-multipart>=0.0.9
+
+# LangChain ecosystem — pinned to a known-compatible set
+langchain>=0.3.0,<0.4.0
+langchain-core>=0.3.0,<0.4.0
+langchain-community>=0.3.0,<0.4.0
+langchain-text-splitters>=0.3.0,<0.4.0
+langchain-ollama>=0.2.0,<0.3.0
+langchain-huggingface>=0.1.0,<0.2.0
+
+# Embeddings / ML
+sentence-transformers>=2.7.0
+transformers>=4.40.0
+torch>=2.0.0
+
+# Vector store
+faiss-cpu>=1.8.0
+
+# Document loaders
+pypdf>=4.2.0
+docx2txt>=0.8
+
+# Utilities
+python-dotenv>=1.0.1
+nest_asyncio>=1.6.0
+pydantic>=2.7.0
+gunicorn>=22.0.0
