@@ -22,7 +22,6 @@
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3b82f6?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![PyPI](https://img.shields.io/pypi/v/guard-rag?style=flat-square)](https://pypi.org/project/guard-rag/)
 [![Offline](https://img.shields.io/badge/Mode-100%25%20Offline-76b900?style=flat-square)](#)
-[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-a78bfa?style=flat-square)](#contributing)
 
 <br/>
 
@@ -33,7 +32,7 @@
     <h3>
         <a href="docs/INSTALL.md">📦 Installation</a>
         <span> · </span>
-        <a href="docs/QUICK_REFERENCE.md">📖 Quick Ref</a>
+        <a href="https://github.com/sowmiyan-s/GUARD-RAG">📖 Documentation</a>
         <span> · </span>
         <a href="CONTRIBUTING.md">🤝 Contribute</a>
     </h3>
@@ -43,114 +42,76 @@
 
 ---
 
-## Architecture
+## 🚀 Overview
 
-The GuardRAG package provides a command-line interface for building and querying RAG (Retrieval-Augmented Generation) chatbots with local LLMs.
+**GuardRAG** is a powerful, production-ready command-line tool that lets you chat with your documents offline. By combining **LangChain**, **Ollama**, and **FAISS**, it provides a private alternative to cloud-based RAG solutions. It includes a built-in safety engine that protects sensitive data using a tiered sensitivity system.
 
 ---
 
-## Why GuardRAG?
+## 🛠 Why GuardRAG?
 
 Most RAG chatbots rely on cloud APIs, which creates **privacy risks** for sensitive documents — contracts, medical records, internal reports. GuardRAG solves that by:
 
-- Running the **LLM locally** via Ollama (no data transmitted)
-- Embedding documents **offline** using HuggingFace sentence-transformers
-- Enforcing **tiered safety policies** with 4 sensitivity levels
-- Providing a **simple CLI interface** for easy usage
+- **Local Inference**: Runs models locally via Ollama.
+- **Offline Embeddings**: Uses HuggingFace transformers strictly on your device.
+- **Tiered Safety**: 4 levels of guardrails (Public → Restricted).
+- **Pro Design**: Clean, modern CLI and Web interfaces.
 
 ---
 
-## Feature Highlights
+## ✨ Features
 
-<table>
-<tr>
-<td width="50%">
-
-### Core
-- **100% Offline** — zero external network calls at runtime
-- **Multi-format ingestion** — PDF, TXT, DOCX
-- **Persistent FAISS cache** — same file re-uploads skip re-embedding
-- **Multi-turn conversation** — full history-aware retrieval
-- **Any Ollama model** — Gemma, Llama3, Mistral, Phi, and more
-- **CLI Interface** — easy command-line usage
-
-</td>
-<td width="50%">
-
-### Safety
-- **4-Tier Data Sensitivity System** — Public → Internal → Confidential → Restricted
-- **Jailbreak / prompt injection detection** — always active
-- **Credential & API key protection** — Internal+
-- **PII protection** — SSN, email, phone, DOB, credit card (Confidential+)
-- **Regulated data guards** — HIPAA / GDPR / financial categories (Restricted)
-
-</td>
-</tr>
-</table>
+- **100% Offline** — No network calls at runtime.
+- **Multi-format Support** — PDF, TXT, DOCX.
+- **Persistent Memory** — Disk-cached FAISS indexes for rapid re-queries.
+- **Privacy-First Guardrails** — Integrated protection against jailbreaks and PII leaks.
+- **Built-in Web UI** — Optional browser-based interface included in the package.
 
 ---
 
-## Data Sensitivity Levels
+## ⚙️ Data Sensitivity Tiers
 
-| Level | Badge | What is Protected |
+| Level | Badge | Protection Scope |
 |---|---|---|
-| **Public** | ![](https://img.shields.io/badge/-Public-22c55e?style=flat-square) | Jailbreak & prompt injection only |
-| **Internal** | ![](https://img.shields.io/badge/-Internal-3b82f6?style=flat-square) | + API keys, credentials, passwords, tokens |
-| **Confidential** | ![](https://img.shields.io/badge/-Confidential-eab308?style=flat-square) | + SSN, email, phone number, DOB, credit card |
-| **Restricted** | ![](https://img.shields.io/badge/-Restricted-ef4444?style=flat-square) | + Medical records, diagnoses, financials, HIPAA/GDPR |
+| **Public** | ![](https://img.shields.io/badge/-Public-22c55e?style=flat-square) | Jailbreak & prompt injection detection. |
+| **Internal** | ![](https://img.shields.io/badge/-Internal-3b82f6?style=flat-square) | + API keys, credentials, tokens. |
+| **Confidential** | ![](https://img.shields.io/badge/-Confidential-eab308?style=flat-square) | + SSN, email, phone, DOB, credit cards. |
+| **Restricted** | ![](https://img.shields.io/badge/-Restricted-ef4444?style=flat-square) | + Medical, HIPAA/GDPR, financial data. |
 
 ---
 
-## Tech Stack
+## 📥 Installation
 
-| Layer | Technology |
-|---|---|
-| **CLI Interface** | Python argparse + rich console output |
-| **LLM Engine** | [Ollama](https://ollama.com) — local model inference |
-| **Embeddings** | [HuggingFace](https://huggingface.co) `sentence-transformers/all-MiniLM-L6-v2` |
-| **Vector Store** | [FAISS](https://github.com/facebookresearch/faiss) — disk-persisted |
-| **RAG Pipeline** | [LangChain](https://langchain.com) — retrieval chains + chat history |
-| **Safety Rails** | Custom tiered guardrails system (input + output) |
-
----
-
-## Prerequisites
-
-- **Python 3.9+**
-- **[Ollama](https://ollama.com)** installed and running locally
-- At least one model pulled via Ollama:
-
-```bash
-ollama pull gemma3:1b
-# or any other model: llama3.1, phi3, mistral, etc.
-```
-
----
-
-## Installation
-
-Install GuardRAG from PyPI:
+Install GuardRAG directly from PyPI:
 
 ```bash
 pip install guard-rag
 ```
 
-Or install from source:
-
-```bash
-git clone https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL.git
-cd GUADRAILS-RAG-CHAT-TOOL
-pip install .
-```
+**Prerequisites**:
+- [Ollama](https://ollama.com) installed and running.
+- Pull a model (e.g., `ollama pull gemma3:1b`).
 
 ---
 
-## Quick Start
+## 🏁 Quick Start
 
-After installation, run the CLI:
+Once installed, simply run the `guard-rag` command:
 
+### 1. Simple Interactive Chat
 ```bash
-guard-rag --pdf path/to/your/document.pdf
+guard-rag --pdf my_doc.pdf
+```
+
+### 2. Custom Model & Sensitivity
+```bash
+guard-rag --pdf secret_report.pdf --model llama3.1 --sensitivity Confidential
+```
+
+### 3. Launch Web Interface
+```bash
+# Running without arguments launches the built-in Web UI
+guard-rag
 ```
 
 This will start an interactive chat session with your document.
