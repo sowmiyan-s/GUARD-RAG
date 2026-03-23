@@ -16,7 +16,7 @@ requirements = [r.strip() for r in requirements if r.strip() and not r.startswit
 
 setup(
     name="guard-rag",
-    version="1.0.0",
+    version="1.0.1",
     description="Privacy-first, fully offline AI document assistant secured by tiered safety guardrails",
     long_description=long_description,
     long_description_content_type="text/markdown",
