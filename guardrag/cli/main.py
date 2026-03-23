@@ -44,7 +44,7 @@ from guardrag.utils.safety import check_input_safety, check_output_safety
 load_dotenv()
 
 def display_web_ui_banner():
-    """Display a professional neon-themed banner for the Web UI."""
+    """Display a professional capitalized banner for the Web UI."""
     from guardrag.utils.ollama import is_ollama_running
     
     # Check Ollama status
@@ -53,15 +53,15 @@ def display_web_ui_banner():
 
     banner_text = Text.assemble(
         ("\n    🛡️   ", "bold magenta"),
-        ("guard-rag", "bold magenta"),
+        ("GUARD-RAG", "bold magenta"),
         (" | ", "dim white"),
-        ("guardrails powered offline rag chatbot", "bold cyan"),
-        ("\n    N E O N   E D I T I O N   \n", "italic dim magenta blink")
+        ("GUARDRAILS POWERED OFFLINE RAG CHATBOT", "bold cyan"),
+        ("\n", "")
     )
     
     footer = Text.assemble(
-        ("Developer: ", "dim"), ("Sowmiyan S", "bold yellow"),
-        ("  |  Repository: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline link")
+        ("DEVELOPER: ", "dim"), ("SOWMIYAN S", "bold yellow"),
+        ("  |  REPOSITORY: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline link")
     )
 
     console.print(Align.center(Panel(
@@ -69,15 +69,15 @@ def display_web_ui_banner():
         box=DOUBLE,
         border_style="bold magenta",
         padding=(1, 5),
-        subtitle="[bold yellow]v1.0.1[/bold yellow]",
+        subtitle="[bold yellow]v1.0.3[/bold yellow]",
         expand=False
     )))
     
     table = Table(box=None, show_header=False, padding=(0, 2))
-    table.add_row("🚀 [bold white]Status:[/bold white]", "[bold green]Firing up local engines...[/bold green]")
-    table.add_row("🔗 [bold white]Access:[/bold white]", "[bold blue underline]http://127.0.0.1:8000[/bold blue underline]")
-    table.add_row("🛡️  [bold white]Safety:[/bold white]", "[bold cyan]Active (Offline Mode)[/bold cyan]")
-    table.add_row("🧠 [bold white]Ollama:[/bold white]", ollama_status)
+    table.add_row("🚀 [bold white]STATUS:[/bold white]", "[bold green]FIRING UP LOCAL ENGINES...[/bold green]")
+    table.add_row("🔗 [bold white]ACCESS:[/bold white]", "[bold blue underline]http://127.0.0.1:8000[/bold blue underline]")
+    table.add_row("🛡️  [bold white]SAFETY:[/bold white]", "[bold cyan]ACTIVE (OFFLINE MODE)[/bold cyan]")
+    table.add_row("🧠 [bold white]OLLAMA:[/bold white]", ollama_status)
     
     console.print(Align.center(table))
     console.print(Align.center(footer))
@@ -106,18 +106,18 @@ def run_web_ui():
 
 
 def display_welcome_banner():
-    """Display a professional neon-themed welcome banner."""
+    """Display a professional capitalized welcome banner."""
     banner_text = Text.assemble(
         ("\n    🛡️   ", "bold magenta"),
-        ("guard-rag", "bold magenta"),
+        ("GUARD-RAG", "bold magenta"),
         (" | ", "dim white"),
-        ("guardrails powered offline rag chatbot", "bold cyan"),
-        ("\n    N E O N   E D I T I O N   \n", "italic dim magenta blink")
+        ("GUARDRAILS POWERED OFFLINE RAG CHATBOT", "bold cyan"),
+        ("\n", "")
     )
     
     footer = Text.assemble(
-        ("Author: ", "dim"), ("Sowmiyan S", "bold yellow"),
-        ("  |  GitHub: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline link")
+        ("AUTHOR: ", "dim"), ("SOWMIYAN S", "bold yellow"),
+        ("  |  GITHUB: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline link")
     )
 
     console.print(Align.center(Panel(
@@ -125,7 +125,7 @@ def display_welcome_banner():
         box=DOUBLE,
         border_style="bold magenta",
         padding=(1, 5),
-        subtitle="[bold yellow]v1.0.1[/bold yellow]",
+        subtitle="[bold yellow]v1.0.3[/bold yellow]",
         expand=False
     )))
     console.print(Align.center(footer))
