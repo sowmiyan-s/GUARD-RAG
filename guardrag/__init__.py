@@ -3,7 +3,7 @@ Gurag Chat - A privacy-first, fully offline AI document assistant
 powered by Guardrails, LangChain, Ollama, and HuggingFace embeddings.
 """
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 __author__ = "Sowmiyan S"
 __license__ = "MIT"
 
