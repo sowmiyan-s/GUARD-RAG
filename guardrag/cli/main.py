@@ -18,6 +18,11 @@ from rich.text import Text
 from rich.prompt import Prompt
 from rich.markdown import Markdown
 from rich.theme import Theme
+from rich.table import Table
+from rich.live import Live
+from rich.align import Align
+from rich.box import DOUBLE
+from rich.rule import Rule
 
 custom_theme = Theme({
     "info": "dim cyan",
@@ -57,15 +62,52 @@ def run_web_ui():
 
 
 
+
+
+def display_welcome_banner():
+    """Display a professional welcome banner."""
+    banner_text = Text.assemble(
+        ("\n    🛡️   ", "bold green"),
+        ("Guard", "bold white"),
+        ("RAG", "bold green"),
+        ("\n    Privacy-First Offline AI   \n", "italic dim white")
+    )
+    console.print(Align.center(Panel(
+        banner_text,
+        box=DOUBLE,
+        border_style="green",
+        padding=(1, 5),
+        subtitle="[bold]v1.0.0[/bold]",
+        expand=False
+    )))
+
+def display_session_info(pdf_name, model, sensitivity, guardrails):
+    """Display session configuration in a clean table."""
+    table = Table(title="\n[bold cyan]Session Configuration[/bold cyan]", title_justify="left", box=None, padding=(0, 2))
+    table.add_column("Parameter", style="dim", width=15)
+    table.add_column("Value", style="bold white")
+    
+    table.add_row("📄 Document", pdf_name)
+    table.add_row("🤖 Model", model)
+    table.add_row("🔒 Sensitivity", f"[{'green' if sensitivity == 'Public' else 'yellow' if sensitivity == 'Internal' else 'orange3' if sensitivity == 'Confidential' else 'red'}]{sensitivity}[/]")
+    table.add_row("🛡️ Guardrails", "[green]Enabled[/green]" if guardrails else "[red]Disabled[/red]")
+    table.add_row("👤 Developer", "Sowmiyan S")
+    table.add_row("🔗 GitHub", "[blue]sowmiyan-s[/blue]")
+    
+    console.print(table)
+    console.print(Rule(style="dim"))
+
+
+
 def main():
     """Main CLI entry point."""
     if len(sys.argv) == 1:
         run_web_ui()
         
     parser = argparse.ArgumentParser(
-        prog="guardrag",
+        prog="guard-rag",
         description="GuardRAG - Privacy-first, offline AI document assistant",
-        epilog="GitHub: https://github.com/sowmiyan-s | License: MIT"
+        epilog="Developer: Sowmiyan S | GitHub: https://github.com/sowmiyan-s | License: MIT"
     )
     parser.add_argument(
         "--pdf",
@@ -115,12 +157,14 @@ def main():
     # Validate PDF path
     pdf_path = Path(args.pdf)
     if not pdf_path.exists():
-        print(f"Error: The file '{args.pdf}' does not exist.")
+        console.print(Panel(f"[bold red]Error:[/bold red] The file '{args.pdf}' does not exist.", border_style="red"))
         sys.exit(1)
+    
+    display_welcome_banner()
     
     # Check Ollama
     ollama_host = args.ollama_host.rstrip("/")
-    console.print(f"[info]Checking Ollama at[/info] [bold white]{ollama_host}[/bold white]...")
+    console.print(f"[info]Checking Ollama connectivity at[/info] [bold white]{ollama_host}[/bold white]...")
     
     if not is_ollama_running(ollama_host):
         console.print("[yellow]Ollama is not running. Attempting to start...[/yellow]")
@@ -128,15 +172,15 @@ def main():
             console.print("[bold green]✓ Ollama started successfully[/bold green]")
         else:
             console.print(Panel(
-                "[bold red]✗ Failed to start Ollama.[/bold red]\nEnsure it's installed and configured.\nDownload from: [blue]https://ollama.ai[/blue]",
+                "[bold red]✗ Failed to start Ollama.[/bold red]\nPlease ensure Ollama is installed and the service is active.\nSource: [blue]https://ollama.ai[/blue]",
                 title="Error", border_style="red"
             ))
             sys.exit(1)
     else:
-        console.print("[bold green]✓ Ollama is running[/bold green]")
+        console.print("[bold green]✓ Connection stable[/bold green]")
     
     # Build RAG pipeline
-    console.print(f"\n[cyan]Building RAG pipeline with[/cyan] [bold white]{args.model}[/bold white]...")
+    console.print(f"\n[cyan]Initializing neural engine with[/cyan] [bold white]{args.model}[/bold white]...")
     try:
         db_id, rag_chain = build_rag_chain(
             [str(pdf_path)],
@@ -146,42 +190,32 @@ def main():
             ollama_host=ollama_host
         )
     except Exception as e:
-        console.print(f"[bold red]✗ Error building RAG pipeline: {e}[/bold red]")
+        console.print(f"[bold red]✗ Pipeline initialization failed: {e}[/bold red]")
         sys.exit(1)
     
-    # Start chat loop
-    welcome_text = (
-        f"📄 [bold]Document:[/bold] {pdf_path.name}\n"
-        f"🤖 [bold]Model:[/bold] {args.model}\n"
-        f"🔒 [bold]Sensitivity:[/bold] {args.sensitivity}\n\n"
-        f"[dim]Type 'exit', 'quit', or press Ctrl+C to stop.[/dim]"
+    # Session Summary Table
+    display_session_info(
+        pdf_name=pdf_path.name,
+        model=args.model,
+        sensitivity=args.sensitivity,
+        guardrails=not args.no_guardrails
     )
     
-    if args.no_guardrails:
-        welcome_text = "[bold yellow]⚠️  Guardrails DISABLED[/bold yellow]\n\n" + welcome_text
-        
-    console.print()
-    console.print(Panel(
-        welcome_text,
-        title="[bold green]GuardRAG[/bold green] - Privacy-first AI",
-        subtitle="[bold]Developer:[/bold] Sowmiyan S | [blue]github.com/sowmiyan-s[/blue]",
-        border_style="green",
-        expand=False
-    ))
-    console.print()
+    console.print("\n[dim]Ready for queries. Type 'exit' to quit.[/dim]\n")
     
     messages = []
     enable_guardrails = not args.no_guardrails
     
     while True:
         try:
-            question = Prompt.ask("[bold cyan]You[/bold cyan]").strip()
+            # Enhanced prompt
+            question = Prompt.ask(f"[bold cyan]Query document ({pdf_path.name})[/bold cyan]").strip()
             
             if not question:
                 continue
             
             if question.lower() in ["exit", "quit"]:
-                console.print("\n[dim]Goodbye![/dim]")
+                console.print("\n[bold green]✓[/bold green] [dim]Ending session. Goodbye![/dim]")
                 break
             
             # Safety check: input
@@ -192,7 +226,12 @@ def main():
                     enabled=True
                 )
                 if blocked:
-                    console.print(Panel(f"[bold red]{blocked}[/bold red]", title="🛡️ GuardRAG Block", border_style="red"))
+                    console.print(Panel(
+                        f"[bold red]{blocked}[/bold red]", 
+                        title="🛡️ GuardRAG Security Block", 
+                        border_style="red",
+                        subtitle=f"Sensitivity: {args.sensitivity}"
+                    ))
                     continue
             
             # Build message history
@@ -206,8 +245,7 @@ def main():
             
             # Get response
             try:
-                import time
-                with console.status("[bold green]Thinking...[/bold green]"):
+                with console.status(f"[bold green]Scanning knowledge base for {args.model}...[/bold green]"):
                     result = rag_chain.invoke({
                         "input": question,
                         "chat_history": chat_history
@@ -228,8 +266,15 @@ def main():
                     if blocked_out:
                         answer = f"[bold red]{blocked_out}[/bold red]"
                 
+                # Output Panel
                 console.print()
-                console.print(Panel(Markdown(answer), title="[bold green]Assistant[/bold green]", border_style="green", title_align="left"))
+                console.print(Panel(
+                    Markdown(answer or ""), 
+                    title=f"[bold green]Assistant ({args.model})[/bold green]", 
+                    border_style="green", 
+                    title_align="left",
+                    padding=(1, 2)
+                ))
                 console.print()
                 
                 # Store in history
@@ -237,10 +282,10 @@ def main():
                 messages.append({"role": "assistant", "content": answer})
                 
             except Exception as e:
-                console.print(f"\n[bold red]✗ Error generating response: {e}[/bold red]\n")
+                console.print(f"\n[bold red]✗ Inference error: {e}[/bold red]\n")
         
         except KeyboardInterrupt:
-            console.print("\n\n[dim]Goodbye![/dim]")
+            console.print("\n\n[bold green]✓[/bold green] [dim]Session terminated by user.[/dim]")
             break
 
 

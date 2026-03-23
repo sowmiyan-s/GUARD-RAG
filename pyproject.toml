@@ -39,6 +39,14 @@ dependencies = [
     "nest_asyncio>=1.6.0",
     "rich>=13.0.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.3.0",
+    "mypy>=1.9.0",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -56,10 +64,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL"
-Documentation = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL#readme"
-Repository = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL"
-"Bug Tracker" = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL/issues"
+Homepage = "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL"
+Documentation = "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL#readme"
+Repository = "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL"
+"Bug Tracker" = "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL/issues"
 
 [project.scripts]
 guard-rag = "guardrag.cli.main:main"
@@ -70,3 +78,17 @@ include = ["guardrag*"]
 
 [tool.setuptools.package-data]
 guardrag = ["py.typed"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B"]
+ignore = ["E501"] # Ignore line length errors (let the formatter handle it)
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

@@ -15,9 +15,9 @@ pip install guard-rag
 To install from the local source directory:
 
 ```bash
-git clone https://github.com/sowmiyan-s/GUARDRAILS-LOCAL-RAG-WEBSITE
-cd GUARDRAILS-LOCAL-RAG-WEBSITE
-pip install -e .
+git clone https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL.git
+cd GUADRAILS-RAG-CHAT-TOOL
+pip install .
 ```
 
 Or with dependencies:
@@ -159,18 +159,16 @@ Supported models:
 ```
 guardrag/
 ├── __init__.py           # Package entry point
+├── api/                  # FastAPI local server
+│   ├── frontend/         # Static web interface files
+│   └── main.py           # Web application logic
 ├── cli/
-│   ├── __init__.py
-│   └── main.py          # Command-line interface
+│   └── main.py           # Command-line interface logic
 ├── rag/
-│   ├── __init__.py
-│   └── core.py          # RAG pipeline implementation
-├── utils/
-│   ├── __init__.py
-│   ├── ollama.py        # Ollama utilities
-│   └── safety.py        # Safety guardrails
-└── api/
-    └── __init__.py      # (For future FastAPI backend)
+│   └── core.py           # RAG pipeline implementation
+└── utils/
+    ├── ollama.py         # Ollama utilities
+    └── safety.py         # Safety guardrails
 ```
 
 ## Configuration
@@ -255,8 +253,8 @@ To set up a development environment:
 
 ```bash
 # Clone repository
-git clone https://github.com/sowmiyan-s/GUARDRAILS-LOCAL-RAG-WEBSITE
-cd GUARDRAILS-LOCAL-RAG-WEBSITE
+git clone https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL.git
+cd GUADRAILS-RAG-CHAT-TOOL
 
 # Create virtual environment
 python -m venv venv
@@ -276,7 +274,7 @@ MIT License - See LICENSE file for details
 ## Support
 
 For issues, questions, or contributions, please visit:
-https://github.com/sowmiyan-s/GUARDRAILS-LOCAL-RAG-WEBSITE
+https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL
 
 ## Citation
 
@@ -287,6 +285,6 @@ If you use GuardRAG in your research or project, please cite:
   title = {GuardRAG: Privacy-First Offline AI Document Assistant},
   author = {Sowmiyan S},
   year = {2024},
-  url = {https://github.com/sowmiyan-s/GUARDRAILS-LOCAL-RAG-WEBSITE}
+  url = {https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL}
 }
 ```

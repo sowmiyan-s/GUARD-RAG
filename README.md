@@ -29,9 +29,17 @@
 > Upload any document. Ask anything. Get answers — **entirely on your machine.**  
 > No cloud. No API keys. No data leaves your device.
 
-<br/>
-
+<div align="center">
+    <h3>
+        <a href="docs/INSTALL.md">📦 Installation</a>
+        <span> · </span>
+        <a href="docs/QUICK_REFERENCE.md">📖 Quick Ref</a>
+        <span> · </span>
+        <a href="CONTRIBUTING.md">🤝 Contribute</a>
+    </h3>
 </div>
+
+<br/>
 
 ---
 
@@ -130,7 +138,7 @@ pip install guard-rag
 Or install from source:
 
 ```bash
-git clone https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL.git
+git clone https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL.git
 cd GUADRAILS-RAG-CHAT-TOOL
 pip install .
 ```
@@ -178,27 +186,25 @@ guard-rag --pdf report.pdf --model llama3.1 --sensitivity Confidential
 GUADRAILS-RAG-CHAT-TOOL/
 │
 ├── guardrag/                 # Main installable package
-│   ├── __init__.py
-│   ├── cli/
-│   │   └── main.py            # CLI entry point (guardrag command)
-│   ├── rag/
-│   │   └── core.py            # RAG pipeline: load, embed, retrieve, answer
-│   └── utils/
-│       ├── safety.py          # Tiered guardrails & content filtering
-│       └── ollama.py          # Ollama process management utilities
+│   ├── api/                  # FastAPI local server
+│   ├── cli/                  # Command-line interface
+│   ├── rag/                  # RAG pipeline logic
+│   └── utils/                # General utilities
 │
-├── pyproject.toml             # PEP 517/518 build config (PyPI metadata)
-├── setup.py                   # Legacy setuptools compatibility
-├── MANIFEST.in                # Source distribution file inclusions
-├── requirements.txt           # Full dependency list
-├── .env.example               # Environment variable template
-├── INSTALL.md                 # Detailed installation guide
-├── QUICK_REFERENCE.md         # CLI quick reference card
-├── LICENSE
-└── README.md
+├── docs/                     # Documentation (INSTALL, QUICK_REFERENCE)
+├── tests/                    # Unit and integration tests
+├── scripts/                  # Development and maintenance scripts
+├── extras/                   # Experimental / legacy components
+│
+├── pyproject.toml             # Modern build configuration
+├── setup.py                   # Legacy support configuration
+├── README.md                  # Project overview
+├── CONTRIBUTING.md            # Contribution guidelines
+├── CODE_OF_CONDUCT.md         # Community standards
+└── LICENSE                    # MIT License open source
 ```
 
-> `.guardrag_storage/` is auto-generated on first document load (FAISS cache) and excluded from version control.
+> `.guardrag_storage/` is auto-generated on first document load (FAISS cache).
 
 ---
 
@@ -239,7 +245,7 @@ pip install guard-rag
 ### From Source
 
 ```bash
-git clone https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL.git
+git clone https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL.git
 cd GUADRAILS-RAG-CHAT-TOOL
 pip install .
 ```
@@ -260,14 +266,9 @@ pip install guard-rag
 
 ## Contributing
 
-Contributions are welcome. Please follow these steps:
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
 
-1. **Fork** the repository
-2. **Create** a feature branch: `git checkout -b feat/your-feature`
-3. **Commit** using [Conventional Commits](https://www.conventionalcommits.org/): `git commit -m "feat: add X"`
-4. **Push** and open a **Pull Request**
-
-Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/sowmiyan-s/guardrails-local-rag-bot/issues).
+Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL/issues).
 
 ---
 

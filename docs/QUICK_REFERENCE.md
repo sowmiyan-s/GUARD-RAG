@@ -208,12 +208,10 @@ from guardrag.utils.safety import check_input_safety
 
 ```
 guardrag/
-├── cli/main.py          - CLI interface
-├── rag/core.py          - RAG pipeline
-├── utils/
-│   ├── ollama.py        - Ollama utilities
-│   └── safety.py        - Safety guardrails
-└── api/                 - (Future API)
+├── api/          - Web server & interface
+├── cli/          - Command-line interface
+├── rag/          - Core RAG pipeline
+└── utils/        - Support utilities
 ```
 
 ## Links

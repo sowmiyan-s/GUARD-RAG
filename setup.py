@@ -23,11 +23,11 @@ setup(
     author="Sowmiyan S",
     author_email="",
     license="MIT",
-    url="https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL",
+    url="https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL",
     project_urls={
-        "Documentation": "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL#readme",
-        "Source Code": "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL",
-        "Bug Tracker": "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL/issues",
+        "Documentation": "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL#readme",
+        "Source Code": "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL",
+        "Bug Tracker": "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL/issues",
     },
     
     packages=find_packages(include=["guardrag", "guardrag.*"]),
