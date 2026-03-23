@@ -44,13 +44,19 @@ from guardrag.utils.safety import check_input_safety, check_output_safety
 load_dotenv()
 
 def display_web_ui_banner():
-    """Display a professional banner for the Web UI."""
+    """Display a professional neon-themed banner for the Web UI."""
+    from guardrag.utils.ollama import is_ollama_running
+    
+    # Check Ollama status
+    ollama_active = is_ollama_running("http://localhost:11434")
+    ollama_status = "[bold green]ONLINE[/bold green]" if ollama_active else "[bold red]OFFLINE / NOT FOUND[/bold red]"
+
     banner_text = Text.assemble(
-        ("\n    🌐   ", "bold blue"),
-        ("Guard", "bold white"),
-        ("RAG", "bold blue"),
-        ("  -  Local Web Node", "bold cyan"),
-        ("\n    Secure Offline Document Intelligence   \n", "italic dim white")
+        ("\n    🛡️   ", "bold magenta"),
+        ("guard-rag", "bold magenta"),
+        (" | ", "dim white"),
+        ("guardrails powered offline rag chatbot", "bold cyan"),
+        ("\n    N E O N   E D I T I O N   \n", "italic dim magenta blink")
     )
     
     footer = Text.assemble(
@@ -61,20 +67,21 @@ def display_web_ui_banner():
     console.print(Align.center(Panel(
         banner_text,
         box=DOUBLE,
-        border_style="blue",
+        border_style="bold magenta",
         padding=(1, 5),
-        subtitle="[bold]v1.0.1[/bold]",
+        subtitle="[bold yellow]v1.0.1[/bold yellow]",
         expand=False
     )))
     
     table = Table(box=None, show_header=False, padding=(0, 2))
-    table.add_row("🚀 [bold white]Status:[/bold white]", "[green]Firing up local engines...[/green]")
-    table.add_row("🔗 [bold white]Access:[/bold white]", "[blue underline]http://127.0.0.1:8000[/blue underline]")
-    table.add_row("🛡️  [bold white]Safety:[/bold white]", "[cyan]Active (Offline Mode)[/cyan]")
+    table.add_row("🚀 [bold white]Status:[/bold white]", "[bold green]Firing up local engines...[/bold green]")
+    table.add_row("🔗 [bold white]Access:[/bold white]", "[bold blue underline]http://127.0.0.1:8000[/bold blue underline]")
+    table.add_row("🛡️  [bold white]Safety:[/bold white]", "[bold cyan]Active (Offline Mode)[/bold cyan]")
+    table.add_row("🧠 [bold white]Ollama:[/bold white]", ollama_status)
     
     console.print(Align.center(table))
     console.print(Align.center(footer))
-    console.print(Rule(style="dim blue"))
+    console.print(Rule(style="bold magenta"))
 
 def run_web_ui():
     """Launch the internal FastAPI web application."""
@@ -90,7 +97,8 @@ def run_web_ui():
         webbrowser.open("http://127.0.0.1:8000")
         
     threading.Thread(target=open_browser, daemon=True).start()
-    uvicorn.run("guardrag.api.main:app", host="127.0.0.1", port=8000, log_level="warning")
+    # Reduced log level to hide unwanted server dump info
+    uvicorn.run("guardrag.api.main:app", host="127.0.0.1", port=8000, log_level="error")
     sys.exit(0)
 
 
@@ -98,29 +106,30 @@ def run_web_ui():
 
 
 def display_welcome_banner():
-    """Display a professional welcome banner."""
+    """Display a professional neon-themed welcome banner."""
     banner_text = Text.assemble(
-        ("\n    🛡️   ", "bold green"),
-        ("Guard", "bold white"),
-        ("RAG", "bold green"),
-        ("  -  Neural Engine", "bold cyan"),
-        ("\n    Privacy-First Offline AI Document Assistant   \n", "italic dim white")
+        ("\n    🛡️   ", "bold magenta"),
+        ("guard-rag", "bold magenta"),
+        (" | ", "dim white"),
+        ("guardrails powered offline rag chatbot", "bold cyan"),
+        ("\n    N E O N   E D I T I O N   \n", "italic dim magenta blink")
     )
     
     footer = Text.assemble(
         ("Author: ", "dim"), ("Sowmiyan S", "bold yellow"),
-        ("  |  GitHub: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline")
+        ("  |  GitHub: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline link")
     )
 
     console.print(Align.center(Panel(
         banner_text,
         box=DOUBLE,
-        border_style="green",
+        border_style="bold magenta",
         padding=(1, 5),
-        subtitle="[bold]v1.0.1[/bold]",
+        subtitle="[bold yellow]v1.0.1[/bold yellow]",
         expand=False
     )))
     console.print(Align.center(footer))
+    console.print(Rule(style="bold magenta"))
 
 def display_session_info(pdf_name, model, sensitivity, guardrails):
     """Display session configuration in a clean table."""
@@ -203,10 +212,7 @@ def main():
     
     display_welcome_banner()
     
-    # Check Ollama
-    ollama_host = args.ollama_host.rstrip("/")
-    console.print(f"[info]Checking Ollama connectivity at[/info] [bold white]{ollama_host}[/bold white]...")
-    
+    # Check Ollama quietly
     if not is_ollama_running(ollama_host):
         console.print("[yellow]Ollama is not running. Attempting to start...[/yellow]")
         if start_ollama_server():
