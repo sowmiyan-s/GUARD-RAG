@@ -69,7 +69,7 @@ def display_web_ui_banner():
         box=DOUBLE,
         border_style="bold magenta",
         padding=(1, 5),
-        subtitle="[bold yellow]v1.0.3[/bold yellow]",
+        subtitle="[bold yellow]v1.0.4[/bold yellow]",
         expand=False
     )))
     
@@ -107,7 +107,6 @@ def run_web_ui():
 def display_welcome_banner():
     """Display a professional capitalized welcome banner."""
     banner_text = Text.assemble(
-        ("\n    🛡️   ", "bold magenta"),
         ("GUARD-RAG", "bold magenta"),
         (" | ", "dim white"),
         ("GUARDRAILS POWERED OFFLINE RAG CHATBOT", "bold cyan"),
@@ -124,7 +123,7 @@ def display_welcome_banner():
         box=DOUBLE,
         border_style="bold magenta",
         padding=(1, 5),
-        subtitle="[bold yellow]v1.0.3[/bold yellow]",
+        subtitle="[bold yellow]v1.0.4[/bold yellow]",
         expand=False
     )))
     console.print(Align.center(footer))
