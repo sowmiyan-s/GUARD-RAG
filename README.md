@@ -1,241 +1,110 @@
 <div align="center">
 
-<br/>
+# 🛡️ GuardRAG
 
-<img src="https://img.shields.io/badge/LangChain-RAG-311b92?style=for-the-badge&logo=chainlink&logoColor=white"/>
-&nbsp;
-<img src="https://img.shields.io/badge/Ollama-Local%20LLM-black?style=for-the-badge&logo=ollama&logoColor=white"/>
-&nbsp;
-<img src="https://img.shields.io/badge/FAISS-Vector%20Store-0064A4?style=for-the-badge&logo=meta&logoColor=white"/>
-&nbsp;
-<img src="https://img.shields.io/badge/CLI-Command%20Line-000000?style=for-the-badge&logo=terminal&logoColor=white"/>
-
-<br/><br/>
-
-# GuardRAG
-
-### A privacy-first, fully offline AI document assistant — secured by a tiered safety guardrails system
+### Privacy-First, Fully Offline AI Document Assistant
+**Secured by a Tiered Safety Guardrails System**
 
 <br/>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-22c55e?style=flat-square)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-3b82f6?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![PyPI](https://img.shields.io/pypi/v/guard-rag?style=flat-square)](https://pypi.org/project/guard-rag/)
-[![Offline](https://img.shields.io/badge/Mode-100%25%20Offline-76b900?style=flat-square)](#)
+![Python](https://img.shields.io/badge/Python-3.9%2B-3b82f6?style=for-the-badge&logo=python&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-black?style=for-the-badge&logo=ollama&logoColor=white)
+![FAISS](https://img.shields.io/badge/FAISS-Vector%20Store-0064A4?style=for-the-badge&logo=meta&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)
 
 <br/>
 
-> Upload any document. Ask anything. Get answers — **entirely on your machine.**  
-> No cloud. No API keys. No data leaves your device.
+> **Upload any document. Ask anything. Get answers — entirely on your local machine.**  
+> No cloud dependencies. No API keys. No data ever leaves your device.
 
-<div align="center">
-    <h3>
-        <a href="docs/INSTALL.md">📦 Installation</a>
-        <span> · </span>
-        <a href="https://github.com/sowmiyan-s/GUARD-RAG">📖 Documentation</a>
-        <span> · </span>
-        <a href="CONTRIBUTING.md">🤝 Contribute</a>
-    </h3>
 </div>
 
-<br/>
-
 ---
 
-## 🚀 Overview
+## 💡 Use Cases
 
-**GuardRAG** is a powerful, production-ready command-line tool that lets you chat with your documents offline. By combining **LangChain**, **Ollama**, and **FAISS**, it provides a private alternative to cloud-based RAG solutions. It includes a built-in safety engine that protects sensitive data using a tiered sensitivity system.
+**GuardRAG** is designed for professionals and organizations that handle sensitive data and require the power of LLMs without compromising privacy.
 
----
-
-## 🛠 Why GuardRAG?
-
-Most RAG chatbots rely on cloud APIs, which creates **privacy risks** for sensitive documents — contracts, medical records, internal reports. GuardRAG solves that by:
-
-- **Local Inference**: Runs models locally via Ollama.
-- **Offline Embeddings**: Uses HuggingFace transformers strictly on your device.
-- **Tiered Safety**: 4 levels of guardrails (Public → Restricted).
-- **Pro Design**: Clean, modern CLI and Web interfaces.
-
----
-
-## ✨ Features
-
-- **100% Offline** — No network calls at runtime.
-- **Multi-format Support** — PDF, TXT, DOCX.
-- **Persistent Memory** — Disk-cached FAISS indexes for rapid re-queries.
-- **Privacy-First Guardrails** — Integrated protection against jailbreaks and PII leaks.
-- **Built-in Web UI** — Optional browser-based interface included in the package.
+*   **🔒 Secure Document Analysis**: Chat with confidential contracts, internal financial reports, or legal documents without uploading them to a cloud provider.
+*   **🏥 Healthcare & Privacy**: Analyze medical records or research data locally, ensuring compliance with privacy standards like HIPAA or GDPR through integrated PII detection.
+*   **💻 Offline Research**: Work on-the-go or in air-gapped environments. Once the models are downloaded, no internet connection is required.
+*   **🛠️ Developer Productivity**: Quickly query local documentation or large codebases (via text/PDF) using a streamlined CLI or Web interface.
 
 ---
 
 ## ⚙️ Data Sensitivity Tiers
 
-| Level | Badge | Protection Scope |
-|---|---|---|
-| **Public** | ![](https://img.shields.io/badge/-Public-22c55e?style=flat-square) | Jailbreak & prompt injection detection. |
-| **Internal** | ![](https://img.shields.io/badge/-Internal-3b82f6?style=flat-square) | + API keys, credentials, tokens. |
-| **Confidential** | ![](https://img.shields.io/badge/-Confidential-eab308?style=flat-square) | + SSN, email, phone, DOB, credit cards. |
-| **Restricted** | ![](https://img.shields.io/badge/-Restricted-ef4444?style=flat-square) | + Medical, HIPAA/GDPR, financial data. |
+Protect your information using our built-in safety engine:
+
+| Level | Protection Scope |
+| :--- | :--- |
+| **🟢 Public** | Detects jailbreaks and basic prompt injections. |
+| **🔵 Internal** | Adds detection for API keys, credentials, and tokens. |
+| **🟡 Confidential** | Protects SSNs, emails, phone numbers, and credit card info. |
+| **🔴 Restricted** | Strict protection for medical history, HIPAA/GDPR, and financial data. |
 
 ---
 
 ## 📥 Installation
 
-Install GuardRAG directly from PyPI:
+Install the package directly from PyPI:
 
 ```bash
 pip install guard-rag
 ```
 
-**Prerequisites**:
-- [Ollama](https://ollama.com) installed and running.
-- Pull a model (e.g., `ollama pull gemma3:1b`).
+### Prerequisites
+1.  **Ollama**: Download and install from [ollama.com](https://ollama.com).
+2.  **Model**: Pull a model to use locally (e.g., `ollama pull gemma2:2b` or `llama3`).
 
 ---
 
-## 🏁 Quick Start
+## 🚀 Commands & Usage
 
-Once installed, simply run the `guard-rag` command:
+GuardRAG provides a flexible CLI to interact with your documents.
 
-### 1. Simple Interactive Chat
+### 1. Launch the Web Interface
+Simply run the command with no arguments to start the local server and open the UI in your browser:
 ```bash
-guard-rag --pdf my_doc.pdf
-```
-
-### 2. Custom Model & Sensitivity
-```bash
-guard-rag --pdf secret_report.pdf --model llama3.1 --sensitivity Confidential
-```
-
-### 3. Launch Web Interface
-```bash
-# Running without arguments launches the built-in Web UI
 guard-rag
 ```
 
-This will start an interactive chat session with your document.
-
-### CLI Options
-
-```
-guard-rag --pdf <file>             Load and chat with a PDF document
-          --model <model>          Ollama model to use (default: gemma3:1b)
-          --ollama-host <url>      Ollama server URL (default: http://localhost:11434)
-          --chunk-size <int>       Document chunk size (default: 1000)
-          --chunk-overlap <int>    Chunk overlap (default: 200)
-          --sensitivity <level>    Data sensitivity: Public | Internal | Confidential | Restricted
-          --no-guardrails          Disable safety guardrails
-          --help                   Show this help message
-```
-
-### Example Session
-
+### 2. Chat with a Document via CLI
+Start an interactive chat session directly in your terminal:
 ```bash
-# Start with a PDF using Llama 3.1
-guard-rag --pdf report.pdf --model llama3.1 --sensitivity Confidential
-
-# You: What are the key findings?
-# Chatbot: Based on the document, the key findings are...
+guard-rag --pdf path/to/my_document.pdf
 ```
+
+### 3. Advanced Configuration
+Customize the model, server, and safety levels:
+```bash
+guard-rag --pdf report.pdf --model llama3 --sensitivity Confidential --chunk-size 1000
+```
+
+### 📖 Available CLI Options
+
+| Argument | Description | Default |
+| :--- | :--- | :--- |
+| `--pdf <file>` | Path to the PDF document you want to analyze. | Required for CLI |
+| `--model <name>` | The Ollama model to use for inference. | `gemma2:2b` |
+| `--ollama-host` | The URL of your Ollama server. | `http://localhost:11434` |
+| `--sensitivity` | Safety level: `Public`, `Internal`, `Confidential`, `Restricted`. | `Public` |
+| `--chunk-size` | Size of document chunks for processing. | `1000` |
+| `--no-guardrails` | Disable all safety checks (not recommended). | `False` |
+| `--help` | Show all available commands and flags. | - |
 
 ---
 
-## Project Structure
-
-```
-GUADRAILS-RAG-CHAT-TOOL/
-│
-├── guardrag/                 # Main installable package
-│   ├── api/                  # FastAPI local server
-│   ├── cli/                  # Command-line interface
-│   ├── rag/                  # RAG pipeline logic
-│   └── utils/                # General utilities
-│
-├── docs/                     # Documentation (INSTALL, QUICK_REFERENCE)
-├── tests/                    # Unit and integration tests
-├── scripts/                  # Development and maintenance scripts
-├── extras/                   # Experimental / legacy components
-│
-├── pyproject.toml             # Modern build configuration
-├── setup.py                   # Legacy support configuration
-├── README.md                  # Project overview
-├── CONTRIBUTING.md            # Contribution guidelines
-├── CODE_OF_CONDUCT.md         # Community standards
-└── LICENSE                    # MIT License open source
-```
-
-> `.guardrag_storage/` is auto-generated on first document load (FAISS cache).
-
----
-
-## Configuration
-
-### Environment Variables
-
-Copy `.env.example` to `.env` and adjust as needed:
+## 🛠️ Quick Example Session
 
 ```bash
-cp .env.example .env
+# Start a confidential session with a specific model
+guard-rag --pdf Q4_Internal_Report.pdf --model llama3 --sensitivity Confidential
+
+# Chatbot: [Q4_Internal_Report.pdf Loaded] How can I help you?
+# You: What were the total earnings mentioned in the summary?
+# Chatbot: Based on the document, the total earnings for Q4 were $2.4M...
 ```
-
-| Variable | Default | Description |
-|---|---|---|
-| `OLLAMA_HOST` | `http://localhost:11434` | Ollama API endpoint |
-| `NO_PROXY` | `huggingface.co,...` | Bypass proxy for local+HF calls |
-| `PORT` | `8000` | Server port (auto-set by PaaS) |
-
-### Chunking Parameters
-
-Adjustable per-session via the sidebar in the UI:
-- **Chunk Size** (default 1000 chars)
-- **Chunk Overlap** (default 200 chars)
-
-Different chunk settings for the same file produce a separate FAISS index automatically.
-
----
-
-## Deployment
-
-### From PyPI (recommended)
-
-```bash
-pip install guard-rag
-```
-
-### From Source
-
-```bash
-git clone https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL.git
-cd GUADRAILS-RAG-CHAT-TOOL
-pip install .
-```
-
-### In a virtual environment (best practice)
-
-```bash
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# macOS / Linux:
-source .venv/bin/activate
-
-pip install guard-rag
-```
-
----
-
-## Contributing
-
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
-
-Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL/issues).
-
----
-
-## License
-
-This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
 ---
 
@@ -243,6 +112,6 @@ This project is licensed under the **MIT License** — see [LICENSE](LICENSE) fo
 
 Built with ❤️ by **[Sowmiyan S](https://github.com/sowmiyan-s)**
 
-*FastAPI · LangChain · Ollama · HuggingFace · FAISS · Vanilla JS*
+[GitHub](https://github.com/sowmiyan-s/GUARD-RAG) · [PyPI](https://pypi.org/project/guard-rag/) · [Documentation](docs/INSTALL.md)
 
 </div>
