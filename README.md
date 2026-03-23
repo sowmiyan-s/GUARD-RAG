@@ -147,99 +147,58 @@ guragchat --pdf path/to/your/document.pdf
 
 This will start an interactive chat session with your document.
 
-### Options
+### CLI Options
 
-- `--pdf <file>`: Load a PDF document
-- `--txt <file>`: Load a text file
-- `--docx <file>`: Load a Word document
-- `--model <model>`: Specify Ollama model (default: gemma3:1b)
-- `--safety <level>`: Set safety level (public, internal, confidential, restricted)
-- `--help`: Show help
-
-# macOS / Linux
-source .venv/bin/activate
-
-# 3. Install backend dependencies
-pip install -r backend/requirements.txt
-
-# 4. Start the server
-uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+```
+guragchat --pdf <file>             Load and chat with a PDF document
+          --model <model>          Ollama model to use (default: gemma3:1b)
+          --ollama-host <url>      Ollama server URL (default: http://localhost:11434)
+          --chunk-size <int>       Document chunk size (default: 1000)
+          --chunk-overlap <int>    Chunk overlap (default: 200)
+          --sensitivity <level>    Data sensitivity: Public | Internal | Confidential | Restricted
+          --no-guardrails          Disable safety guardrails
+          --help                   Show this help message
 ```
 
-### Option 4 — Docker
+### Example Session
 
 ```bash
-# Build and run (Ollama must be running on the host)
-docker compose up --build
+# Start with a PDF using Llama 3.1
+guragchat --pdf report.pdf --model llama3.1 --sensitivity Confidential
+
+# You: What are the key findings?
+# Chatbot: Based on the document, the key findings are...
 ```
-
-Or without Compose:
-
-```bash
-docker build -t rag-bot .
-docker run -p 8000:8000 \
-  -e OLLAMA_HOST=http://host.docker.internal:11434 \
-  --add-host=host.docker.internal:host-gateway \
-  rag-bot
-```
-
----
-
-## API Endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/health` | Ollama status, installed models, sensitivity profiles |
-| `POST` | `/api/ollama/start` | Attempt to start the local Ollama process |
-| `POST` | `/api/upload` | Upload documents and build the RAG chain |
-| `POST` | `/api/chat` | Send a question, receive a guardrail-checked answer |
-| `POST` | `/api/clear` | Clear conversation history for a session |
-| `GET` | `/` | Serve the frontend web app |
-
-Interactive API docs available at **[http://localhost:8000/docs](http://localhost:8000/docs)** (Swagger UI).
 
 ---
 
 ## Project Structure
 
 ```
-guardrails-local-rag-bot/
+GUADRAILS-RAG-CHAT-TOOL/
 │
-├── backend/
-│   ├── main.py               # FastAPI application — all API routes & RAG logic
+├── guragchat/                 # Main installable package
 │   ├── __init__.py
-│   └── requirements.txt      # Backend Python dependencies
+│   ├── cli/
+│   │   └── main.py            # CLI entry point (guragchat command)
+│   ├── rag/
+│   │   └── core.py            # RAG pipeline: load, embed, retrieve, answer
+│   └── utils/
+│       ├── safety.py          # Tiered guardrails & content filtering
+│       └── ollama.py          # Ollama process management utilities
 │
-├── frontend/
-│   ├── index.html            # Single-page web app
-│   └── static/
-│       ├── style.css         # UI styles
-│       └── app.js            # Frontend logic
-│
-├── guardrails_config/        # Safety rail configuration (colang + YAML)
-│   ├── config.yml
-│   ├── prompts.yml
-│   ├── safety.co
-│   └── off_topic.co
-│
-├── assets/
-│   └── architecture.svg      # System architecture diagram
-│
-├── Dockerfile                # Docker image definition
-├── docker-compose.yml        # One-command Docker setup
-├── Procfile                  # Render / Railway deployment
-├── runtime.txt               # Python version pin for PaaS
-├── requirements.txt          # Root-level requirements (mirrors backend/)
-├── start.bat                 # Windows quick-start script
-├── start.sh                  # macOS/Linux quick-start script
-├── .env.example              # Environment variable template
-├── .gitignore
-├── .dockerignore
+├── pyproject.toml             # PEP 517/518 build config (PyPI metadata)
+├── setup.py                   # Legacy setuptools compatibility
+├── MANIFEST.in                # Source distribution file inclusions
+├── requirements.txt           # Full dependency list
+├── .env.example               # Environment variable template
+├── INSTALL.md                 # Detailed installation guide
+├── QUICK_REFERENCE.md         # CLI quick reference card
 ├── LICENSE
 └── README.md
 ```
 
-> `.faiss_storage/` is auto-generated on first document upload and excluded from version control (and Docker builds).
+> `.guragchat_storage/` is auto-generated on first document load (FAISS cache) and excluded from version control.
 
 ---
 
@@ -271,30 +230,30 @@ Different chunk settings for the same file produce a separate FAISS index automa
 
 ## Deployment
 
-### Render
-
-1. Connect your GitHub repository to [Render](https://render.com)
-2. Choose **Web Service** → **Python**
-3. Set **Build Command**: `pip install -r backend/requirements.txt`
-4. Set **Start Command**: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-5. Add env var: `OLLAMA_HOST` → your Ollama endpoint
-
-> **Note:** This app uses a **local Ollama instance** for LLM inference. For cloud deployment you need either a self-hosted Ollama server or a compatible OpenAI-style API endpoint.
-
-### Railway
+### From PyPI (recommended)
 
 ```bash
-railway login
-railway init
-railway up
+pip install guragchat
 ```
 
-The `Procfile` is picked up automatically.
-
-### Docker (self-hosted)
+### From Source
 
 ```bash
-docker compose up -d
+git clone https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL.git
+cd GUADRAILS-RAG-CHAT-TOOL
+pip install .
+```
+
+### In a virtual environment (best practice)
+
+```bash
+python -m venv .venv
+# Windows:
+.venv\Scripts\activate
+# macOS / Linux:
+source .venv/bin/activate
+
+pip install guragchat
 ```
 
 ---

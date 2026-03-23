@@ -7,6 +7,7 @@ name = "guragchat"
 version = "1.0.0"
 description = "Privacy-first, fully offline AI document assistant secured by tiered safety guardrails"
 readme = "README.md"
+long_description_content_type = "text/markdown"
 license = {text = "MIT"}
 authors = [
     {name = "Sowmiyan S"},
@@ -38,6 +39,21 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "nest_asyncio>=1.6.0",
 ]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Environment :: Console",
+]
 
 [project.urls]
 Homepage = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL"
@@ -48,8 +64,9 @@ Repository = "https://github.com/sowmiyan-alt/GUADRAILS-RAG-CHAT-TOOL"
 [project.scripts]
 guragchat = "guragchat.cli.main:main"
 
-[tool.setuptools]
-packages = ["guragchat"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["guragchat*"]
 
 [tool.setuptools.package-data]
 guragchat = ["py.typed"]

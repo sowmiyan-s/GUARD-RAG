@@ -1,4 +1,7 @@
 include README.md
 include LICENSE
 include requirements.txt
-recursive-include guragchat *.py
+include INSTALL.md
+include QUICK_REFERENCE.md
+include .env.example
+recursive-include guragchat *.py *.typed
