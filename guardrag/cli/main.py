@@ -52,7 +52,6 @@ def display_web_ui_banner():
     ollama_status = "[bold green]ONLINE[/bold green]" if ollama_active else "[bold red]OFFLINE / NOT FOUND[/bold red]"
 
     banner_text = Text.assemble(
-        ("\n    🛡️   ", "bold magenta"),
         ("GUARD-RAG", "bold magenta"),
         (" | ", "dim white"),
         ("GUARDRAILS POWERED OFFLINE RAG CHATBOT", "bold cyan"),
