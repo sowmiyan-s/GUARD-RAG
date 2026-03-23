@@ -43,43 +43,57 @@ from guardrag.utils.safety import check_input_safety, check_output_safety
 # Load environment variables
 load_dotenv()
 
-def display_web_ui_banner():
-    """Display a professional capitalized banner for the Web UI."""
-    from guardrag.utils.ollama import is_ollama_running
+def display_banner(mode="CLI", version="1.0.5"):
+    """Display a unified, premium centered banner for GuardRAG."""
+    # Big Project Name
+    title = Text("G U A R D - R A G", style="bold magenta")
+    # Small Description
+    subtitle = Text("Privacy-First Offline AI Document Assistant", style="dim cyan")
     
-    # Check Ollama status
-    ollama_active = is_ollama_running("http://localhost:11434")
-    ollama_status = "[bold green]ONLINE[/bold green]" if ollama_active else "[bold red]OFFLINE / NOT FOUND[/bold red]"
-
-    banner_text = Text.assemble(
-        ("GUARD-RAG", "bold magenta"),
-        (" | ", "dim white"),
-        ("GUARDRAILS POWERED OFFLINE RAG CHATBOT", "bold cyan"),
+    # Header Content centered in a panel
+    header_content = Text.assemble(
+        ("\n", ""),
+        (title, "bold magenta"),
+        ("\n", ""),
+        (subtitle, "italic cyan"),
         ("\n", "")
-    )
-    
-    footer = Text.assemble(
-        ("DEVELOPER: ", "dim"), ("SOWMIYAN S", "bold yellow"),
-        ("  |  REPOSITORY: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline link")
     )
 
     console.print(Align.center(Panel(
-        banner_text,
+        Align.center(header_content),
         box=DOUBLE,
         border_style="bold magenta",
-        padding=(1, 5),
-        subtitle="[bold yellow]v1.0.4[/bold yellow]",
+        padding=(1, 10),
+        subtitle=f"[bold yellow]v{version}[/bold yellow]",
         expand=False
     )))
+
+    if mode == "WEB":
+        from guardrag.utils.ollama import is_ollama_running
+        ollama_active = is_ollama_running("http://localhost:11434")
+        ollama_status = "[bold green]ONLINE[/bold green]" if ollama_active else "[bold red]OFFLINE[/bold red]"
+        
+        table = Table(box=None, show_header=False, padding=(0, 2))
+        table.add_row("🚀 [white]STATUS:[/white]", "[bold green] ENGINES READY[/bold green]")
+        table.add_row("🌐 [white]ACCESS:[/white]", "[bold blue underline]http://127.0.0.1:8000[/bold blue underline]")
+        table.add_row("🧠 [white]OLLAMA:[/white]", ollama_status)
+        console.print(Align.center(table))
     
-    table = Table(box=None, show_header=False, padding=(0, 2))
-    table.add_row("🚀 [bold white]STATUS:[/bold white]", "[bold green] LOCAL ENGINES STARTED[/bold green]")
-    table.add_row("🚀 [bold white]ACCESS:[/bold white]", "[bold blue underline]http://127.0.0.1:8000[/bold blue underline]")
-    table.add_row("🚀 [bold white]OLLAMA:[/bold white]", ollama_status)
-    
-    console.print(Align.center(table))
-    console.print(Align.center(footer))
-    console.print(Rule(style="bold magenta"))
+    credits = Text.assemble(
+        ("DEVELOPER: ", "dim"), ("SOWMIYAN S", "bold yellow"),
+        ("  |  GITHUB: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline link")
+    )
+    console.print(Align.center(credits))
+    console.print(Rule(style="bold magenta", characters="━"))
+    console.print()
+
+def display_web_ui_banner():
+    """Proxy for unified banner in Web mode."""
+    display_banner(mode="WEB")
+
+def display_welcome_banner():
+    """Proxy for unified banner in CLI mode."""
+    display_banner(mode="CLI")
 
 def run_web_ui():
     """Launch the internal FastAPI web application."""
@@ -103,30 +117,7 @@ def run_web_ui():
 
 
 
-def display_welcome_banner():
-    """Display a professional capitalized welcome banner."""
-    banner_text = Text.assemble(
-        ("GUARD-RAG", "bold magenta"),
-        (" | ", "dim white"),
-        ("GUARDRAILS POWERED OFFLINE RAG CHATBOT", "bold cyan"),
-        ("\n", "")
-    )
-    
-    footer = Text.assemble(
-        ("AUTHOR: ", "dim"), ("SOWMIYAN S", "bold yellow"),
-        ("  |  GITHUB: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline link")
-    )
-
-    console.print(Align.center(Panel(
-        banner_text,
-        box=DOUBLE,
-        border_style="bold magenta",
-        padding=(1, 5),
-        subtitle="[bold yellow]v1.0.4[/bold yellow]",
-        expand=False
-    )))
-    console.print(Align.center(footer))
-    console.print(Rule(style="bold magenta"))
+# Unified banner system handles this now.
 
 def display_session_info(pdf_name, model, sensitivity, guardrails):
     """Display session configuration in a clean table."""
