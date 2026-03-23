@@ -43,6 +43,39 @@ from guardrag.utils.safety import check_input_safety, check_output_safety
 # Load environment variables
 load_dotenv()
 
+def display_web_ui_banner():
+    """Display a professional banner for the Web UI."""
+    banner_text = Text.assemble(
+        ("\n    🌐   ", "bold blue"),
+        ("Guard", "bold white"),
+        ("RAG", "bold blue"),
+        ("  -  Local Web Node", "bold cyan"),
+        ("\n    Secure Offline Document Intelligence   \n", "italic dim white")
+    )
+    
+    footer = Text.assemble(
+        ("Developer: ", "dim"), ("Sowmiyan S", "bold yellow"),
+        ("  |  Repository: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline link")
+    )
+
+    console.print(Align.center(Panel(
+        banner_text,
+        box=DOUBLE,
+        border_style="blue",
+        padding=(1, 5),
+        subtitle="[bold]v1.0.1[/bold]",
+        expand=False
+    )))
+    
+    table = Table(box=None, show_header=False, padding=(0, 2))
+    table.add_row("🚀 [bold white]Status:[/bold white]", "[green]Firing up local engines...[/green]")
+    table.add_row("🔗 [bold white]Access:[/bold white]", "[blue underline]http://127.0.0.1:8000[/blue underline]")
+    table.add_row("🛡️  [bold white]Safety:[/bold white]", "[cyan]Active (Offline Mode)[/cyan]")
+    
+    console.print(Align.center(table))
+    console.print(Align.center(footer))
+    console.print(Rule(style="dim blue"))
+
 def run_web_ui():
     """Launch the internal FastAPI web application."""
     import uvicorn
@@ -50,7 +83,7 @@ def run_web_ui():
     import time
     import webbrowser
 
-    print("\n🚀 Starting GuardRAG Local Web Interface on port 8000...\n")
+    display_web_ui_banner()
     
     def open_browser():
         time.sleep(1.5)
@@ -70,16 +103,24 @@ def display_welcome_banner():
         ("\n    🛡️   ", "bold green"),
         ("Guard", "bold white"),
         ("RAG", "bold green"),
-        ("\n    Privacy-First Offline AI   \n", "italic dim white")
+        ("  -  Neural Engine", "bold cyan"),
+        ("\n    Privacy-First Offline AI Document Assistant   \n", "italic dim white")
     )
+    
+    footer = Text.assemble(
+        ("Author: ", "dim"), ("Sowmiyan S", "bold yellow"),
+        ("  |  GitHub: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline")
+    )
+
     console.print(Align.center(Panel(
         banner_text,
         box=DOUBLE,
         border_style="green",
         padding=(1, 5),
-        subtitle="[bold]v1.0.0[/bold]",
+        subtitle="[bold]v1.0.1[/bold]",
         expand=False
     )))
+    console.print(Align.center(footer))
 
 def display_session_info(pdf_name, model, sensitivity, guardrails):
     """Display session configuration in a clean table."""
