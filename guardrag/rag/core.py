@@ -13,8 +13,13 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_ollama import ChatOllama
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain.chains import create_retrieval_chain, create_history_aware_retriever
-from langchain.chains.combine_documents import create_stuff_documents_chain
+try:
+    from langchain.chains import create_retrieval_chain, create_history_aware_retriever
+    from langchain.chains.combine_documents import create_stuff_documents_chain
+except ImportError:
+    # Handle future versions (1.0+) where chains moved to langchain_classic
+    from langchain_classic.chains import create_retrieval_chain, create_history_aware_retriever
+    from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 # Fix OMP error for FAISS (must be before FAISS import)
