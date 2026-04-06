@@ -8,7 +8,7 @@
 # OLLAMA_HOST env-var should point to it:
 #   docker run -e OLLAMA_HOST=http://host.docker.internal:11434 -p 8000:8000 rag-bot
 
-FROM python:3.11-slim
+FROM python:3.10-slim
 
 # System deps
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,28 +17,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install Python deps first (layer cached unless requirements change)
-COPY backend/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy backend source
+# Install package
+COPY pyproject.toml ./
+COPY README.md ./
+COPY LICENSE ./
 COPY backend/ ./backend/
+COPY chatbot.py ./
 
-# Copy frontend (served as static files by FastAPI)
-COPY frontend/ ./frontend/
+RUN pip install --no-cache-dir .
 
-# Copy guardrails config
-COPY guardrails_config/ ./guardrails_config/
-
-# FAISS vector store will be written here at runtime
-RUN mkdir -p .faiss_storage
+# FAISS vector store will be written to ~/.guard_rag_storage at runtime
+# which is why we don't need a local directory for it.
 
 # Expose API port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health || exit 1
-
-# Launch FastAPI with uvicorn
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--loop", "asyncio", "--workers", "1"]
+# Launch professionally via the package entry point
+CMD ["guard-rag-web"]
