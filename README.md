@@ -12,9 +12,9 @@
 
 <br/><br/>
 
-# GUARDRAILS LOCAL RAG BOT
+# GuardRAG
 
-### A privacy-first, fully offline AI document assistant — secured by a tiered safety guardrails system
+### Privacy-first, fully offline AI document assistant with tiered safety guardrails
 
 <br/>
 
@@ -22,12 +22,11 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3b82f6?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Offline](https://img.shields.io/badge/Mode-100%25%20Offline-76b900?style=flat-square)](#)
-[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-a78bfa?style=flat-square)](#contributing)
+[![GitHub](https://img.shields.io/badge/GitHub-GuardRAG-black?style=flat-square&logo=github)](https://github.com/sowmiyan-s/GUARD-RAG)
 
 <br/>
 
-> Upload any document. Ask anything. Get answers — **entirely on your machine.**  
-> No cloud. No API keys. No data leaves your device.
+> Secure document analysis on your local hardware. No cloud, no external API keys, and zero data leakage by design.
 
 <br/>
 
@@ -54,30 +53,13 @@ Most RAG chatbots rely on cloud APIs, which creates **privacy risks** for sensit
 
 ## Feature Highlights
 
-<table>
-<tr>
-<td width="50%">
-
-### Core
-- **100% Offline** — zero external network calls at runtime
-- **Multi-format ingestion** — PDF, TXT, DOCX
-- **Persistent FAISS cache** — same file re-uploads skip re-embedding
-- **Multi-turn conversation** — full history-aware retrieval
-- **Any Ollama model** — Gemma, Llama3, Mistral, Phi, and more
-
-</td>
-<td width="50%">
-
-### Safety
-- **4-Tier Data Sensitivity System** — Public → Internal → Confidential → Restricted
-- **Jailbreak / prompt injection detection** — always active
-- **Credential & API key protection** — Internal+
-- **PII protection** — SSN, email, phone, DOB, credit card (Confidential+)
-- **Regulated data guards** — HIPAA / GDPR / financial categories (Restricted)
-
-</td>
-</tr>
-</table>
+| Core | Safety |
+|---|---|
+| **Fully Offline** — no external network calls at runtime | **Tiered Data Sensitivity** — 4 Levels |
+| **Multi-format Ingestion** — PDF, TXT, DOCX | **Always-On Filter** — Jailbreak protection |
+| **Persistent FAISS Cache** — Efficient indexing | **Credential Protection** — API key screening |
+| **Context-Aware Memory** — Full chat history | **PII Protection** — Masking for SSN, email, etc. |
+| **Ollama Compatible** — Support for major LLMs | **Regulated Categories** — HIPAA/GDPR guards |
 
 ---
 
@@ -119,29 +101,28 @@ ollama pull gemma3:1b
 
 ---
 
-## Quick Start
+## Installation and Setup
 
-### Option 1 — Local (Windows)
-
-```bat
-start.bat
-```
-
-### Option 2 — Local (macOS / Linux)
+### 1. Direct installation via pip
 
 ```bash
-chmod +x start.sh
-./start.sh
+# Install the package
+pip install guard-rag
+
+# Launch the web interface
+guard-rag-web
+
+# Launch the CLI version
+guard-rag-cli --pdf document.pdf
 ```
 
-Open **[http://localhost:8000](http://localhost:8000)** in your browser.
-
-### Option 3 — Manual setup
+### 2. Manual Source Setup (Development)
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/sowmiyan-s/guardrails-local-rag-bot.git
-cd guardrails-local-rag-bot
+git clone https://github.com/sowmiyan-s/GUARD-RAG.git
+cd GUARD-RAG/extras/web-app
+pip install -e .
+```
 
 # 2. Create & activate virtual environment
 python -m venv .venv

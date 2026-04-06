@@ -80,9 +80,9 @@ from langchain_core.messages import HumanMessage, AIMessage
 # App setup
 # ─────────────────────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="Guardrails Local RAG Bot",
+    title="GuardRAG",
     description="Privacy-first, fully offline AI document assistant secured by tiered safety guardrails.",
-    version="1.0.0",
+    version="1.1.0",
 )
 
 app.add_middleware(
@@ -93,8 +93,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
-FAISS_STORAGE = Path(__file__).parent.parent / ".faiss_storage"
+# Base Directories
+# (When installed via pip, the frontend is inside the backend package)
+FRONTEND_DIR = Path(__file__).parent / "frontend"
+
+# Persist vector storage in the user's home directory for safety and persistence
+FAISS_STORAGE = Path.home() / ".guard_rag_storage"
 FAISS_STORAGE.mkdir(exist_ok=True)
 
 # Meta file that maps db_id → human-readable info (file names, date, model)
@@ -630,3 +634,15 @@ if FRONTEND_DIR.exists():
         if requested.exists() and requested.is_file():
             return FileResponse(str(requested))
         return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+def start_server():
+    """Entry point for the guard-rag-web script."""
+    import uvicorn
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    print(f"Starting GuardRAG server on http://localhost:{port}")
+    uvicorn.run("backend.main:app", host="0.0.0.0", port=port, reload=False)
+
+if __name__ == "__main__":
+    start_server()
+

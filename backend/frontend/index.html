@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Guardrails Local RAG Bot</title>
-  <meta name="description" content="Privacy-first AI document assistant secured by NVIDIA NeMo Guardrails." />
+  <meta name="description" content="Privacy-first AI document assistant secured by open-source Safety Guardrails." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -27,8 +27,7 @@
 
     <!-- Brand header — always visible -->
     <div class="sidebar-brand">
-      <div class="logo-mark" aria-hidden="true">RAG</div>
-      <span class="sb-text brand-title">RAG BOT</span>
+      <span class="sb-text brand-title">GuardRAG</span>
       <!-- Desktop collapse toggle -->
       <button class="sb-collapse-btn" id="sidebarCollapseBtn" aria-label="Collapse sidebar" title="Collapse sidebar">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -58,7 +57,7 @@
           title="Ollama API base URL" />
       </div>
 
-      <button id="btnStartOllama" class="btn btn-secondary btn-full" style="display:none;">🚀 LAUNCH OLLAMA</button>
+      <button id="btnStartOllama" class="btn btn-secondary btn-full" style="display:none;">LAUNCH OLLAMA</button>
       <p id="startOllamaHint" class="hint-text sb-text"
         style="display:none; margin-top:0.45rem; font-size:0.65rem; color:var(--text-muted); line-height:1.4;">
         Ollama must be running on your machine to use local models.
@@ -146,7 +145,7 @@
 
       <!-- ── Document Library (Storage Pool) ───────────────────────── -->
       <div class="section-label sb-text">Document Library</div>
-      <p class="hint-text sb-text" style="margin-top:0;">Previously indexed collections — load without re-uploading.</p>
+      <p class="hint-text sb-text" style="margin-top:0;">Cached document collections.</p>
 
       <div id="storagePool" class="storage-pool" style="margin-top:0.55rem;">
         <div class="storage-empty sb-text" id="storageEmpty">No indexed collections yet.</div>
@@ -163,8 +162,8 @@
 
       <div class="sidebar-footer">
         <div class="version-tag sb-text">v1.0 · Open Source</div>
-        <a href="https://github.com/sowmiyan-s" target="_blank" rel="noopener" class="footer-link sb-text">
-          github.com/sowmiyan-s
+        <a href="https://github.com/sowmiyan-s/GUARD-RAG" target="_blank" rel="noopener" class="footer-link sb-text">
+          github.com/sowmiyan-s/GUARD-RAG
         </a>
       </div>
     </div>
@@ -174,7 +173,7 @@
       <div class="rail-icon" title="Ollama status">
         <span class="status-dot" id="railStatusDot"></span>
       </div>
-      <div class="rail-icon" id="railStartOllama" title="Start Ollama" style="display:none; color:var(--warn);">▶</div>
+      <div class="rail-icon" id="railStartOllama" title="Start Ollama" style="display:none; color:var(--warn);">START</div>
       <div class="rail-icon" title="Toggle guardrails" id="railGuardrailsIcon">G</div>
       <div class="rail-icon" title="Clear conversation" id="railClearBtn">X</div>
     </div>
@@ -204,10 +203,10 @@
         </svg>
       </button>
 
-      <div class="logo-mark logo-sm" aria-hidden="true">RAG</div>
+
       <div class="header-text-wrap">
-        <div class="header-title">Guardrails RAG Bot</div>
-        <div class="header-sub">Privacy-first · Local LLM · NeMo Guardrails · FAISS Cache</div>
+        <div class="header-title">GuardRAG</div>
+        <div class="header-sub">Privacy-first · Local LLM · Secure Assistant</div>
       </div>
 
       <div class="header-right">
@@ -270,7 +269,7 @@
         <div class="empty-icon" aria-hidden="true">
           <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"
             stroke-linecap="round" stroke-linejoin="round"
-            style="color:var(--accent);filter:drop-shadow(0 0 18px rgba(118,185,0,.45))">
+            style="color:var(--text-primary)">
             <path d="M12 2a9 9 0 1 0 9 9" />
             <path d="M12 6v6l4 2" />
             <circle cx="19" cy="5" r="3" fill="var(--accent)" stroke="none" />
@@ -282,38 +281,33 @@
           The AI reads only what you share.
         </div>
 
-        <!-- How RAG works — educational steps -->
-        <div class="rag-steps" role="list" aria-label="How RAG works">
+        <div class="rag-steps" role="list" aria-label="System Architecture">
           <div class="rag-step" role="listitem" style="animation-delay:.05s">
             <div class="rag-step-num">1</div>
             <div class="rag-step-body">
-              <div class="rag-step-title">Upload Your Document</div>
-              <div class="rag-step-desc">Drop a PDF, TXT or DOCX. It's split into small chunks and converted into vector
-                embeddings stored locally with FAISS.</div>
+              <div class="rag-step-title">Document Ingestion</div>
+              <div class="rag-step-desc">Documents (PDF, TXT, DOCX) are fragmented and converted into local vector embeddings using FAISS.</div>
             </div>
           </div>
           <div class="rag-step" role="listitem" style="animation-delay:.12s">
             <div class="rag-step-num">2</div>
             <div class="rag-step-body">
-              <div class="rag-step-title">Ask a Question</div>
-              <div class="rag-step-desc">Your question is embedded and the most relevant chunks are retrieved from the
-                vector store — this is the <strong>Retrieval</strong> in RAG.</div>
+              <div class="rag-step-title">Semantic Retrieval</div>
+              <div class="rag-step-desc">The search engine retrieves the most relevant context chunks based on the user query.</div>
             </div>
           </div>
           <div class="rag-step" role="listitem" style="animation-delay:.19s">
             <div class="rag-step-num">3</div>
             <div class="rag-step-body">
-              <div class="rag-step-title">Local LLM Answers</div>
-              <div class="rag-step-desc">The retrieved context + your question go to <strong>Ollama</strong> running on
-                your machine. No cloud, no data leaks, fully private.</div>
+              <div class="rag-step-title">Inference Engine</div>
+              <div class="rag-step-desc">The retrieved context is processed by Ollama to generate exact, private responses.</div>
             </div>
           </div>
           <div class="rag-step" role="listitem" style="animation-delay:.26s">
             <div class="rag-step-num">4</div>
             <div class="rag-step-body">
               <div class="rag-step-title">Guardrails Filter</div>
-              <div class="rag-step-desc">Both input and output pass through NeMo Guardrails — blocking jailbreaks,
-                credential leaks and sensitive data exposure.</div>
+              <div class="rag-step-desc">NeMo Guardrails enforces policy-based safety checks on both user input and AI output.</div>
             </div>
           </div>
         </div>
@@ -364,7 +358,7 @@
       </div>
       <div class="input-hint">
         <span id="sensitivityHint" aria-live="polite">
-          🛡 <strong>Internal</strong> — API keys &amp; credentials protected
+          <strong>Internal</strong> — API keys & credentials protected
         </span>
       </div>
     </div>

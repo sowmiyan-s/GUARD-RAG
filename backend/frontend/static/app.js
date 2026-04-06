@@ -258,11 +258,11 @@ function syncRailStatus() {
   if (!railStatusDot) return;
   railStatusDot.className = 'status-dot';
   if (state.ollamaRunning) {
-    railStatusDot.style.background = 'var(--accent)';
-    railStatusDot.style.boxShadow = '0 0 5px var(--accent)';
+    railStatusDot.style.background = 'var(--text-primary)';
+    railStatusDot.style.boxShadow = 'none';
   } else {
     railStatusDot.style.background = 'var(--danger)';
-    railStatusDot.style.boxShadow = '0 0 5px var(--danger)';
+    railStatusDot.style.boxShadow = 'none';
   }
 }
 
@@ -335,10 +335,10 @@ async function refreshHealth() {
 
     // Update badge in header
     connectionBadge.textContent = isLocal ? 'LOCAL / SECURE' : 'REMOTE / TUNNEL';
-    connectionBadge.style.filter = 'drop-shadow(0 0 5px var(--accent))';
-    connectionBadge.style.color = 'var(--accent-hover)';
-    connectionBadge.style.borderColor = 'var(--accent-border)';
-    connectionBadge.style.background = 'var(--accent-dim)';
+    connectionBadge.style.filter = 'none';
+    connectionBadge.style.color = 'var(--text-primary)';
+    connectionBadge.style.borderColor = 'var(--border)';
+    connectionBadge.style.background = 'var(--bg-glass-light)';
 
     // Update model list
     const currentModel = modelSelect.value;
@@ -412,7 +412,7 @@ btnStartOllama.addEventListener('click', async () => {
         if (state.ollamaRunning) {
           btnStartOllama.disabled = false;
           if (railStartOllama) railStartOllama.classList.remove('loading');
-          btnStartOllama.innerHTML = '🚀 LAUNCH OLLAMA';
+          btnStartOllama.innerHTML = 'LAUNCH OLLAMA';
         } else {
           // If still not running, show instructions modal
           showOllamaStartModal(endpoint);
@@ -459,9 +459,9 @@ function startOllamaPoller() {
 // ─── SENSITIVITY / GUARDRAILS ─────────────────────────────────────────────────
 const SENSITIVITY_META = {
   Public: { badge: 'badge-public', hint: 'No extra filters — jailbreak protection only.' },
-  Internal: { badge: 'badge-internal', hint: '🛡 <strong>Internal</strong> — API keys &amp; credentials protected.' },
-  Confidential: { badge: 'badge-confidential', hint: '🛡 <strong>Confidential</strong> — PII (SSN, email, phone) protected.' },
-  Restricted: { badge: 'badge-restricted', hint: '🛡 <strong>Restricted</strong> — Medical, financial, HIPAA/GDPR protected.' },
+  Internal: { badge: 'badge-internal', hint: '<strong>Internal</strong> — API keys &amp; credentials protected.' },
+  Confidential: { badge: 'badge-confidential', hint: '<strong>Confidential</strong> — PII (SSN, email, phone) protected.' },
+  Restricted: { badge: 'badge-restricted', hint: '<strong>Restricted</strong> — Medical, financial, HIPAA/GDPR protected.' },
 };
 const SENSITIVITY_DESC = {
   Public: 'No data classification restrictions. Basic jailbreak protection only.',
@@ -476,7 +476,7 @@ function updateSensitivityUI() {
   sensitivityBadge.className = `sensitivity-badge ${meta.badge}`;
   sensitivityBadgeLabel.textContent = level.toUpperCase();
   sensitivityDesc.textContent = SENSITIVITY_DESC[level];
-  sensitivityHint.innerHTML = guardrailsToggle.checked ? meta.hint : '⚪ Guardrails disabled.';
+  sensitivityHint.innerHTML = guardrailsToggle.checked ? meta.hint : 'Guardrails disabled.';
 }
 
 sensitivitySelect.addEventListener('change', updateSensitivityUI);
@@ -520,10 +520,10 @@ async function loadStoragePool() {
         <div class="storage-card-meta">
           <span class="storage-meta-tag">${col.model || '?'}</span>
           <span class="storage-meta-tag">${date}</span>
-          ${!col.available ? '<span class="storage-meta-tag unavail">⚠ Missing</span>' : ''}
+          ${!col.available ? '<span class="storage-meta-tag unavail">Missing</span>' : ''}
         </div>
         <button class="btn btn-secondary storage-load-btn" data-db-id="${col.db_id}" ${!col.available ? 'disabled' : ''}>
-          ↩ Load Session
+          Load Session
         </button>
       `;
 
@@ -570,7 +570,7 @@ async function loadStoredSession(col) {
     state.currentDbId = col.db_id;
 
     // Update upload status text
-    setUploadStatus(`✓ Loaded: ${data.files.join(', ')}`, 'success');
+    setUploadStatus(`Loaded: ${data.files.join(', ')}`, 'success');
     toast(`Loaded "${data.files.join(', ')}" from library.`, 'success');
     showChatReady();
     autoCollapseUpload();
@@ -579,7 +579,7 @@ async function loadStoredSession(col) {
     toast(`Failed to load: ${e.message}`, 'error', 6000);
     if (card) {
       card.classList.remove('active');
-      card.querySelector('.storage-load-btn').textContent = '↩ Load Session';
+      card.querySelector('.storage-load-btn').textContent = 'Load Session';
       card.querySelector('.storage-load-btn').disabled = false;
     }
   }
@@ -692,7 +692,7 @@ async function processDocuments() {
   state.isProcessing = true;
   btnProcess.disabled = true;
   btnReset.disabled = true;
-  setUploadStatus('⏳ Embedding documents — please wait…', 'loading');
+  setUploadStatus('Embedding documents — please wait…', 'loading');
 
   const form = new FormData();
   state.selectedFiles.forEach(f => form.append('files', f));
@@ -717,7 +717,7 @@ async function processDocuments() {
     // Refresh the library so the new collection appears
     await loadStoragePool();
   } catch (e) {
-    setUploadStatus(`✗ ${e.message}`, 'error');
+    setUploadStatus(`Error: ${e.message}`, 'error');
     toast(e.message, 'error', 6000);
   } finally {
     state.isProcessing = false;
@@ -812,7 +812,7 @@ async function sendMessage() {
     appendMessage('assistant', data.answer, data.blocked);
   } catch (e) {
     typingIndicator.style.display = 'none';
-    appendMessage('assistant', `⚠️ Error: ${e.message}`, false, true);
+    appendMessage('assistant', `Error: ${e.message}`, false, true);
     toast(e.message, 'error', 6000);
   } finally {
     state.isChatting = false;
