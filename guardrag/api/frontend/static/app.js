@@ -812,7 +812,7 @@ async function sendMessage() {
     appendMessage('assistant', data.answer, data.blocked);
   } catch (e) {
     typingIndicator.style.display = 'none';
-    appendMessage('assistant', `⚠️ Error: ${e.message}`, false, true);
+    appendMessage('assistant', `Error: ${e.message}`, false, true);
     toast(e.message, 'error', 6000);
   } finally {
     state.isChatting = false;

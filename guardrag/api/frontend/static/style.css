@@ -5,46 +5,42 @@
 
 /* ── Design Tokens ─────────────────────────────────────────────────── */
 :root {
-  --bg-base: #020806;
-  --bg-surface: #050f09;
-  --bg-raised: #0a1a10;
-  --bg-glass: rgba(5, 15, 9, 0.80);
-  --bg-glass-light: rgba(118, 185, 0, 0.04);
+  /* ChatGPT-Inspired Dark Palette */
+  --bg-base: #212121;
+  --bg-surface: #171717; /* Sidebar / Header */
+  --bg-raised: #2f2f2f;
+  --bg-glass: rgba(33, 33, 33, 0.9);
+  --bg-glass-light: rgba(255, 255, 255, 0.04);
 
-  --border: rgba(118, 185, 0, 0.14);
-  --border-light: rgba(118, 185, 0, 0.28);
-  --border-glow: rgba(118, 185, 0, 0.55);
+  --border: #3d3d3d;
+  --border-light: #4a4a4a;
+  --border-glow: #565656;
 
-  --text-primary: #e6f0e8;
-  --text-secondary: #8eaa90;
-  --text-muted: #3d5c40;
+  --text-primary: #ececec;
+  --text-secondary: #b4b4b4;
+  --text-muted: #8e8e8e;
 
-  /* NVIDIA Green accent */
-  --accent: #76b900;
-  --accent2: #5a8f00;
-  --accent3: #a8d800;
-  --accent-hover: #8fcf00;
-  --accent-dim: rgba(118, 185, 0, 0.13);
-  --accent-border: rgba(118, 185, 0, 0.35);
-  --grad: linear-gradient(135deg, #4a7a00 0%, #76b900 55%, #a8d800 100%);
-  --grad-soft: linear-gradient(135deg, rgba(118, 185, 0, 0.16) 0%, rgba(168, 216, 0, 0.08) 100%);
+  --accent: #f9f9f9; /* Neutral / High-contrast */
+  --accent-hover: #ffffff;
+  --accent-dim: rgba(255, 255, 255, 0.08);
+  --accent-border: #565656;
 
-  --danger: #f43f5e;
+  --danger: #ef4444;
   --warn: #f59e0b;
-  --success: #76b900;
-  --info: #38d490;
+  --success: #19c37d;
+  --info: #3b82f6;
 
   --radius-sm: 6px;
-  --radius: 12px;
-  --radius-lg: 18px;
-  --shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
-  --shadow-xl: 0 16px 64px rgba(0, 0, 0, 0.85);
-  --glow: 0 0 24px rgba(118, 185, 0, 0.25);
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-xl: 0 8px 30px rgba(0,0,0,0.5);
+  --glow: none;
 
-  --sidebar-w: 280px;
-  --sidebar-rail: 56px;
-  --header-h: 58px;
-  --transition: 0.2s ease;
+  --sidebar-w: 260px;
+  --sidebar-rail: 60px;
+  --header-h: 60px;
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 

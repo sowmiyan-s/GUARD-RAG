@@ -78,7 +78,7 @@ where = ["."]
 include = ["guardrag*"]
 
 [tool.setuptools.package-data]
-guardrag = ["py.typed"]
+guardrag = ["py.typed", "api/frontend/**/*"]
 
 [tool.ruff]
 line-length = 88
