@@ -43,7 +43,7 @@ from guardrag.utils.safety import check_input_safety, check_output_safety
 # Load environment variables
 load_dotenv()
 
-def display_banner(mode="CLI", version="1.1.2"):
+def display_banner(mode="CLI", version="1.1.3"):
     """Display a unified, premium centered banner for GuardRAG."""
     # Big Project Name
     title = Text("GUARD - RAG", style="bold white")
