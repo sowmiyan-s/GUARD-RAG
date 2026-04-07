@@ -25,9 +25,9 @@ from rich.box import ROUNDED
 from rich.rule import Rule
 
 custom_theme = Theme({
-    "info": "dim cyan",
-    "warning": "magenta",
-    "danger": "bold red"
+    "info": "white",
+    "warning": "dim white",
+    "danger": "bold white"
 })
 console = Console(theme=custom_theme)
 
@@ -43,12 +43,12 @@ from guardrag.utils.safety import check_input_safety, check_output_safety
 # Load environment variables
 load_dotenv()
 
-def display_banner(mode="CLI", version="1.1.1"):
+def display_banner(mode="CLI", version="1.1.2"):
     """Display a unified, premium centered banner for GuardRAG."""
     # Big Project Name
-    title = Text("G U A R D - R A G", style="bold magenta")
+    title = Text("GUARD - RAG", style="bold white")
     # Small Description
-    subtitle = Text("Privacy-First Offline AI Document Assistant", style="dim cyan")
+    subtitle = Text("Privacy-First Offline AI Document Assistant", style="dim white")
     
     # Header Content centered in a panel
     header_content = Text.assemble(
@@ -63,29 +63,29 @@ def display_banner(mode="CLI", version="1.1.1"):
     console.print(Align.center(Panel(
         header_content,
         box=ROUNDED,
-        border_style="bold magenta",
+        border_style="white",
         padding=(1, 10),
-        subtitle=f"[bold yellow]v{version}[/bold yellow]",
+        subtitle=f"v{version}",
         expand=False
     )))
 
     if mode == "WEB":
         from guardrag.utils.ollama import is_ollama_running
         ollama_active = is_ollama_running("http://localhost:11434")
-        ollama_status = "[bold green]ONLINE[/bold green]" if ollama_active else "[bold red]OFFLINE[/bold red]"
+        ollama_status = "[bold white]ONLINE[/bold white]" if ollama_active else "[dim white]OFFLINE[/dim white]"
         
         table = Table(box=None, show_header=False, padding=(0, 2))
-        table.add_row("🚀 [white]STATUS:[/white]", "[bold green] ENGINES READY[/bold green]")
-        table.add_row("🌐 [white]ACCESS:[/white]", "[bold blue underline]http://127.0.0.1:8000[/bold blue underline]")
-        table.add_row("🧠 [white]OLLAMA:[/white]", ollama_status)
+        table.add_row("STATUS:", "ENGINES READY")
+        table.add_row("ACCESS:", "[white underline]http://127.0.0.1:8000[/white underline]")
+        table.add_row("OLLAMA:", ollama_status)
         console.print(Align.center(table))
     
     credits = Text.assemble(
-        ("DEVELOPER: ", "dim"), ("SOWMIYAN S", "bold yellow"),
-        ("  |  GITHUB: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "blue underline link")
+        ("DEVELOPER: ", "dim"), ("SOWMIYAN S", "white"),
+        ("  |  GITHUB: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "white underline")
     )
     console.print(Align.center(credits))
-    console.print(Rule(style="bold magenta", characters="━"))
+    console.print(Rule(style="dim white", characters="─"))
     console.print()
 
 def display_web_ui_banner():
@@ -111,7 +111,7 @@ def run_web_ui():
         
     threading.Thread(target=open_browser, daemon=True).start()
     # Reduced log level to hide unwanted server dump info
-    uvicorn.run("guardrag.api.main:app", host="127.0.0.1", port=8000, log_level="error")
+    uvicorn.run("guardrag.api.main:app", host="127.0.0.1", port=8000, log_level="info")
     sys.exit(0)
 
 
@@ -202,7 +202,7 @@ def main():
     display_welcome_banner()
     
     # Check Ollama quietly
-    if not is_ollama_running(ollama_host):
+    if not is_ollama_running(args.ollama_host):
         console.print("[yellow]Ollama is not running. Attempting to start...[/yellow]")
         if start_ollama_server():
             console.print("[bold green]✓ Ollama started successfully[/bold green]")
@@ -223,7 +223,7 @@ def main():
             model=args.model,
             chunk_size=args.chunk_size,
             chunk_overlap=args.chunk_overlap,
-            ollama_host=ollama_host
+            ollama_host=args.ollama_host
         )
     except Exception as e:
         console.print(f"[bold red]✗ Pipeline initialization failed: {e}[/bold red]")

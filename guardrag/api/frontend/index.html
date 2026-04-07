@@ -27,8 +27,7 @@
 
     <!-- Brand header — always visible -->
     <div class="sidebar-brand">
-      <div class="logo-mark" aria-hidden="true">RAG</div>
-      <span class="sb-text brand-title">RAG BOT</span>
+      <span class="sb-text brand-title">GuardRAG</span>
       <!-- Desktop collapse toggle -->
       <button class="sb-collapse-btn" id="sidebarCollapseBtn" aria-label="Collapse sidebar" title="Collapse sidebar">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -58,11 +57,7 @@
           title="Ollama API base URL" />
       </div>
 
-      <button id="btnStartOllama" class="btn btn-secondary btn-full" style="display:none;">LAUNCH OLLAMA</button>
-      <p id="startOllamaHint" class="hint-text sb-text"
-        style="display:none; margin-top:0.45rem; font-size:0.65rem; color:var(--text-muted); line-height:1.4;">
-        Ollama must be offline. Ensure it is running locally to proceed.
-      </p>
+      <button id="btnStartOllama" class="btn btn-secondary btn-full" style="display:none;">Launch Ollama</button>
 
       <div style="margin-top:0.85rem;">
         <label class="section-label sb-text" for="modelSelect">Active Model</label>
@@ -154,7 +149,7 @@
 
       <button id="btnRefreshStorage" class="btn btn-ghost btn-full sb-text"
         style="margin-top:0.4rem; font-size:0.66rem;">
-        ↻ Refresh Library
+        Refresh Library
       </button>
 
       <hr class="divider" />
@@ -162,9 +157,9 @@
       <button id="btnClear" class="btn btn-ghost btn-full sb-text">Clear Conversation</button>
 
       <div class="sidebar-footer">
-        <div class="version-tag sb-text">v1.1 · Open Source</div>
-        <a href="https://github.com/sowmiyan-s" target="_blank" rel="noopener" class="footer-link sb-text">
-          GitHub Repository
+        <div class="version-tag sb-text">v1.1.1 · Secure & Offline</div>
+        <a href="https://github.com/sowmiyan-s/GUARD-RAG" target="_blank" rel="noopener" class="footer-link sb-text">
+          Source Repository
         </a>
       </div>
     </div>
@@ -174,7 +169,8 @@
       <div class="rail-icon" title="Ollama status">
         <span class="status-dot" id="railStatusDot"></span>
       </div>
-      <div class="rail-icon" id="railStartOllama" title="Start Ollama" style="display:none; color:var(--warn);">▶</div>
+      <div class="rail-icon" id="railStartOllama" title="Start Ollama" style="display:none; color:var(--warn);">START
+      </div>
       <div class="rail-icon" title="Toggle guardrails" id="railGuardrailsIcon">G</div>
       <div class="rail-icon" title="Clear conversation" id="railClearBtn">X</div>
     </div>
@@ -204,10 +200,9 @@
         </svg>
       </button>
 
-      <div class="logo-mark logo-sm" aria-hidden="true">RAG</div>
       <div class="header-text-wrap">
-        <div class="header-title">GuardRAG</div>
-        <div class="header-sub">Privacy-first · Local · Secure</div>
+        <h1 class="header-title">GuardRAG</h1>
+        <p class="header-sub">Privacy-first · Local · Secure</p>
       </div>
 
       <div class="header-right">
@@ -268,62 +263,17 @@
 
       <div id="emptyState" class="empty-state">
         <div class="empty-icon" aria-hidden="true">
-          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"
-            stroke-linecap="round" stroke-linejoin="round"
-            style="color:var(--accent);filter:drop-shadow(0 0 18px rgba(118,185,0,.45))">
-            <path d="M12 2a9 9 0 1 0 9 9" />
-            <path d="M12 6v6l4 2" />
-            <circle cx="19" cy="5" r="3" fill="var(--accent)" stroke="none" />
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"
+            stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-primary)">
+            <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8z" />
+            <path d="M14 2v6h6" />
+            <path d="M12 18v-6" />
+            <path d="M9 15h6" />
           </svg>
         </div>
-        <div class="empty-title">Chat with Your Documents</div>
+        <div class="empty-title">Ready to Query</div>
         <div class="empty-sub">
-          Upload any PDF, TXT or Word file — your data never leaves your machine.
-          The AI reads only what you share.
-        </div>
-
-        <!-- How RAG works — educational steps -->
-        <div class="rag-steps" role="list" aria-label="How RAG works">
-          <div class="rag-step" role="listitem" style="animation-delay:.05s">
-            <div class="rag-step-num">1</div>
-            <div class="rag-step-body">
-              <div class="rag-step-title">Upload Your Document</div>
-              <div class="rag-step-desc">Drop a PDF, TXT or DOCX. It's split into small chunks and converted into vector
-                embeddings stored locally with FAISS.</div>
-            </div>
-          </div>
-          <div class="rag-step" role="listitem" style="animation-delay:.12s">
-            <div class="rag-step-num">2</div>
-            <div class="rag-step-body">
-              <div class="rag-step-title">Ask a Question</div>
-              <div class="rag-step-desc">Your question is embedded and the most relevant chunks are retrieved from the
-                vector store — this is the <strong>Retrieval</strong> in RAG.</div>
-            </div>
-          </div>
-          <div class="rag-step" role="listitem" style="animation-delay:.19s">
-            <div class="rag-step-num">3</div>
-            <div class="rag-step-body">
-              <div class="rag-step-title">Local LLM Answers</div>
-              <div class="rag-step-desc">The retrieved context + your question go to <strong>Ollama</strong> running on
-                your machine. No cloud, no data leaks, fully private.</div>
-            </div>
-          </div>
-          <div class="rag-step" role="listitem" style="animation-delay:.26s">
-            <div class="rag-step-num">4</div>
-            <div class="rag-step-body">
-              <div class="rag-step-title">Guardrails Filter</div>
-              <div class="rag-step-desc">Both input and output pass through NeMo Guardrails — blocking jailbreaks,
-                credential leaks and sensitive data exposure.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="empty-features">
-          <div class="feat-chip">Multi-format</div>
-          <div class="feat-chip">Local LLM</div>
-          <div class="feat-chip">Secure Guardrails</div>
-          <div class="feat-chip">Private Indexed Cache</div>
-          <div class="feat-chip">Private by Design</div>
+          Upload documents to begin a secure, 100% offline conversation.
         </div>
       </div>
 
@@ -458,7 +408,7 @@
         </div>
 
         <div class="tunnel-note" style="margin-top:0.9rem;">
-          <strong>⏳ Auto-detecting…</strong> This window will close automatically once Ollama is detected running at
+          <strong>Auto-detecting…</strong> This window will close automatically once Ollama is detected running at
           <code id="ollamaStartModalEndpoint">localhost:11434</code>.
         </div>
 
