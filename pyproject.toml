@@ -11,6 +11,7 @@ license = {file = "LICENSE"}
 authors = [
     {name = "Sowmiyan S"},
 ]
+keywords = [
     "privacy",
     "offline",
     "security-guardrails",
