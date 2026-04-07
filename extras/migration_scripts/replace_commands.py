@@ -5,7 +5,7 @@ from pathlib import Path
 target_exts = {".py", ".md", ".toml", ".txt", ".in"}
 excludes = {"venv", ".venv", ".git", "dist", "guardrag.egg-info", ".pytest_cache"}
 
-workdir = Path("C:/Users/Asus/Downloads/GUADRAILS-RAG-CHAT-TOOL-main")
+workdir = Path("C:/Users/Asus/Downloads/GUARD-RAG-main")
 
 for path in workdir.rglob("*"):
     if path.is_file() and path.suffix in target_exts:

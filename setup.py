@@ -28,6 +28,7 @@ setup(
         "Documentation": "https://github.com/sowmiyan-s/GUARD-RAG#readme",
         "Source Code": "https://github.com/sowmiyan-s/GUARD-RAG",
         "Bug Tracker": "https://github.com/sowmiyan-s/GUARD-RAG/issues",
+        "PyPI Profile": "https://pypi.org/project/guard-rag/",
     },
     
     packages=find_packages(include=["guardrag", "guardrag.*"]),

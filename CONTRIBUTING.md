@@ -35,8 +35,8 @@ If you're ready to contribute code:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL.git
-   cd GUADRAILS-RAG-CHAT-TOOL
+   git clone https://github.com/sowmiyan-s/GUARD-RAG.git
+   cd GUARD-RAG
    ```
 
 2. Create a virtual environment:

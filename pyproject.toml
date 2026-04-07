@@ -64,6 +64,7 @@ Homepage = "https://github.com/sowmiyan-s/GUARD-RAG"
 Documentation = "https://github.com/sowmiyan-s/GUARD-RAG#readme"
 Repository = "https://github.com/sowmiyan-s/GUARD-RAG"
 "Bug Tracker" = "https://github.com/sowmiyan-s/GUARD-RAG/issues"
+"PyPI Profile" = "https://pypi.org/project/guard-rag/"
 
 [project.scripts]
 guard-rag = "guardrag.cli.main:main"

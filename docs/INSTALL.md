@@ -15,8 +15,8 @@ pip install guard-rag
 To install from the local source directory:
 
 ```bash
-git clone https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL.git
-cd GUADRAILS-RAG-CHAT-TOOL
+git clone https://github.com/sowmiyan-s/GUARD-RAG.git
+cd GUARD-RAG
 pip install .
 ```
 
@@ -253,8 +253,8 @@ To set up a development environment:
 
 ```bash
 # Clone repository
-git clone https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL.git
-cd GUADRAILS-RAG-CHAT-TOOL
+git clone https://github.com/sowmiyan-s/GUARD-RAG.git
+cd GUARD-RAG
 
 # Create virtual environment
 python -m venv venv
@@ -274,7 +274,7 @@ MIT License - See LICENSE file for details
 ## Support
 
 For issues, questions, or contributions, please visit:
-https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL
+https://github.com/sowmiyan-s/GUARD-RAG
 
 ## Citation
 
@@ -285,6 +285,6 @@ If you use GuardRAG in your research or project, please cite:
   title = {GuardRAG: Privacy-First Offline AI Document Assistant},
   author = {Sowmiyan S},
   year = {2024},
-  url = {https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL}
+  url = {https://github.com/sowmiyan-s/GUARD-RAG}
 }
 ```
