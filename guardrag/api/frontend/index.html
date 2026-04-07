@@ -44,7 +44,10 @@
       <hr class="divider" />
 
       <!-- ── Connection / Ollama Endpoint ───────────────────────────── -->
-      <div class="section-label sb-text">Ollama Connection</div>
+      <div class="section-label sb-text">
+        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+        Ollama Connection
+      </div>
 
       <div id="ollamaStatus" class="status-badge status-loading" role="status" aria-live="polite">
         <span class="status-dot"></span>
@@ -60,7 +63,10 @@
       <button id="btnStartOllama" class="btn btn-secondary btn-full" style="display:none;">Launch Ollama</button>
 
       <div style="margin-top:0.85rem;">
-        <label class="section-label sb-text" for="modelSelect">Active Model</label>
+        <label class="section-label sb-text" for="modelSelect">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8l4-4 4 4h-4v4zm0 8v4h4l-4 4-4-4h4v-4z"/></svg>
+          Active Model
+        </label>
         <select id="modelSelect" class="form-control sb-text">
           <option value="gemma3:1b">gemma3:1b</option>
         </select>
@@ -69,7 +75,10 @@
       <hr class="divider" />
 
       <!-- ── Safety & Privacy ───────────────────────────────────────── -->
-      <div class="section-label sb-text">Safety &amp; Privacy</div>
+      <div class="section-label sb-text">
+        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Safety &amp; Privacy
+      </div>
 
       <label class="toggle-row" for="guardrailsToggle">
         <span class="toggle-label sb-text">Enable Guardrails</span>
@@ -140,7 +149,10 @@
       <hr class="divider" />
 
       <!-- ── Document Library (Storage Pool) ───────────────────────── -->
-      <div class="section-label sb-text">Document Library</div>
+      <div class="section-label sb-text">
+        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8 6h10"/><path d="M8 10h10"/><path d="M8 14h10"/></svg>
+        Document Library
+      </div>
       <p class="hint-text sb-text" style="margin-top:0;">Previously indexed collections — load without re-uploading.</p>
 
       <div id="storagePool" class="storage-pool" style="margin-top:0.55rem;">

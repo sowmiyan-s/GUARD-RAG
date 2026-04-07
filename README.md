@@ -3,7 +3,8 @@
 # 🛡️ GuardRAG
 
 ### Privacy-First, Fully Offline AI Document Assistant
-**Secured by a Tiered Safety Guardrails System**
+**Secured by a Tiered Safety Guardrails System**  
+*v1.1.2 — High-Performance, Secure, and Minimalist*
 
 <br/>
 
@@ -50,12 +51,13 @@ Protect your information using our built-in safety engine:
 Install the package directly from PyPI:
 
 ```bash
-pip install guard-rag
+# Recommended stable version
+pip install guard-rag==1.1.2
 ```
 
 ### Prerequisites
 1.  **Ollama**: Download and install from [ollama.com](https://ollama.com).
-2.  **Model**: Pull a model to use locally (e.g., `ollama pull gemma2:2b` or `llama3`).
+2.  **Model**: Pull a model to use locally (e.g., `ollama pull gemma3:1b` or `llama3.2:1b`).
 
 ---
 
@@ -86,9 +88,9 @@ guard-rag --pdf report.pdf --model llama3 --sensitivity Confidential --chunk-siz
 | Argument | Description | Default |
 | :--- | :--- | :--- |
 | `--pdf <file>` | Path to the PDF document you want to analyze. | Required for CLI |
-| `--model <name>` | The Ollama model to use for inference. | `gemma2:2b` |
+| `--model <name>` | The Ollama model to use for inference. | `gemma3:1b` |
 | `--ollama-host` | The URL of your Ollama server. | `http://localhost:11434` |
-| `--sensitivity` | Safety level: `Public`, `Internal`, `Confidential`, `Restricted`. | `Public` |
+| `--sensitivity` | Safety level: `Public`, `Internal`, `Confidential`, `Restricted`. | `Internal` |
 | `--chunk-size` | Size of document chunks for processing. | `1000` |
 | `--no-guardrails` | Disable all safety checks (not recommended). | `False` |
 | `--help` | Show all available commands and flags. | - |

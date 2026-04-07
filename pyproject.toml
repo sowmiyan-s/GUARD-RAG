@@ -11,17 +11,11 @@ license = {file = "LICENSE"}
 authors = [
     {name = "Sowmiyan S"},
 ]
-keywords = [
-    "rag",
-    "retrieval-augmented-generation",
-    "langchain",
-    "ollama",
-    "faiss",
-    "embeddings",
-    "chatbot",
-    "llm",
     "privacy",
     "offline",
+    "security-guardrails",
+    "document-qa",
+    "private-gpt",
 ]
 requires-python = ">=3.9"
 dependencies = [
@@ -65,10 +59,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL"
-Documentation = "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL#readme"
-Repository = "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL"
-"Bug Tracker" = "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL/issues"
+Homepage = "https://github.com/sowmiyan-s/GUARD-RAG"
+Documentation = "https://github.com/sowmiyan-s/GUARD-RAG#readme"
+Repository = "https://github.com/sowmiyan-s/GUARD-RAG"
+"Bug Tracker" = "https://github.com/sowmiyan-s/GUARD-RAG/issues"
 
 [project.scripts]
 guard-rag = "guardrag.cli.main:main"

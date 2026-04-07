@@ -23,11 +23,11 @@ setup(
     author="Sowmiyan S",
     author_email="",
     license="MIT",
-    url="https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL",
+    url="https://github.com/sowmiyan-s/GUARD-RAG",
     project_urls={
-        "Documentation": "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL#readme",
-        "Source Code": "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL",
-        "Bug Tracker": "https://github.com/sowmiyan-s/GUADRAILS-RAG-CHAT-TOOL/issues",
+        "Documentation": "https://github.com/sowmiyan-s/GUARD-RAG#readme",
+        "Source Code": "https://github.com/sowmiyan-s/GUARD-RAG",
+        "Bug Tracker": "https://github.com/sowmiyan-s/GUARD-RAG/issues",
     },
     
     packages=find_packages(include=["guardrag", "guardrag.*"]),
@@ -58,5 +58,6 @@ setup(
     keywords=[
         "rag", "retrieval-augmented-generation", "langchain", "ollama",
         "faiss", "embeddings", "chatbot", "llm", "privacy", "offline",
+        "security-guardrails", "document-qa", "private-gpt",
     ],
 )
