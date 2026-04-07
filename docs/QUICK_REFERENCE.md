@@ -138,12 +138,12 @@ ollama run gemma3:1b
 
 **Module not found**
 ```bash
-pip install --upgrade guardrag
+pip install --upgrade guard-rag
 ```
 
 **Permission error**
 ```bash
-pip install --user guardrag
+pip install --user guard-rag
 # or use virtual environment
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
@@ -216,7 +216,7 @@ guardrag/
 
 ## Links
 
-- 📦 PyPI: https://pypi.org/project/guardrag/
+- 📦 PyPI: https://pypi.org/project/guard-rag/
 - 📖 Docs: See INSTALL.md
 - 🐛 Issues: GitHub Issues
 - 🎮 Demo: Try `guard-rag --help`
