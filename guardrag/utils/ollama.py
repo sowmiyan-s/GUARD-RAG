@@ -29,6 +29,20 @@ def get_installed_models(host: str = "http://localhost:11434") -> List[str]:
     except Exception:
         return []
 
+def get_ollama_version(host: str = "http://localhost:11434") -> str:
+    """Get Ollama server version."""
+    try:
+        req = urllib.request.urlopen(host.rstrip("/") + "/api/version", timeout=3)
+        data = json.loads(req.read().decode("utf-8"))
+        return data.get("version", "unknown")
+    except Exception:
+        # Fallback to CLI check if server not reachable or endpoint fails
+        try:
+            res = subprocess.check_output(["ollama", "--version"], stderr=subprocess.STDOUT, text=True)
+            return res.strip().split()[-1]
+        except Exception:
+            return "unknown"
+
 
 def start_ollama_server() -> bool:
     """

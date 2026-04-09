@@ -31,13 +31,25 @@ os.environ.setdefault("NO_PROXY", _NO_PROXY)
 os.environ.setdefault("no_proxy", _NO_PROXY)
 
 
+_embeddings = None
+
 def _get_embeddings():
-    """Get HuggingFace embeddings model."""
-    return HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
+    """Get HuggingFace embeddings model (cached)."""
+    global _embeddings
+    if _embeddings is None:
+        try:
+            _embeddings = HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2",
+                model_kwargs={"device": "cpu"},
+                encode_kwargs={"normalize_embeddings": True},
+            )
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to initialize HuggingFace embeddings. "
+                f"Ensure 'sentence-transformers', 'torch', and 'transformers' are installed correctly. "
+                f"Error: {str(e)}"
+            )
+    return _embeddings
 
 
 def build_rag_chain(
@@ -84,21 +96,38 @@ def build_rag_chain(
             allow_dangerous_deserialization=True
         )
     else:
-        print("Loading documents...")
+        print(f"Loading documents...")
         docs = []
         for fp in file_paths:
             ext = os.path.splitext(fp)[-1].lower()
-            if ext == ".pdf":
-                loader = PyPDFLoader(fp)
-            elif ext == ".txt":
-                loader = TextLoader(fp, encoding="utf-8")
-            elif ext in [".doc", ".docx"]:
-                loader = Docx2txtLoader(fp)
-            else:
-                print(f"Skipping unsupported file type: {ext}")
-                continue
-            print(f"  {os.path.basename(fp)}")
-            docs.extend(loader.load())
+            try:
+                if ext == ".pdf":
+                    try:
+                        import pypdf
+                    except ImportError:
+                        raise ImportError("The 'pypdf' package is required for PDF files. Run 'pip install pypdf'.")
+                    loader = PyPDFLoader(fp)
+                elif ext == ".txt":
+                    loader = TextLoader(fp, encoding="utf-8")
+                elif ext in [".doc", ".docx"]:
+                    try:
+                        import docx2txt
+                    except ImportError:
+                        raise ImportError("The 'docx2txt' package is required for DOCX files. Run 'pip install docx2txt'.")
+                    loader = Docx2txtLoader(fp)
+                else:
+                    print(f"Skipping unsupported file type: {ext}")
+                    continue
+                
+                print(f"  {os.path.basename(fp)}")
+                docs.extend(loader.load())
+            except Exception as e:
+                print(f"  Error loading {os.path.basename(fp)}: {e}")
+                # Re-raise to be caught by the outer build_rag_chain caller if critical
+                raise e
+        
+        if not docs:
+            raise ValueError("No documents were successfully loaded.")
         
         print(f"Splitting {len(docs)} documents into chunks...")
         splitter = RecursiveCharacterTextSplitter(
@@ -107,6 +136,9 @@ def build_rag_chain(
         )
         splits = splitter.split_documents(docs)
         
+        if not splits:
+            raise ValueError("No text could be extracted from the uploaded documents.")
+
         print(f"Creating embeddings for {len(splits)} chunks...")
         vectorstore = None
         for i in range(0, len(splits), 8):
@@ -117,6 +149,9 @@ def build_rag_chain(
                 vectorstore.add_documents(documents=batch)
             time.sleep(0.05)
         
+        if vectorstore is None:
+            raise ValueError("Failed to create FAISS vector store.")
+
         print(f"Saving FAISS index to {persist_dir}...")
         vectorstore.save_local(persist_dir)
     
@@ -130,7 +165,7 @@ def build_rag_chain(
 def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str):
     """Build a LangChain RAG chain from a FAISS vectorstore."""
     retriever = vectorstore.as_retriever()
-    llm = ChatOllama(model=model, base_url=ollama_host.rstrip("/"))
+    llm = ChatOllama(model=model, base_url=ollama_host.rstrip("/"), num_ctx=2048)
     
     # History-aware retriever
     ctx_q_prompt = ChatPromptTemplate.from_messages([

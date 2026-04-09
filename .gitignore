@@ -25,6 +25,13 @@ ENV/
 # ── FAISS vector cache (auto-generated, regenerated on first upload) ──────────
 .faiss_storage/
 .faiss_storage_cli/
+.guardrag_storage/
+
+# ── Temporary / Test outputs ──────────────────────────────────────────────────
+test_out.txt
+git_log.txt
+test_upload.py
+test_langchain.txt
 
 # ── IDE ───────────────────────────────────────────────────────────────────────
 .vscode/
