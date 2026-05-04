@@ -32,12 +32,29 @@ test_out.txt
 git_log.txt
 test_upload.py
 test_langchain.txt
+pip_list.txt
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ── Testing / Benchmarks ──────────────────────────────────────────────────────
+.pytest_cache/
+.benchmarks/
+.tox/
+.coverage
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
 
 # ── IDE ───────────────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.sublime-project
 *.sublime-workspace
+.project
+.pydevproject
+.settings/
 
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store

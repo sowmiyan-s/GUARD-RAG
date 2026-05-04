@@ -4,7 +4,7 @@
 
 ### Privacy-First, Fully Offline AI Document Assistant
 **Secured by a Tiered Safety Guardrails System**  
-*v1.1.2 — High-Performance, Secure, and Minimalist*
+*v1.1.5 — High-Performance, Secure, and Minimalist*
 
 <br/>
 
@@ -52,7 +52,7 @@ Install the package directly from PyPI:
 
 ```bash
 # Recommended stable version
-pip install guard-rag==1.1.2
+pip install guard-rag==1.1.5
 ```
 
 ### Prerequisites

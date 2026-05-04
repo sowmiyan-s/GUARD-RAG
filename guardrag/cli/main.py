@@ -43,7 +43,7 @@ from guardrag.utils.safety import check_input_safety, check_output_safety
 # Load environment variables
 load_dotenv()
 
-def display_banner(mode="CLI", version="1.1.3"):
+def display_banner(mode="CLI", version="1.1.5"):
     """Display a unified, premium centered banner for GuardRAG."""
     # Big Project Name
     title = Text("GUARD - RAG", style="bold white")
@@ -85,7 +85,7 @@ def display_banner(mode="CLI", version="1.1.3"):
         ("  |  GITHUB: ", "dim"), ("https://github.com/sowmiyan-s/GUARD-RAG", "white underline")
     )
     console.print(Align.center(credits))
-    console.print(Rule(style="dim white", characters="─"))
+    console.print(Rule(style="dim white", characters="-"))
     console.print()
 
 def display_web_ui_banner():
@@ -111,7 +111,8 @@ def run_web_ui():
         
     threading.Thread(target=open_browser, daemon=True).start()
     # Reduced log level to hide unwanted server dump info
-    uvicorn.run("guardrag.api.main:app", host="127.0.0.1", port=8000, log_level="info")
+    from guardrag.api.main import app
+    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
     sys.exit(0)
 
 
@@ -126,12 +127,12 @@ def display_session_info(pdf_name, model, sensitivity, guardrails):
     table.add_column("Parameter", style="dim", width=15)
     table.add_column("Value", style="bold white")
     
-    table.add_row("📄 Document", pdf_name)
-    table.add_row("🤖 Model", model)
-    table.add_row("🔒 Sensitivity", f"[{'green' if sensitivity == 'Public' else 'yellow' if sensitivity == 'Internal' else 'orange3' if sensitivity == 'Confidential' else 'red'}]{sensitivity}[/]")
-    table.add_row("⚙️ Guardrails", "[green]Enabled[/green]" if guardrails else "[red]Disabled[/red]")
-    table.add_row("👤 Developer", "Sowmiyan S")
-    table.add_row("🔗 GitHub", "[blue]sowmiyan-s[/blue]")
+    table.add_row("(DOC) Document", pdf_name)
+    table.add_row("(AI)  Model", model)
+    table.add_row("(SEC) Sensitivity", f"[{'green' if sensitivity == 'Public' else 'yellow' if sensitivity == 'Internal' else 'orange3' if sensitivity == 'Confidential' else 'red'}]{sensitivity}[/]")
+    table.add_row("(SET) Guardrails", "[green]Enabled[/green]" if guardrails else "[red]Disabled[/red]")
+    table.add_row("(USR) Developer", "Sowmiyan S")
+    table.add_row("(URL) GitHub", "[blue]sowmiyan-s[/blue]")
     
     console.print(table)
     console.print(Rule(style="dim"))
@@ -205,15 +206,15 @@ def main():
     if not is_ollama_running(args.ollama_host):
         console.print("[yellow]Ollama is not running. Attempting to start...[/yellow]")
         if start_ollama_server():
-            console.print("[bold green]✓ Ollama started successfully[/bold green]")
+            console.print("[bold green][v] Ollama started successfully[/bold green]")
         else:
             console.print(Panel(
-                "[bold red]✗ Failed to start Ollama.[/bold red]\nPlease ensure Ollama is installed and the service is active.\nSource: [blue]https://ollama.ai[/blue]",
+                "[bold red][x] Failed to start Ollama.[/bold red]\nPlease ensure Ollama is installed and the service is active.\nSource: [blue]https://ollama.ai[/blue]",
                 title="Error", border_style="red"
             ))
             sys.exit(1)
     else:
-        console.print("[bold green]✓ Connection stable[/bold green]")
+        console.print("[bold green][v] Connection stable[/bold green]")
     
     # Build RAG pipeline
     console.print(f"\n[cyan]Initializing neural engine with[/cyan] [bold white]{args.model}[/bold white]...")
@@ -226,7 +227,7 @@ def main():
             ollama_host=args.ollama_host
         )
     except Exception as e:
-        console.print(f"[bold red]✗ Pipeline initialization failed: {e}[/bold red]")
+        console.print(f"[bold red][x] Pipeline initialization failed: {e}[/bold red]")
         sys.exit(1)
     
     # Session Summary Table
@@ -251,7 +252,7 @@ def main():
                 continue
             
             if question.lower() in ["exit", "quit"]:
-                console.print("\n[bold green]✓[/bold green] [dim]Ending session. Goodbye![/dim]")
+                console.print("\n[bold green][v][/bold green] [dim]Ending session. Goodbye![/dim]")
                 break
             
             # Safety check: input
@@ -318,10 +319,10 @@ def main():
                 messages.append({"role": "assistant", "content": answer})
                 
             except Exception as e:
-                console.print(f"\n[bold red]✗ Inference error: {e}[/bold red]\n")
+                console.print(f"\n[bold red][x] Inference error: {e}[/bold red]\n")
         
         except KeyboardInterrupt:
-            console.print("\n\n[bold green]✓[/bold green] [dim]Session terminated by user.[/dim]")
+            console.print("\n\n[bold green][v][/bold green] [dim]Session terminated by user.[/dim]")
             break
 
 

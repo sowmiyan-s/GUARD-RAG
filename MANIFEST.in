@@ -9,4 +9,6 @@ recursive-include docs *
 include .env.example
 recursive-include guardrag *.py *.typed
 recursive-include guardrag/api/frontend *
+include pyproject.toml
+include MANIFEST.in
 
