@@ -96,7 +96,7 @@ from guardrag.utils.ollama import (
 app = FastAPI(
     title="Guardrails Local RAG Bot",
     description="Privacy-first, fully offline AI document assistant secured by tiered safety guardrails.",
-    version="1.2.0",
+    version="1.2.1",
 )
 
 app.add_middleware(

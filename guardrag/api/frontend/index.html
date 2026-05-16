@@ -43,6 +43,20 @@
 
       <hr class="divider" />
 
+      <!-- ── System / Ollama ───────────────────────────────────────── -->
+      <div class="section-label sb-text">
+        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+        System Settings
+      </div>
+
+      <div style="margin-top:0.65rem;">
+        <label class="form-label sb-text" for="ollamaEndpoint">Ollama Endpoint</label>
+        <input id="ollamaEndpoint" type="url" class="form-control sb-text" placeholder="http://localhost:11434"
+          title="Ollama API base URL" />
+      </div>
+
+      <button id="btnStartOllama" class="btn btn-secondary btn-full" style="display:none; margin-top: 0.65rem;">🚀 Launch Ollama</button>
+
       <div style="margin-top:0.85rem;">
         <label class="section-label sb-text" for="modelSelect">
           <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8l4-4 4 4h-4v4zm0 8v4h4l-4 4-4-4h4v-4z"/></svg>

@@ -70,7 +70,7 @@ except (ImportError, OSError) as e:
     # Re-raise if it's something else
     raise e
 
-def display_banner(mode="CLI", version="1.2.0"):
+def display_banner(mode="CLI", version="1.2.1"):
     """Display a unified, premium centered banner for GuardRAG."""
     # Big Project Name
     title = Text("GUARD - RAG", style="bold white")

@@ -36,6 +36,7 @@ const sidebarRail = $('sidebarRail');
 const railStatusDot = $('railStatusDot');
 const railClearBtn = $('railClearBtn');
 
+const ollamaEndpointInput = $('ollamaEndpoint');
 const btnStartOllama = $('btnStartOllama');
 const railStartOllama = $('railStartOllama');
 const startOllamaHint = $('startOllamaHint');
@@ -91,24 +92,45 @@ const ollamaStartModal = $('ollamaStartModal');
 const ollamaStartModalClose = $('ollamaStartModalClose');
 const ollamaStartRetry = $('ollamaStartRetry');
 
+// ─── Ollama endpoint (stored in localStorage) ─────────────────────────────────
 function getOllamaEndpoint() {
-  return state.serverConfig?.server_ollama_host || DEFAULT_OLLAMA_ENDPOINT;
+  return (ollamaEndpointInput.value || '').trim() || DEFAULT_OLLAMA_ENDPOINT;
 }
 
 /**
  * Fetch server-side config (/api/config).
+ * - If the user has never saved a custom endpoint, we use the server's OLLAMA_HOST.
+ * - If the user previously saved a custom endpoint in localStorage, we keep it.
  */
 async function fetchConfig() {
   try {
     const cfg = await apiFetch('/api/config');
     state.serverConfig = cfg;
-    // Re-check health immediately with the new config
+
+    const saved = localStorage.getItem('ragbot_ollama_endpoint');
+    if (!saved && cfg.server_ollama_host) {
+      ollamaEndpointInput.value = cfg.server_ollama_host;
+    } else {
+      loadSavedEndpoint();
+    }
     await refreshHealth();
   } catch {
-    // Config fetch failed — fallback to default
+    loadSavedEndpoint();
     await refreshHealth();
   }
 }
+
+function loadSavedEndpoint() {
+  const saved = localStorage.getItem('ragbot_ollama_endpoint');
+  if (saved) ollamaEndpointInput.value = saved;
+  else ollamaEndpointInput.value = DEFAULT_OLLAMA_ENDPOINT;
+}
+
+ollamaEndpointInput.addEventListener('change', () => {
+  const val = ollamaEndpointInput.value.trim();
+  localStorage.setItem('ragbot_ollama_endpoint', val || DEFAULT_OLLAMA_ENDPOINT);
+  refreshHealth();
+});
 
 // No-op for blur
 
