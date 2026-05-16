@@ -3,7 +3,7 @@ Safety and content filtering system for the RAG bot.
 Implements tiered data sensitivity levels and guardrails.
 """
 
-from typing import Optional, Dict, List
+from typing import Optional
 
 JAILBREAK_PATTERNS = [
     "ignore previous", "forget your instructions", "ignore all prior",
@@ -130,7 +130,7 @@ def check_output_safety(
     return None
 
 
-def get_sensitivity_profiles() -> Dict[str, Dict]:
+def get_sensitivity_profiles() -> dict[str, dict]:
     """Get all available sensitivity profiles with descriptions."""
     return {
         k: {

@@ -4,7 +4,7 @@
 
 ### Privacy-First, Fully Offline AI Document Assistant
 **Secured by a Tiered Safety Guardrails System**  
-*v1.1.5 — High-Performance, Secure, and Minimalist*
+*v1.2.0 — High-Performance, Secure, and Professional*
 
 <br/>
 
@@ -19,6 +19,16 @@
 > No cloud dependencies. No API keys. No data ever leaves your device.
 
 </div>
+
+---
+
+## 💡 What's New in v1.2.0
+
+*   **⚡ Faster Indexing**: Optimized FAISS batching and retrieval parameters.
+*   **📚 Document Library**: Persisted document collections with a visual management panel.
+*   **🧠 Enhanced Context**: Increased retrieval count (k=10) and 4096-token context window.
+*   **🛡️ Refined Safety**: Improved NVIDIA NeMo Guardrails integration for PII and jailbreak protection.
+*   **🌐 Modern Web Interface**: Professional ChatGPT-inspired workspace with session management.
 
 ---
 
@@ -52,12 +62,13 @@ Install the package directly from PyPI:
 
 ```bash
 # Recommended stable version
-pip install guard-rag==1.1.5
+pip install guard-rag==1.2.0
 ```
 
 ### Prerequisites
 1.  **Ollama**: Download and install from [ollama.com](https://ollama.com).
-2.  **Model**: Pull a model to use locally (e.g., `ollama pull gemma3:1b` or `llama3.2:1b`).
+2.  **Model**: Pull a model to use locally (e.g., `ollama pull gemma3:1b`).
+3.  **Windows Users**: You **must** have the [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) installed to run the AI engine.
 
 ---
 
@@ -83,7 +94,9 @@ Customize the model, server, and safety levels:
 guard-rag --pdf report.pdf --model llama3 --sensitivity Confidential --chunk-size 1000
 ```
 
-### 📖 Available CLI Options
+---
+
+## 📖 Available CLI Options
 
 | Argument | Description | Default |
 | :--- | :--- | :--- |
@@ -97,23 +110,10 @@ guard-rag --pdf report.pdf --model llama3 --sensitivity Confidential --chunk-siz
 
 ---
 
-## 🛠️ Quick Example Session
-
-```bash
-# Start a confidential session with a specific model
-guard-rag --pdf Q4_Internal_Report.pdf --model llama3 --sensitivity Confidential
-
-# Chatbot: [Q4_Internal_Report.pdf Loaded] How can I help you?
-# You: What were the total earnings mentioned in the summary?
-# Chatbot: Based on the document, the total earnings for Q4 were $2.4M...
-```
-
----
-
 <div align="center">
 
 Built with ❤️ by **[Sowmiyan S](https://github.com/sowmiyan-s)**
 
-[GitHub](https://github.com/sowmiyan-s/GUARD-RAG) · [PyPI](https://pypi.org/project/guard-rag/) · [Documentation](docs/INSTALL.md)
+[GitHub](https://github.com/sowmiyan-s/GUARD-RAG) · [PyPI](https://pypi.org/project/guard-rag/)
 
 </div>

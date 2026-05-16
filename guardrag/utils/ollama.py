@@ -2,12 +2,11 @@
 Ollama utilities for managing local LLM processes.
 """
 
-import os
-import time
 import json
+import os
 import subprocess
+import time
 import urllib.request
-from typing import Optional, List
 
 
 def is_ollama_running(host: str = "http://localhost:11434") -> bool:
@@ -20,7 +19,7 @@ def is_ollama_running(host: str = "http://localhost:11434") -> bool:
         return False
 
 
-def get_installed_models(host: str = "http://localhost:11434") -> List[str]:
+def get_installed_models(host: str = "http://localhost:11434") -> list[str]:
     """Get list of installed models from Ollama."""
     try:
         req = urllib.request.urlopen(host.rstrip("/") + "/api/tags", timeout=3)

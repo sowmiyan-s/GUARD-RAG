@@ -233,8 +233,13 @@ Install dependencies:
 pip install langchain langchain-core langchain-community langchain-ollama langchain-huggingface
 ```
 
-### "No module named 'torch'"
-Install PyTorch:
+### "No module named 'torch'" or "WinError 126"
+If you are on Windows and see a `WinError 126` or a message about `torch` DLLs failing to load, you likely need the **Microsoft Visual C++ Redistributable**.
+
+1. Download it from here: [aka.ms/vs/17/release/vc_redist.x64.exe](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+2. Install it and restart your terminal.
+
+Alternatively, ensure PyTorch is installed:
 ```bash
 pip install torch
 ```

@@ -6,23 +6,26 @@ Usage:
     guard-rag --pdf document.pdf --model llama2
 """
 
+import argparse
 import os
 import sys
-import argparse
+import asyncio
+import anyio.to_thread
 from pathlib import Path
+
+from dotenv import load_dotenv
+from rich.align import Align
+from rich.box import ROUNDED
 
 # Add rich for console GUI
 from rich.console import Console
-from rich.panel import Panel
-from rich.text import Text
-from rich.prompt import Prompt
 from rich.markdown import Markdown
-from rich.theme import Theme
-from rich.table import Table
-from rich.live import Live
-from rich.align import Align
-from rich.box import ROUNDED
+from rich.panel import Panel
+from rich.prompt import Prompt
 from rich.rule import Rule
+from rich.table import Table
+from rich.text import Text
+from rich.theme import Theme
 
 custom_theme = Theme({
     "info": "white",
@@ -34,16 +37,40 @@ console = Console(theme=custom_theme)
 # Fix OMP error for FAISS
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-from dotenv import load_dotenv
-
-from guardrag.rag.core import build_rag_chain
-from guardrag.utils.ollama import is_ollama_running, start_ollama_server
-from guardrag.utils.safety import check_input_safety, check_output_safety
-
 # Load environment variables
 load_dotenv()
 
-def display_banner(mode="CLI", version="1.1.5"):
+# ─────────────────────────────────────────────────────────────────────────────
+# Python 3.14 Compatibility Patch
+# Monkeypatch anyio.to_thread.run_sync to use asyncio.to_thread, bypassing
+# anyio's broken threadpool implementation on experimental Python versions.
+# ─────────────────────────────────────────────────────────────────────────────
+async def _patched_run_sync(func, *args, **kwargs):
+    return await asyncio.to_thread(func, *args)
+
+anyio.to_thread.run_sync = _patched_run_sync
+
+# Safe imports for Windows (Visual C++ Redistributable check)
+try:
+    from guardrag.rag.core import build_rag_chain
+    from guardrag.utils.ollama import is_ollama_running, start_ollama_server
+    from guardrag.utils.safety import check_input_safety, check_output_safety
+except (ImportError, OSError) as e:
+    if os.name == "nt" and ("WinError 126" in str(e) or "DLL load failed" in str(e)):
+        console.print(Panel(
+            "[bold red]CRITICAL: Missing System Dependency[/bold red]\n\n"
+            "The [bold white]Microsoft Visual C++ Redistributable[/bold white] is required to run GuardRAG on Windows.\n\n"
+            "1. Download & Install: [blue underline]https://aka.ms/vs/17/release/vc_redist.x64.exe[/blue underline]\n"
+            "2. Restart your terminal\n"
+            "3. Rerun the command: [bold white]guard-rag[/bold white]\n",
+            title="Installation Required",
+            border_style="red"
+        ))
+        sys.exit(1)
+    # Re-raise if it's something else
+    raise e
+
+def display_banner(mode="CLI", version="1.2.0"):
     """Display a unified, premium centered banner for GuardRAG."""
     # Big Project Name
     title = Text("GUARD - RAG", style="bold white")
@@ -98,10 +125,11 @@ def display_welcome_banner():
 
 def run_web_ui():
     """Launch the internal FastAPI web application."""
-    import uvicorn
     import threading
     import time
     import webbrowser
+
+    import uvicorn
 
     display_web_ui_banner()
     
@@ -272,7 +300,7 @@ def main():
                     continue
             
             # Build message history
-            from langchain_core.messages import HumanMessage, AIMessage
+            from langchain_core.messages import AIMessage, HumanMessage
             chat_history = []
             for msg in messages:
                 if msg["role"] == "user":

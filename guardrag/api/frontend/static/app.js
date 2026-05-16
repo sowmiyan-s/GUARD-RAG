@@ -18,6 +18,7 @@ const state = {
   isChatting: false,
   uploadOpen: true,
   currentDbId: null,
+  activeDocName: '',
   serverConfig: null,
 };
 
@@ -35,14 +36,14 @@ const sidebarRail = $('sidebarRail');
 const railStatusDot = $('railStatusDot');
 const railClearBtn = $('railClearBtn');
 
-const ollamaEndpointInput = $('ollamaEndpoint');
-const ollamaStatus = $('ollamaStatus');
-const ollamaStatusText = $('ollamaStatusText');
 const btnStartOllama = $('btnStartOllama');
 const railStartOllama = $('railStartOllama');
 const startOllamaHint = $('startOllamaHint');
 const modelSelect = $('modelSelect');
 const connectionBadge = $('connectionBadge');
+
+const activeDocBanner = $('activeDocBanner');
+const activeDocName = $('activeDocName');
 
 const guardrailsToggle = $('guardrailsToggle');
 const sensitivitySelect = $('sensitivitySelect');
@@ -90,59 +91,26 @@ const ollamaStartModal = $('ollamaStartModal');
 const ollamaStartModalClose = $('ollamaStartModalClose');
 const ollamaStartRetry = $('ollamaStartRetry');
 
-// ─── Ollama endpoint (stored in localStorage) ─────────────────────────────────
 function getOllamaEndpoint() {
-  return (ollamaEndpointInput.value || '').trim() || DEFAULT_OLLAMA_ENDPOINT;
+  return state.serverConfig?.server_ollama_host || DEFAULT_OLLAMA_ENDPOINT;
 }
 
 /**
  * Fetch server-side config (/api/config).
- * - If the user has never saved a custom endpoint, we use the server's OLLAMA_HOST.
- * - If the user previously saved a custom endpoint in localStorage, we keep it.
- * - The server config is cached in state.serverConfig for later use.
  */
 async function fetchConfig() {
   try {
     const cfg = await apiFetch('/api/config');
     state.serverConfig = cfg;
-    // Only auto-apply server host if user hasn't manually overridden it
-    const saved = localStorage.getItem('ragbot_ollama_endpoint');
-    const userOverrode = saved && saved !== DEFAULT_OLLAMA_ENDPOINT;
-    if (!userOverrode && cfg.server_ollama_host) {
-      // Server has a non-default host configured (e.g. ngrok tunnel)
-      ollamaEndpointInput.value = cfg.server_ollama_host;
-      localStorage.setItem('ragbot_ollama_endpoint', cfg.server_ollama_host);
-    } else {
-      // User's choice wins — restore from localStorage
-      loadSavedEndpoint();
-    }
+    // Re-check health immediately with the new config
+    await refreshHealth();
   } catch {
-    // Config fetch failed (offline?) — just restore whatever was saved
-    loadSavedEndpoint();
+    // Config fetch failed — fallback to default
+    await refreshHealth();
   }
 }
 
-function loadSavedEndpoint() {
-  const saved = localStorage.getItem('ragbot_ollama_endpoint');
-  if (saved) ollamaEndpointInput.value = saved;
-  else ollamaEndpointInput.value = DEFAULT_OLLAMA_ENDPOINT;
-}
-
-ollamaEndpointInput.addEventListener('change', () => {
-  const val = ollamaEndpointInput.value.trim();
-  localStorage.setItem('ragbot_ollama_endpoint', val || DEFAULT_OLLAMA_ENDPOINT);
-  // Re-check health immediately when endpoint changes
-  refreshHealth();
-});
-
-// Show tunnel modal when endpoint looks remote (not localhost)
-ollamaEndpointInput.addEventListener('blur', () => {
-  const val = (ollamaEndpointInput.value || '').trim();
-  const isLocal = !val || val.includes('localhost') || val.includes('127.0.0.1');
-  if (!isLocal && val) {
-    // No-op: just silently accept remote URLs. Modal is shown from the hint link.
-  }
-});
+// No-op for blur
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
@@ -311,12 +279,6 @@ async function refreshHealth() {
   const endpoint = getOllamaEndpoint();
   const isLocal = endpoint.includes('localhost') || endpoint.includes('127.0.0.1');
 
-  // Set loading state briefly if we were offline
-  if (!state.ollamaRunning) {
-    ollamaStatus.className = 'status-badge status-loading';
-    ollamaStatusText.textContent = 'Checking Connection…';
-  }
-
   const { running, models } = await checkOllamaDirectly(endpoint);
 
   // Update state
@@ -325,20 +287,14 @@ async function refreshHealth() {
   state.models = models;
 
   if (running) {
-    ollamaStatus.className = 'status-badge status-online';
-    ollamaStatusText.textContent = isLocal ? 'Ollama — Running' : 'Ollama — Connected';
-
     // Hide start buttons
     btnStartOllama.style.display = 'none';
     if (railStartOllama) railStartOllama.style.display = 'none';
     if (startOllamaHint) startOllamaHint.style.display = 'none';
 
     // Update badge in header
-    connectionBadge.textContent = isLocal ? 'LOCAL / SECURE' : 'REMOTE / TUNNEL';
-    connectionBadge.style.filter = 'drop-shadow(0 0 5px var(--accent))';
-    connectionBadge.style.color = 'var(--accent-hover)';
-    connectionBadge.style.borderColor = 'var(--accent-border)';
-    connectionBadge.style.background = 'var(--accent-dim)';
+    connectionBadge.textContent = isLocal ? 'OLLAMA: ONLINE (LOCAL)' : 'OLLAMA: CONNECTED (REMOTE)';
+    connectionBadge.classList.add('active');
 
     // Update model list
     const currentModel = modelSelect.value;
@@ -355,16 +311,11 @@ async function refreshHealth() {
         if (m === currentModel) opt.selected = true;
         modelSelect.appendChild(opt);
       });
-      // If gemma3 exists but isn't selected, maybe select it? 
-      // User manual choice is better, but let's ensure something is selected.
       if (!modelSelect.value && models.length > 0) modelSelect.selectedIndex = 0;
     }
 
     if (changed) toast('Ollama connection established.', 'success');
   } else {
-    ollamaStatus.className = 'status-badge status-offline';
-    ollamaStatusText.textContent = isLocal ? 'Ollama — Not running' : 'Ollama — Unreachable';
-
     btnStartOllama.style.display = 'flex';
     if (railStartOllama) railStartOllama.style.display = 'flex';
 
@@ -375,11 +326,8 @@ async function refreshHealth() {
         : 'Remote server unreachable. Check URL or tunnel.';
     }
 
-    connectionBadge.textContent = 'OFFLINE';
-    connectionBadge.style.filter = 'none';
-    connectionBadge.style.color = '';
-    connectionBadge.style.borderColor = '';
-    connectionBadge.style.background = '';
+    connectionBadge.textContent = 'OLLAMA: OFFLINE';
+    connectionBadge.classList.remove('active');
   }
   syncRailStatus();
 }
@@ -568,6 +516,7 @@ async function loadStoredSession(col) {
 
     state.sessionId = data.session_id;
     state.currentDbId = col.db_id;
+    state.activeDocName = col.files.length > 1 ? `${col.files[0]} (+${col.files.length - 1} more)` : col.files[0];
 
     // Update upload status text
     setUploadStatus(`✓ Loaded: ${data.files.join(', ')}`, 'success');
@@ -710,6 +659,7 @@ async function processDocuments() {
     const data = await res.json();
     state.sessionId = data.session_id;
     state.currentDbId = data.db_id;
+    state.activeDocName = state.selectedFiles.length > 1 ? `${state.selectedFiles[0].name} (+${state.selectedFiles.length - 1} more)` : state.selectedFiles[0].name;
     setUploadStatus(`${data.files.length} document(s) indexed.`, 'success');
     toast('Documents ready — start chatting!', 'success');
     showChatReady();
@@ -731,6 +681,7 @@ function showEmptyState() {
   emptyState.style.display = '';
   chatMessages.style.display = 'none';
   readyBanner.style.display = 'none';
+  activeDocBanner.style.display = 'none';
   typingIndicator.style.display = 'none';
   inputBarWrapper.style.display = 'none';
   chatInput.disabled = true;
@@ -742,6 +693,8 @@ function showChatReady() {
   emptyState.style.display = 'none';
   chatMessages.style.display = 'flex';
   readyBanner.style.display = 'flex';
+  activeDocBanner.style.display = 'flex';
+  activeDocName.textContent = state.activeDocName;
   inputBarWrapper.style.display = 'block';
   chatInput.disabled = false;
   btnSend.disabled = false;
@@ -759,9 +712,15 @@ async function clearConversation() {
       });
     } catch { /* best-effort */ }
   }
+  // FULL RESET
+  state.sessionId = null;
+  state.currentDbId = null;
+  state.selectedFiles = [];
+  state.activeDocName = '';
   chatMessages.innerHTML = '';
-  if (state.sessionId) readyBanner.style.display = 'flex';
-  toast('Conversation cleared.', 'info');
+  renderFileList();
+  showEmptyState();
+  toast('Session terminated. Please select a new document.', 'info');
   if (window.innerWidth <= 900) closeMobileSidebar();
 }
 

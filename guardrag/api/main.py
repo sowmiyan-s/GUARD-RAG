@@ -26,14 +26,13 @@ GET  /                    → serve frontend index.html
 # ─────────────────────────────────────────────────────────────────────────────
 # NOTE: This constant is defined AFTER load_dotenv() below.
 
+import asyncio
+import anyio.to_thread
+import hashlib
+import json
 import os
 import tempfile
-import hashlib
 import time
-import json
-import urllib.request
-import subprocess
-
 from pathlib import Path
 from typing import Optional
 
@@ -45,7 +44,18 @@ _NO_PROXY = "huggingface.co,*.huggingface.co,localhost,127.0.0.1"
 os.environ.setdefault("NO_PROXY", _NO_PROXY)
 os.environ.setdefault("no_proxy", _NO_PROXY)
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Python 3.14 Compatibility Patch
+# Monkeypatch anyio.to_thread.run_sync to use asyncio.to_thread, bypassing
+# anyio's broken threadpool implementation on experimental Python versions.
+# ─────────────────────────────────────────────────────────────────────────────
+async def _patched_run_sync(func, *args, **kwargs):
+    return await asyncio.to_thread(func, *args)
+
+anyio.to_thread.run_sync = _patched_run_sync
+
 import nest_asyncio
+
 try:
     nest_asyncio.apply()
 except (ValueError, RuntimeError):
@@ -54,19 +64,19 @@ except (ValueError, RuntimeError):
     pass
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Server-wide default Ollama host — reads from environment variable.
 # Override at any time by setting OLLAMA_HOST in .env or your PaaS settings.
 SERVER_OLLAMA_HOST: str = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Request
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
-
-from langchain_core.messages import HumanMessage, AIMessage
 
 # Internal imports
 from guardrag.rag.core import (
@@ -74,10 +84,10 @@ from guardrag.rag.core import (
     load_stored_rag_chain,
 )
 from guardrag.utils.ollama import (
-    is_ollama_running,
     get_installed_models,
-    start_ollama_server,
     get_ollama_version,
+    is_ollama_running,
+    start_ollama_server,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -86,7 +96,7 @@ from guardrag.utils.ollama import (
 app = FastAPI(
     title="Guardrails Local RAG Bot",
     description="Privacy-first, fully offline AI document assistant secured by tiered safety guardrails.",
-    version="1.1.5",
+    version="1.2.0",
 )
 
 app.add_middleware(
@@ -163,37 +173,7 @@ class LoadSessionRequest(BaseModel):
         return (self.ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Ollama utilities
-# ─────────────────────────────────────────────────────────────────────────────
-def is_ollama_running(host: str = "http://localhost:11434") -> bool:
-    try:
-        req = urllib.request.Request(host.rstrip("/") + "/", method="GET")
-        urllib.request.urlopen(req, timeout=3)
-        return True
-    except Exception:
-        return False
-
-def get_installed_models(host: str = "http://localhost:11434") -> list[str]:
-    try:
-        req = urllib.request.urlopen(host.rstrip("/") + "/api/tags", timeout=3)
-        data = json.loads(req.read().decode("utf-8"))
-        return [m["name"] for m in data.get("models", [])]
-    except Exception:
-        return []
-
-def start_ollama_server() -> bool:
-    """Attempt to start a locally-installed Ollama process."""
-    try:
-        flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
-        subprocess.Popen(["ollama", "serve"], creationflags=flags)
-        for _ in range(20):
-            if is_ollama_running():
-                return True
-            time.sleep(0.5)
-        return False
-    except Exception:
-        return False
+# Ollama utilities are imported from guardrag.utils.ollama
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -280,7 +260,7 @@ def check_output_safety(response: str, sensitivity: str, enabled: bool) -> Optio
 # API routes
 # ─────────────────────────────────────────────────────────────────────────────
 @app.get("/api/config")
-def get_config():
+async def get_config():
     """Return server-side configuration to the frontend.
     The frontend reads SERVER_OLLAMA_HOST from here on startup so users
     don’t need to configure anything manually when the app is deployed.
@@ -292,12 +272,12 @@ def get_config():
 
 
 @app.get("/api/health")
-def health(ollama_host: str = ""):
+async def health(ollama_host: str = ""):
     """Check Ollama health. Uses SERVER_OLLAMA_HOST when no host is supplied."""
     host = (ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
-    running = is_ollama_running(host)
-    models = get_installed_models(host) if running else []
-    version = get_ollama_version(host) if running else "unknown"
+    running = await asyncio.to_thread(is_ollama_running, host)
+    models = await asyncio.to_thread(get_installed_models, host) if running else []
+    version = await asyncio.to_thread(get_ollama_version, host) if running else "unknown"
     return {
         "ollama_running": running,
         "ollama_host": host,
@@ -311,11 +291,11 @@ def health(ollama_host: str = ""):
 
 
 @app.post("/api/ollama/start")
-def ollama_start():
+async def ollama_start():
     """Attempt to start a locally-installed Ollama process."""
-    if is_ollama_running(SERVER_OLLAMA_HOST):
+    if await asyncio.to_thread(is_ollama_running, SERVER_OLLAMA_HOST):
         return {"started": True, "message": "Ollama is already running."}
-    ok = start_ollama_server()
+    ok = await asyncio.to_thread(start_ollama_server)
     if ok:
         return {"started": True, "message": "Ollama started successfully."}
     raise HTTPException(
@@ -352,21 +332,23 @@ async def upload_documents(
                 temp_paths.append(tmp.name)
             file_names.append(uf.filename)
 
-        if not is_ollama_running(host):
+        if not await asyncio.to_thread(is_ollama_running, host):
             raise HTTPException(
                 status_code=503,
                 detail=f"Ollama is not reachable at {host}. Check the OLLAMA_HOST setting.",
             )
 
         try:
-            db_id, rag_chain = build_rag_chain(temp_paths, model, chunk_size, chunk_overlap, host)
+            db_id, rag_chain = await asyncio.to_thread(
+                build_rag_chain, temp_paths, model, chunk_size, chunk_overlap, host
+            )
         except Exception as e:
             import traceback
             traceback.print_exc()
             raise HTTPException(
                 status_code=500,
                 detail=f"Error building RAG index: {str(e)}"
-            )
+            ) from e
 
         h = hashlib.md5(
             ("|".join(sorted(file_names)) + model + str(chunk_size) + str(chunk_overlap)).encode()
@@ -383,7 +365,7 @@ async def upload_documents(
             "ollama_host": host,
         }
 
-        _register_faiss_entry(db_id, file_names, model, chunk_size, chunk_overlap)
+        await asyncio.to_thread(_register_faiss_entry, db_id, file_names, model, chunk_size, chunk_overlap)
         return {"session_id": h, "db_id": db_id, "files": file_names, "model": model}
 
     finally:
@@ -393,12 +375,12 @@ async def upload_documents(
 
 
 @app.get("/api/storage")
-def list_storage():
+async def list_storage():
     """
     Return all persisted FAISS document collections.
     The frontend uses this to show the Document Library panel.
     """
-    meta = _load_faiss_meta()
+    meta = await asyncio.to_thread(_load_faiss_meta)
     entries = []
     for db_id, info in meta.items():
         persist_dir = FAISS_STORAGE / db_id
@@ -417,10 +399,10 @@ def list_storage():
 
 
 @app.post("/api/sessions/load")
-def load_session(req: LoadSessionRequest):
+async def load_session(req: LoadSessionRequest):
     """Rehydrate a stored FAISS collection without re-uploading."""
     host = req.resolved_host()
-    meta = _load_faiss_meta()
+    meta = await asyncio.to_thread(_load_faiss_meta)
     if req.db_id not in meta:
         raise HTTPException(status_code=404, detail="Collection not found in storage.")
 
@@ -428,16 +410,16 @@ def load_session(req: LoadSessionRequest):
     if not persist_dir.exists():
         raise HTTPException(status_code=404, detail="FAISS index files missing from disk.")
 
-    if not is_ollama_running(host):
+    if not await asyncio.to_thread(is_ollama_running, host):
         raise HTTPException(
             status_code=503,
             detail=f"Ollama is not reachable at {host}.",
         )
 
     try:
-        rag_chain = load_stored_rag_chain(req.db_id, req.model, host)
+        rag_chain = await asyncio.to_thread(load_stored_rag_chain, req.db_id, req.model, host)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load index: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to load index: {str(e)}") from e
 
     info = meta[req.db_id]
     h = hashlib.md5((req.db_id + req.model + host).encode()).hexdigest()[:16]
@@ -462,28 +444,28 @@ def load_session(req: LoadSessionRequest):
 
 
 @app.post("/api/storage/delete")
-def delete_storage_entry(body: dict):
+async def delete_storage_entry(body: dict):
     """Delete a stored FAISS collection from disk and metadata."""
     db_id = body.get("db_id", "")
     if not db_id:
         raise HTTPException(status_code=400, detail="db_id is required.")
 
-    meta = _load_faiss_meta()
+    meta = await asyncio.to_thread(_load_faiss_meta)
     if db_id not in meta:
         raise HTTPException(status_code=404, detail="Collection not found.")
 
     import shutil
     persist_dir = FAISS_STORAGE / db_id
     if persist_dir.exists():
-        shutil.rmtree(persist_dir)
+        await asyncio.to_thread(shutil.rmtree, persist_dir)
 
     del meta[db_id]
-    _save_faiss_meta(meta)
+    await asyncio.to_thread(_save_faiss_meta, meta)
     return {"deleted": True, "db_id": db_id}
 
 
 @app.post("/api/chat")
-def chat(req: ChatRequest):
+async def chat(req: ChatRequest):
     session = _sessions.get(req.session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found. Please upload documents first.")
@@ -502,11 +484,13 @@ def chat(req: ChatRequest):
             history.append(AIMessage(content=msg["content"]))
 
     try:
-        result = session["rag_chain"].invoke({"input": req.question, "chat_history": history})
+        result = await asyncio.to_thread(
+            session["rag_chain"].invoke, {"input": req.question, "chat_history": history}
+        )
     except Exception as e:
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}") from e
 
     if isinstance(result, dict) and "answer" in result:
         answer = result["answer"]
@@ -530,7 +514,7 @@ def chat(req: ChatRequest):
 
 
 @app.post("/api/clear")
-def clear_chat(req: ClearRequest):
+async def clear_chat(req: ClearRequest):
     session = _sessions.get(req.session_id)
     if session:
         session["messages"] = []
@@ -544,11 +528,11 @@ if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
 
     @app.get("/")
-    def serve_index():
+    async def serve_index():
         return FileResponse(str(FRONTEND_DIR / "index.html"))
 
     @app.get("/{full_path:path}")
-    def serve_spa(full_path: str):
+    async def serve_spa(full_path: str):
         requested = FRONTEND_DIR / full_path
         if requested.exists() and requested.is_file():
             return FileResponse(str(requested))

@@ -2,23 +2,27 @@
 Core RAG pipeline for document processing and retrieval.
 """
 
+import hashlib
 import os
 import time
-import hashlib
 from pathlib import Path
-from typing import Tuple, Dict, Any, List
+from typing import Any
 
-from langchain_community.document_loaders import PyPDFLoader, TextLoader, Docx2txtLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_ollama import ChatOllama
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.document_loaders import Docx2txtLoader, PyPDFLoader, TextLoader
 from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_ollama import ChatOllama
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 try:
-    from langchain.chains import create_retrieval_chain, create_history_aware_retriever
+    from langchain.chains import create_history_aware_retriever, create_retrieval_chain
     from langchain.chains.combine_documents import create_stuff_documents_chain
 except ImportError:
     # Handle future versions (1.0+) where chains moved to langchain_classic
-    from langchain_classic.chains import create_retrieval_chain, create_history_aware_retriever
+    from langchain_classic.chains import (
+        create_history_aware_retriever,
+        create_retrieval_chain,
+    )
     from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
@@ -48,18 +52,18 @@ def _get_embeddings():
                 f"Failed to initialize HuggingFace embeddings. "
                 f"Ensure 'sentence-transformers', 'torch', and 'transformers' are installed correctly. "
                 f"Error: {str(e)}"
-            )
+            ) from e
     return _embeddings
 
 
 def build_rag_chain(
-    file_paths: List[str],
+    file_paths: list[str],
     model: str = "gemma3:1b",
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
     ollama_host: str = "http://localhost:11434",
     storage_dir: str = ".guardrag_storage"
-) -> Tuple[str, Any]:
+) -> tuple[str, Any]:
     """
     Build a RAG chain from document files.
     
@@ -96,7 +100,7 @@ def build_rag_chain(
             allow_dangerous_deserialization=True
         )
     else:
-        print(f"Loading documents...")
+        print("Loading documents...")
         docs = []
         for fp in file_paths:
             ext = os.path.splitext(fp)[-1].lower()
@@ -104,16 +108,16 @@ def build_rag_chain(
                 if ext == ".pdf":
                     try:
                         import pypdf
-                    except ImportError:
-                        raise ImportError("The 'pypdf' package is required for PDF files. Run 'pip install pypdf'.")
+                    except ImportError as err:
+                        raise ImportError("The 'pypdf' package is required for PDF files. Run 'pip install pypdf'.") from err
                     loader = PyPDFLoader(fp)
                 elif ext == ".txt":
                     loader = TextLoader(fp, encoding="utf-8")
                 elif ext in [".doc", ".docx"]:
                     try:
                         import docx2txt
-                    except ImportError:
-                        raise ImportError("The 'docx2txt' package is required for DOCX files. Run 'pip install docx2txt'.")
+                    except ImportError as err:
+                        raise ImportError("The 'docx2txt' package is required for DOCX files. Run 'pip install docx2txt'.") from err
                     loader = Docx2txtLoader(fp)
                 else:
                     print(f"Skipping unsupported file type: {ext}")
@@ -141,13 +145,12 @@ def build_rag_chain(
 
         print(f"Creating embeddings for {len(splits)} chunks...")
         vectorstore = None
-        for i in range(0, len(splits), 8):
-            batch = splits[i : i + 8]
+        for i in range(0, len(splits), 100):
+            batch = splits[i : i + 100]
             if vectorstore is None:
                 vectorstore = FAISS.from_documents(documents=batch, embedding=embeddings)
             else:
                 vectorstore.add_documents(documents=batch)
-            time.sleep(0.05)
         
         if vectorstore is None:
             raise ValueError("Failed to create FAISS vector store.")
@@ -164,8 +167,8 @@ def build_rag_chain(
 
 def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str):
     """Build a LangChain RAG chain from a FAISS vectorstore."""
-    retriever = vectorstore.as_retriever()
-    llm = ChatOllama(model=model, base_url=ollama_host.rstrip("/"), num_ctx=2048)
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+    llm = ChatOllama(model=model, base_url=ollama_host.rstrip("/"), num_ctx=4096)
     
     # History-aware retriever
     ctx_q_prompt = ChatPromptTemplate.from_messages([
@@ -182,10 +185,10 @@ def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str):
     # Q&A chain
     qa_prompt = ChatPromptTemplate.from_messages([
         ("system",
-         "You are an assistant for question-answering tasks. "
-         "Use the following pieces of retrieved context to answer the question. "
-         "If you don't know the answer, say that you don't know. "
-         "Keep the answer as concise as possible based on the context.\n\n"
+         "You are GuardRAG, a professional AI document assistant. "
+         "Answer the user's question using ONLY the provided context. "
+         "If the context doesn't contain the answer, politely state that the information is missing from the uploaded documents. "
+         "Maintain a helpful, concise, and accurate tone.\n\n"
          "Context:\n{context}"),
         MessagesPlaceholder("chat_history"),
         ("human", "{input}"),

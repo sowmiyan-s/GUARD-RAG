@@ -43,25 +43,6 @@
 
       <hr class="divider" />
 
-      <!-- ── Connection / Ollama Endpoint ───────────────────────────── -->
-      <div class="section-label sb-text">
-        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
-        Ollama Connection
-      </div>
-
-      <div id="ollamaStatus" class="status-badge status-loading" role="status" aria-live="polite">
-        <span class="status-dot"></span>
-        <span class="sb-text" id="ollamaStatusText">Checking…</span>
-      </div>
-
-      <div style="margin-top:0.65rem;">
-        <label class="form-label sb-text" for="ollamaEndpoint">Endpoint URL</label>
-        <input id="ollamaEndpoint" type="url" class="form-control sb-text" placeholder="http://localhost:11434"
-          title="Ollama API base URL" />
-      </div>
-
-      <button id="btnStartOllama" class="btn btn-secondary btn-full" style="display:none;">Launch Ollama</button>
-
       <div style="margin-top:0.85rem;">
         <label class="section-label sb-text" for="modelSelect">
           <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8l4-4 4 4h-4v4zm0 8v4h4l-4 4-4-4h4v-4z"/></svg>
@@ -169,7 +150,6 @@
       <button id="btnClear" class="btn btn-ghost btn-full sb-text">Clear Conversation</button>
 
       <div class="sidebar-footer">
-        <div class="version-tag sb-text">v1.1.3 · Secure & Offline</div>
         <a href="https://github.com/sowmiyan-s/GUARD-RAG" target="_blank" rel="noopener" class="footer-link sb-text">
           Source Repository
         </a>
@@ -214,7 +194,6 @@
 
       <div class="header-text-wrap">
         <h1 class="header-title">GuardRAG</h1>
-        <p class="header-sub">Privacy-first · Local · Secure</p>
       </div>
 
       <div class="header-right">
@@ -228,7 +207,7 @@
           </svg>
           <span>Docs</span>
         </div>
-        <span class="header-badge" id="connectionBadge">LOCAL / SECURE</span>
+        <span class="header-badge" id="connectionBadge">OLLAMA: INITIALIZING...</span>
       </div>
     </header>
 
@@ -289,6 +268,15 @@
         </div>
       </div>
 
+      <div id="activeDocBanner" class="active-doc-banner" style="display:none;">
+        <div class="active-doc-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        </div>
+        <div class="active-doc-info">
+          <div class="active-doc-label">Active Knowledge Base</div>
+          <div id="activeDocName" class="active-doc-name">Document Name</div>
+        </div>
+      </div>
       <div id="chatMessages" class="chat-messages" style="display:none;" role="log" aria-live="polite"></div>
 
       <div id="readyBanner" class="ready-banner" style="display:none;" role="status">

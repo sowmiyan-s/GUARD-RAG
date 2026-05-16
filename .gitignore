@@ -22,18 +22,17 @@ ENV/
 .env.*
 !.env.example
 
-# ── FAISS vector cache (auto-generated, regenerated on first upload) ──────────
+# ── FAISS Vector Storage ──────────────────────────────────────────────────────
 .faiss_storage/
 .faiss_storage_cli/
 .guardrag_storage/
 
 # ── Temporary / Test outputs ──────────────────────────────────────────────────
-test_out.txt
-git_log.txt
-test_upload.py
-test_langchain.txt
-pip_list.txt
-pip-log.txt
+*.txt
+*.py
+!setup.py
+!conftest.py
+!test_*.py
 pip-delete-this-directory.txt
 
 # ── Testing / Benchmarks ──────────────────────────────────────────────────────
@@ -68,9 +67,6 @@ logs/
 # ── Jupyter Notebooks ─────────────────────────────────────────────────────────
 .ipynb_checkpoints/
 *.ipynb
-
-# ── Streamlit (legacy) ────────────────────────────────────────────────────────
-.streamlit/
 
 # ── Docker ────────────────────────────────────────────────────────────────────
 # Note: .dockerignore is intentionally tracked in git
