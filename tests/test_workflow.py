@@ -24,7 +24,7 @@ class TestPackageImports(unittest.TestCase):
 
     def test_version_string(self):
         import guardrag
-        self.assertEqual(guardrag.__version__, "1.2.1")
+        self.assertEqual(guardrag.__version__, "1.2.2")
 
     def test_author(self):
         import guardrag
