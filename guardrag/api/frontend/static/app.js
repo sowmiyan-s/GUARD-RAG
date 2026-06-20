@@ -23,7 +23,40 @@ const state = {
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
-const $ = id => document.getElementById(id);
+const $ = id => {
+  const el = document.getElementById(id);
+  if (el) return el;
+  const noop = () => {};
+  const mockObj = {
+    style: {},
+    classList: {
+      add: noop,
+      remove: noop,
+      toggle: noop,
+      contains: () => false
+    },
+    value: '',
+    checked: false,
+    scrollHeight: 0,
+    textContent: '',
+    innerHTML: '',
+    setAttribute: noop,
+    getAttribute: () => null,
+    addEventListener: noop,
+    removeEventListener: noop,
+    focus: noop,
+    blur: noop,
+    click: noop,
+    cloneNode: () => mockObj,
+    appendChild: () => mockObj,
+    removeChild: () => mockObj,
+    insertBefore: () => mockObj,
+    replaceChild: () => mockObj,
+    querySelector: () => null,
+    querySelectorAll: () => []
+  };
+  return mockObj;
+};
 
 const sidebar = $('sidebar');
 const sidebarBackdrop = $('sidebarBackdrop');
