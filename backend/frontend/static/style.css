@@ -1,46 +1,45 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   GUARDRAILS RAG BOT — Premium Design System
-   Deep-space dark · Glassmorphism · Fluid animations · Beginner-friendly
+   GUARDRAILS RAG BOT — Minimalist Premium Design
+   Deep-space dark · Monochrome · Shadow-free · Professional
    ═══════════════════════════════════════════════════════════════════════ */
 
 /* ── Design Tokens ─────────────────────────────────────────────────── */
 :root {
-  /* ChatGPT-Inspired Dark Palette */
-  --bg-base: #212121;
-  --bg-surface: #171717; /* Sidebar / Header */
-  --bg-raised: #2f2f2f;
-  --bg-glass: rgba(33, 33, 33, 0.9);
-  --bg-glass-light: rgba(255, 255, 255, 0.04);
+  /* High-Contrast Minimalist Dark Palette */
+  --bg-base: #0d0d0d;
+  --bg-surface: #121212;
+  --bg-raised: #1a1a1a;
+  --bg-glass: rgba(13, 13, 13, 0.95);
 
-  --border: #3d3d3d;
-  --border-light: #4a4a4a;
-  --border-glow: #565656;
+  --border: #262626;
+  --border-light: #333333;
+  --border-glow: #333333;
 
-  --text-primary: #ececec;
-  --text-secondary: #b4b4b4;
-  --text-muted: #8e8e8e;
+  --text-primary: #f5f5f5;
+  --text-secondary: #999999;
+  --text-muted: #666666;
 
-  --accent: #f9f9f9; /* Neutral / High-contrast */
-  --accent-hover: #ffffff;
-  --accent-dim: rgba(255, 255, 255, 0.08);
-  --accent-border: #565656;
+  --accent: #ffffff; 
+  --accent-hover: #f0f0f0;
+  --accent-dim: rgba(255, 255, 255, 0.05);
+  --accent-border: #444444;
 
-  --danger: #ef4444;
-  --warn: #f59e0b;
-  --success: #19c37d; /* Keep success green for indicators unless specifically asked to remove ALL green */
-  --info: #3b82f6;
+  --danger: #ff4d4d;
+  --warn: #ffcc00;
+  --success: #00ff99;
+  --info: #3399ff;
 
-  --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 14px;
-  --shadow: 0 4px 12px rgba(0,0,0,0.4);
-  --shadow-xl: 0 8px 30px rgba(0,0,0,0.5);
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: none;
+  --shadow-xl: none;
   --glow: none;
 
-  --sidebar-w: 260px;
-  --sidebar-rail: 60px;
-  --header-h: 60px;
-  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --sidebar-w: 240px;
+  --sidebar-rail: 0px; 
+  --header-h: 50px;
+  --transition: 0.15s ease-out;
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
@@ -179,18 +178,19 @@ body {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: .7rem;
-  padding: .9rem 1rem;
+  gap: .5rem;
+  padding: .5rem 1rem;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   height: var(--header-h);
-  position: relative;
   background: var(--bg-surface);
 }
 
 .brand-title {
-  font-size: .9rem;
+  font-size: .8rem;
   font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
   color: var(--text-primary);
   flex: 1;
 }
@@ -339,57 +339,41 @@ body {
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-size: .72rem;
-  font-weight: 600;
-  padding: .4rem .75rem;
+  gap: 8px;
+  font-size: .75rem;
+  font-weight: 500;
+  padding: .5rem 0.75rem;
   border-radius: var(--radius-sm);
-  background: var(--bg-glass-light);
+  background: var(--bg-raised);
   border: 1px solid var(--border);
   width: 100%;
-  transition: all var(--transition);
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--text-muted);
-  flex-shrink: 0;
-  transition: all var(--transition);
 }
 
 .status-badge.status-online {
   color: var(--success);
-  border-color: var(--border);
-  background: var(--bg-glass-light);
+  border-color: var(--success);
 }
 
 .status-badge.status-offline {
   color: var(--danger);
-  border-color: rgba(244, 63, 94, 0.25);
-  background: rgba(244, 63, 94, 0.06);
+  border-color: var(--danger);
 }
 
 .status-badge.status-loading {
   color: var(--warn);
-  border-color: rgba(245, 158, 11, 0.25);
-  background: rgba(245, 158, 11, 0.06);
+  border-color: var(--warn);
 }
 
-.status-badge.status-online .status-dot {
-  background: var(--success);
-}
-
-.status-badge.status-offline .status-dot {
-  background: var(--danger);
-  box-shadow: 0 0 6px var(--danger);
-}
-
-.status-badge.status-loading .status-dot {
-  background: var(--warn);
-  animation: pulseDot 1s infinite;
-}
+.status-badge.status-online .status-dot { background: var(--success); }
+.status-badge.status-offline .status-dot { background: var(--danger); }
+.status-badge.status-loading .status-dot { background: var(--warn); }
 
 /* Form controls */
 .form-label {
@@ -468,12 +452,6 @@ select.form-control {
 
 .btn-primary:not(:disabled):hover {
   background: var(--accent-hover);
-  transform: translateY(-1px);
-}
-
-.btn-primary:not(:disabled):active {
-  transform: none;
-  box-shadow: none;
 }
 
 .btn-secondary {

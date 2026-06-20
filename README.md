@@ -177,7 +177,7 @@ Interactive API docs available at **[http://localhost:8000/docs](http://localhos
 ## Project Structure
 
 ```
-guardrails-local-rag-bot/
+GUARD-RAG/
 │
 ├── backend/
 │   ├── main.py               # FastAPI application — all API routes & RAG logic
@@ -282,7 +282,7 @@ Contributions are welcome. Please follow these steps:
 3. **Commit** using [Conventional Commits](https://www.conventionalcommits.org/): `git commit -m "feat: add X"`
 4. **Push** and open a **Pull Request**
 
-Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/sowmiyan-s/guardrails-local-rag-bot/issues).
+Bug reports and feature requests are welcome via [GitHub Issues](https://github.com/sowmiyan-s/GUARD-RAG/issues).
 
 ---
 
@@ -299,3 +299,4 @@ Built with ❤️ by **[Sowmiyan S](https://github.com/sowmiyan-s)**
 *FastAPI · LangChain · Ollama · HuggingFace · FAISS · Vanilla JS*
 
 </div>
+
