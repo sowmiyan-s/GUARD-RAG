@@ -164,17 +164,18 @@ function loadSavedEndpoint() {
 ollamaEndpointInput.addEventListener('change', () => {
   const val = ollamaEndpointInput.value.trim();
   localStorage.setItem('ragbot_ollama_endpoint', val || DEFAULT_OLLAMA_ENDPOINT);
-  // Re-check health immediately when endpoint changes
   refreshHealth();
 });
-
-// Show tunnel modal when endpoint looks remote (not localhost)
-ollamaEndpointInput.addEventListener('blur', () => {
-  const val = (ollamaEndpointInput.value || '').trim();
-  const isLocal = !val || val.includes('localhost') || val.includes('127.0.0.1');
-  if (!isLocal && val) {
-    // No-op: just silently accept remote URLs. Modal is shown from the hint link.
+ollamaEndpointInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    ollamaEndpointInput.blur();
   }
+});
+ollamaEndpointInput.addEventListener('blur', () => {
+  const val = ollamaEndpointInput.value.trim();
+  localStorage.setItem('ragbot_ollama_endpoint', val || DEFAULT_OLLAMA_ENDPOINT);
+  refreshHealth();
 });
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
@@ -327,13 +328,25 @@ function autoCollapseUpload() {
 async function checkOllamaDirectly(endpoint) {
   try {
     const url = endpoint.replace(/\/$/, '') + '/api/tags';
-    // Ollama's CORS headers allow browser fetches from any origin
-    const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(3000) });
-    if (!res.ok) return { running: false, models: [] };
-    const data = await res.json();
+    // First try browser-direct (useful if frontend is remote and Ollama is local)
+    const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(1500) });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        running: true,
+        models: (data.models || []).map(m => m.name),
+      };
+    }
+  } catch (e) {
+    console.warn("Direct browser check failed (expected in Brave due to local CORS shields), falling back to backend health proxy...", e);
+  }
+  
+  // Fallback to backend proxy health check
+  try {
+    const data = await apiFetch(`/api/health?ollama_host=${encodeURIComponent(endpoint)}`);
     return {
-      running: true,
-      models: (data.models || []).map(m => m.name),
+      running: data.ollama_running,
+      models: data.models || [],
     };
   } catch {
     return { running: false, models: [] };
@@ -388,9 +401,9 @@ async function refreshHealth() {
         if (m === currentModel) opt.selected = true;
         modelSelect.appendChild(opt);
       });
-      // If gemma3 exists but isn't selected, maybe select it? 
-      // User manual choice is better, but let's ensure something is selected.
-      if (!modelSelect.value && models.length > 0) modelSelect.selectedIndex = 0;
+      if (!modelSelect.value && models.length > 0) {
+        modelSelect.selectedIndex = 0;
+      }
     }
 
     if (changed) toast('Ollama connection established.', 'success');
@@ -750,7 +763,8 @@ async function processDocuments() {
     // Refresh the library so the new collection appears
     await loadStoragePool();
   } catch (e) {
-    setUploadStatus(`Error: ${e.message}`, 'error');
+    console.error("Error in legacy processDocuments:", e);
+    setUploadStatus(`Error: ${e.message} (Stack: ${e.stack})`, 'error');
     toast(e.message, 'error', 6000);
   } finally {
     state.isProcessing = false;
