@@ -12,7 +12,7 @@ async def run_test():
     # Call upload_documents
     result = await upload_documents(
         files=[mock_file],
-        model="gemma3:1b",
+        model="qwen2.5:3b",
         chunk_size=1000,
         chunk_overlap=200,
         ollama_host="http://localhost:11434"

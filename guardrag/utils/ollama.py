@@ -10,9 +10,31 @@ import urllib.request
 
 
 def is_ollama_running(host: str = "http://localhost:11434") -> bool:
-    """Check if Ollama server is running and accessible."""
+    """Check if Ollama server or OpenAI-compatible cloud endpoint is accessible."""
+    api_key = os.environ.get("OLLAMA_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    host_clean = host.rstrip("/")
+    
+    # Try Ollama index page
     try:
-        req = urllib.request.Request(host.rstrip("/") + "/", method="GET")
+        req = urllib.request.Request(host_clean + "/", method="GET")
+        if api_key:
+            req.add_header("Authorization", f"Bearer {api_key}")
+        urllib.request.urlopen(req, timeout=3)
+        return True
+    except Exception:
+        pass
+
+    # Try OpenAI-style models endpoint
+    try:
+        url = host_clean
+        if not url.endswith("/v1") and "localhost" not in url and "127.0.0.1" not in url:
+            if "groq" in url:
+                url = url + "/openai/v1"
+            else:
+                url = url + "/v1"
+        req = urllib.request.Request(url + "/models", method="GET")
+        if api_key:
+            req.add_header("Authorization", f"Bearer {api_key}")
         urllib.request.urlopen(req, timeout=3)
         return True
     except Exception:
@@ -20,11 +42,35 @@ def is_ollama_running(host: str = "http://localhost:11434") -> bool:
 
 
 def get_installed_models(host: str = "http://localhost:11434") -> list[str]:
-    """Get list of installed models from Ollama."""
+    """Get list of installed models from Ollama or OpenAI-style cloud endpoint."""
+    api_key = os.environ.get("OLLAMA_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    host_clean = host.rstrip("/")
+    
+    # Try Ollama tags
     try:
-        req = urllib.request.urlopen(host.rstrip("/") + "/api/tags", timeout=3)
-        data = json.loads(req.read().decode("utf-8"))
+        req = urllib.request.Request(host_clean + "/api/tags", method="GET")
+        if api_key:
+            req.add_header("Authorization", f"Bearer {api_key}")
+        res = urllib.request.urlopen(req, timeout=3)
+        data = json.loads(res.read().decode("utf-8"))
         return [m["name"] for m in data.get("models", [])]
+    except Exception:
+        pass
+
+    # Try OpenAI-style models endpoint
+    try:
+        url = host_clean
+        if not url.endswith("/v1") and "localhost" not in url and "127.0.0.1" not in url:
+            if "groq" in url:
+                url = url + "/openai/v1"
+            else:
+                url = url + "/v1"
+        req = urllib.request.Request(url + "/models", method="GET")
+        if api_key:
+            req.add_header("Authorization", f"Bearer {api_key}")
+        res = urllib.request.urlopen(req, timeout=3)
+        data = json.loads(res.read().decode("utf-8"))
+        return [m["id"] for m in data.get("data", [])]
     except Exception:
         return []
 

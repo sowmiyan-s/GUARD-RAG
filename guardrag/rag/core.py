@@ -168,7 +168,46 @@ def build_rag_chain(
 def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str):
     """Build a LangChain RAG chain from a FAISS vectorstore."""
     retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
-    llm = ChatOllama(model=model, base_url=ollama_host.rstrip("/"), num_ctx=4096)
+    
+    host_lower = ollama_host.lower()
+    is_openai_style = any(x in host_lower for x in ["api.openai.com", "api.groq.com", "openrouter.ai", "api.anthropic.com", "api.cohere.ai"])
+    is_cloud_model = any(x in model.lower() for x in ["gpt-", "claude-", "gemini-", "command-r", "meta-llama"])
+    
+    if is_openai_style or is_cloud_model:
+        from langchain_openai import ChatOpenAI
+        # Set base API endpoint
+        api_base = ollama_host.rstrip("/")
+        if not api_base.endswith("/v1") and "localhost" not in api_base and "127.0.0.1" not in api_base:
+            if "groq" in api_base:
+                api_base = api_base + "/openai/v1"
+            else:
+                api_base = api_base + "/v1"
+                
+        # Resolve API keys
+        api_key = os.environ.get("OLLAMA_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        if "groq" in host_lower:
+            api_key = os.environ.get("GROQ_API_KEY") or api_key
+        elif "openrouter" in host_lower:
+            api_key = os.environ.get("OPENROUTER_API_KEY") or api_key
+            
+        llm = ChatOpenAI(
+            model=model,
+            openai_api_base=api_base,
+            openai_api_key=api_key,
+            temperature=0.0
+        )
+    else:
+        headers = {}
+        api_key = os.environ.get("OLLAMA_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+            
+        llm = ChatOllama(
+            model=model,
+            base_url=ollama_host.rstrip("/"),
+            num_ctx=4096,
+            headers=headers
+        )
     
     # History-aware retriever
     ctx_q_prompt = ChatPromptTemplate.from_messages([

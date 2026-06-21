@@ -470,6 +470,22 @@ async def chat(req: ChatRequest):
     if not session:
         raise HTTPException(status_code=404, detail="Session not found. Please upload documents first.")
 
+    # Dynamically switch model / host if they changed in the UI
+    requested_host = req.resolved_host()
+    if req.model != session.get("model") or requested_host != session.get("ollama_host"):
+        try:
+            new_chain = await asyncio.to_thread(
+                load_stored_rag_chain, session["db_id"], req.model, requested_host
+            )
+            session["rag_chain"] = new_chain
+            session["model"] = req.model
+            session["ollama_host"] = requested_host
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to dynamically switch RAG chain to model '{req.model}': {str(e)}"
+            ) from e
+
     # Input safety
     blocked = check_input_safety(req.question, req.sensitivity_level, req.enable_guardrails)
     if blocked:
