@@ -4,7 +4,7 @@
 
 ### Privacy-First, Fully Offline AI Document Assistant
 **Secured by a Tiered Safety Guardrails System**  
-*v1.2.0 — High-Performance, Secure, and Professional*
+*v1.2.4 — High-Performance, Secure, and Professional*
 
 <br/>
 
@@ -15,20 +15,21 @@
 
 <br/>
 
-> **Upload any document. Ask anything. Get answers — entirely on your local machine.**  
-> No cloud dependencies. No API keys. No data ever leaves your device.
+> **Upload any document. Ask anything. Get answers — entirely on your local machine or using secure cloud endpoints.**  
+> Supports offline local models and OpenAI-compatible cloud APIs with fully customized security boundaries.
 
 </div>
 
 ---
 
-## 💡 What's New in v1.2.0
+## 💡 What's New in v1.2.4
 
+*   **🌐 OpenAI-Compatible Cloud Integration**: Easily switch to high-performance cloud endpoints (Groq, OpenRouter, OpenAI, Anthropic, Cohere) with full API key security.
+*   **🔄 Dynamic Model & Host Switching**: Swap Ollama hosts or LLM models directly from the frontend UI without restarting the application or re-uploading documents.
+*   **🛡️ Tiered Safety Guardrails**: Fully offline safety engine (Public, Internal, Confidential, Restricted) preventing jailbreaks, credential leaks, and PII leaks.
+*   **🦁 Brave Shields & CORS Fallback**: Enhanced compatibility featuring automatic backend proxy health checks when direct local browser fetches are blocked by privacy shields.
+*   **📚 Document Library**: Persisted document collections with a visual session management panel (rehydrate or delete stored FAISS indices).
 *   **⚡ Faster Indexing**: Optimized FAISS batching and retrieval parameters.
-*   **📚 Document Library**: Persisted document collections with a visual management panel.
-*   **🧠 Enhanced Context**: Increased retrieval count (k=10) and 4096-token context window.
-*   **🛡️ Refined Safety**: Improved NVIDIA NeMo Guardrails integration for PII and jailbreak protection.
-*   **🌐 Modern Web Interface**: Professional ChatGPT-inspired workspace with session management.
 
 ---
 
@@ -45,7 +46,7 @@
 
 ## ⚙️ Data Sensitivity Tiers
 
-Protect your information using our built-in safety engine:
+Protect your information using our built-in safety engine (processed entirely offline):
 
 | Level | Protection Scope |
 | :--- | :--- |
@@ -62,11 +63,11 @@ Install the package directly from PyPI:
 
 ```bash
 # Recommended stable version
-pip install guard-rag==1.2.0
+pip install guard-rag
 ```
 
 ### Prerequisites
-1.  **Ollama**: Download and install from [ollama.com](https://ollama.com).
+1.  **Ollama (Optional for local execution)**: Download and install from [ollama.com](https://ollama.com).
 2.  **Model**: Pull a model to use locally (e.g., `ollama pull gemma3:1b`).
 3.  **Windows Users**: You **must** have the [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) installed to run the AI engine.
 
@@ -74,7 +75,7 @@ pip install guard-rag==1.2.0
 
 ## 🚀 Commands & Usage
 
-GuardRAG provides a flexible CLI to interact with your documents.
+GuardRAG provides a flexible CLI and a web interface to interact with your documents.
 
 ### 1. Launch the Web Interface
 Simply run the command with no arguments to start the local server and open the UI in your browser:
@@ -88,10 +89,22 @@ Start an interactive chat session directly in your terminal:
 guard-rag --pdf path/to/my_document.pdf
 ```
 
-### 3. Advanced Configuration
+### 3. Advanced Configuration & Cloud Endpoints
+Set environment variables for cloud LLMs (Groq, OpenRouter, OpenAI, etc.):
+```bash
+# Optional API Keys for cloud execution
+export OPENAI_API_KEY="your-openai-api-key"
+export GROQ_API_KEY="your-groq-api-key"
+export OPENROUTER_API_KEY="your-openrouter-api-key"
+```
+
 Customize the model, server, and safety levels:
 ```bash
+# Custom local model
 guard-rag --pdf report.pdf --model llama3 --sensitivity Confidential --chunk-size 1000
+
+# Cloud model via Groq API
+guard-rag --pdf report.pdf --model llama-3.1-8b-instant --ollama-host https://api.groq.com/openai/v1 --sensitivity Restricted
 ```
 
 ---
@@ -101,10 +114,11 @@ guard-rag --pdf report.pdf --model llama3 --sensitivity Confidential --chunk-siz
 | Argument | Description | Default |
 | :--- | :--- | :--- |
 | `--pdf <file>` | Path to the PDF document you want to analyze. | Required for CLI |
-| `--model <name>` | The Ollama model to use for inference. | `gemma3:1b` |
-| `--ollama-host` | The URL of your Ollama server. | `http://localhost:11434` |
+| `--model <name>` | The Ollama or OpenAI-compatible model name. | `gemma3:1b` |
+| `--ollama-host` | The URL of Ollama or OpenAI-compatible endpoint. | `http://localhost:11434` |
 | `--sensitivity` | Safety level: `Public`, `Internal`, `Confidential`, `Restricted`. | `Internal` |
 | `--chunk-size` | Size of document chunks for processing. | `1000` |
+| `--chunk-overlap` | Overlap between document chunks. | `200` |
 | `--no-guardrails` | Disable all safety checks (not recommended). | `False` |
 | `--help` | Show all available commands and flags. | - |
 
