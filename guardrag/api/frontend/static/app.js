@@ -20,6 +20,9 @@ const state = {
   currentDbId: null,
   activeDocName: '',
   serverConfig: null,
+  currentProfile: 'legal',
+  rawPreviewText: '',
+  redactedPreviewText: '',
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -106,6 +109,29 @@ const fileList = $('fileList');
 const btnProcess = $('btnProcess');
 const btnReset = $('btnReset');
 const uploadStatus = $('uploadStatus');
+
+const step1Card = $('step1Card');
+const step2Card = $('step2Card');
+const step3Card = $('step3Card');
+
+const profileOptionsContainer = $('profileOptionsContainer');
+const btnSaveCustomProfile = $('btnSaveCustomProfile');
+const confirmModal = $('confirmModal');
+const promptModal = $('promptModal');
+
+const shieldIconWrapper = $('shieldIconWrapper');
+const shieldStatusText = $('shieldStatusText');
+const shieldSubstatusText = $('shieldSubstatusText');
+
+const lightRed = $('lightRed');
+const lightOrange = $('lightOrange');
+const lightGreen = $('lightGreen');
+
+const advancedToggle = $('advancedToggle');
+const advancedSettingsContainer = $('advancedSettingsContainer');
+
+const magicPromptsWrapper = $('magicPromptsWrapper');
+const magicPrompts = $('magicPrompts');
 
 const emptyState = $('emptyState');
 const chatMessages = $('chatMessages');
@@ -197,16 +223,119 @@ function toast(msg, type = 'info', duration = 3400) {
   }, duration);
 }
 
+// ─── Custom Confirm & Prompt Modals ───────────────────────────────────────────
+function showCustomConfirm(title, message, isDanger = false) {
+  return new Promise((resolve) => {
+    const modal = $('confirmModal');
+    const titleEl = $('confirmModalTitle');
+    const msgEl = $('confirmModalMessage');
+    const proceedBtn = $('btnConfirmProceed');
+    const cancelBtn = $('btnConfirmCancel');
+    const closeBtn = $('confirmModalClose');
+
+    titleEl.textContent = title;
+    msgEl.textContent = message;
+
+    if (isDanger) {
+      proceedBtn.style.backgroundColor = 'var(--danger)';
+      proceedBtn.style.borderColor = 'var(--danger)';
+      proceedBtn.style.color = '#fff';
+    } else {
+      proceedBtn.style.backgroundColor = 'var(--accent)';
+      proceedBtn.style.borderColor = 'var(--accent)';
+      proceedBtn.style.color = '#000';
+    }
+
+    modal.style.display = 'flex';
+
+    function cleanUp(result) {
+      modal.style.display = 'none';
+      proceedBtn.removeEventListener('click', onProceed);
+      cancelBtn.removeEventListener('click', onCancel);
+      closeBtn.removeEventListener('click', onCancel);
+      resolve(result);
+    }
+
+    function onProceed() { cleanUp(true); }
+    function onCancel() { cleanUp(false); }
+
+    proceedBtn.addEventListener('click', onProceed);
+    cancelBtn.addEventListener('click', onCancel);
+    closeBtn.addEventListener('click', onCancel);
+  });
+}
+
+function showCustomPrompt(title, label, placeholder = '') {
+  return new Promise((resolve) => {
+    const modal = $('promptModal');
+    const titleEl = $('promptModalTitle');
+    const labelEl = $('promptModalLabel');
+    const inputEl = $('promptModalInput');
+    const submitBtn = $('btnPromptSubmit');
+    const cancelBtn = $('btnPromptCancel');
+    const closeBtn = $('promptModalClose');
+
+    titleEl.textContent = title;
+    labelEl.textContent = label;
+    inputEl.placeholder = placeholder;
+    inputEl.value = '';
+    modal.style.display = 'flex';
+    setTimeout(() => inputEl.focus(), 50);
+
+    function cleanUp(val) {
+      modal.style.display = 'none';
+      submitBtn.removeEventListener('click', onSubmit);
+      cancelBtn.removeEventListener('click', onCancel);
+      closeBtn.removeEventListener('click', onCancel);
+      inputEl.removeEventListener('keydown', onKeyDown);
+      resolve(val);
+    }
+
+    function onSubmit() {
+      cleanUp(inputEl.value.trim());
+    }
+    function onCancel() {
+      cleanUp(null);
+    }
+    function onKeyDown(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        onSubmit();
+      }
+    }
+
+    submitBtn.addEventListener('click', onSubmit);
+    cancelBtn.addEventListener('click', onCancel);
+    closeBtn.addEventListener('click', onCancel);
+    inputEl.addEventListener('keydown', onKeyDown);
+  });
+}
+
 // ─── Tunnel modal ─────────────────────────────────────────────────────────────
 tunnelModalClose.addEventListener('click', () => { tunnelModal.style.display = 'none'; });
 tunnelModal.addEventListener('click', e => { if (e.target === tunnelModal) tunnelModal.style.display = 'none'; });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && tunnelModal.style.display !== 'none') tunnelModal.style.display = 'none';
-  if (e.key === 'Escape' && ollamaStartModal && ollamaStartModal.style.display !== 'none') {
-    ollamaStartModal.style.display = 'none';
-    if (_ollamaPoller) { clearInterval(_ollamaPoller); _ollamaPoller = null; }
+  if (e.key === 'Escape') {
+    if (tunnelModal.style.display !== 'none') tunnelModal.style.display = 'none';
+    if (ollamaStartModal && ollamaStartModal.style.display !== 'none') {
+      ollamaStartModal.style.display = 'none';
+      if (_ollamaPoller) { clearInterval(_ollamaPoller); _ollamaPoller = null; }
+    }
+    if (confirmModal && confirmModal.style.display !== 'none') $('btnConfirmCancel').click();
+    if (promptModal && promptModal.style.display !== 'none') $('btnPromptCancel').click();
   }
 });
+
+if (confirmModal) {
+  confirmModal.addEventListener('click', e => {
+    if (e.target === confirmModal) $('btnConfirmCancel').click();
+  });
+}
+if (promptModal) {
+  promptModal.addEventListener('click', e => {
+    if (e.target === promptModal) $('btnPromptCancel').click();
+  });
+}
 
 // ─── Start Ollama modal ───────────────────────────────────────────────────────
 if (ollamaStartModalClose) {
@@ -485,9 +614,9 @@ function startOllamaPoller() {
 // ─── SENSITIVITY / GUARDRAILS ─────────────────────────────────────────────────
 const SENSITIVITY_META = {
   Public: { badge: 'badge-public', hint: 'No extra filters — jailbreak protection only.' },
-  Internal: { badge: 'badge-internal', hint: '🛡 <strong>Internal</strong> — API keys &amp; credentials protected.' },
-  Confidential: { badge: 'badge-confidential', hint: '🛡 <strong>Confidential</strong> — PII (SSN, email, phone) protected.' },
-  Restricted: { badge: 'badge-restricted', hint: '🛡 <strong>Restricted</strong> — Medical, financial, HIPAA/GDPR protected.' },
+  Internal: { badge: 'badge-internal', hint: 'Internal — API keys &amp; credentials protected.' },
+  Confidential: { badge: 'badge-confidential', hint: 'Confidential — PII (SSN, email, phone) protected.' },
+  Restricted: { badge: 'badge-restricted', hint: 'Restricted — Medical, financial, HIPAA/GDPR protected.' },
 };
 const SENSITIVITY_DESC = {
   Public: 'No data classification restrictions. Basic jailbreak protection only.',
@@ -502,15 +631,207 @@ function updateSensitivityUI() {
   sensitivityBadge.className = `sensitivity-badge ${meta.badge}`;
   sensitivityBadgeLabel.textContent = level.toUpperCase();
   sensitivityDesc.textContent = SENSITIVITY_DESC[level];
-  sensitivityHint.innerHTML = guardrailsToggle.checked ? meta.hint : '⚪ Guardrails disabled.';
+  sensitivityHint.innerHTML = guardrailsToggle.checked ? meta.hint : 'Guardrails disabled.';
+  
+  // Sync stoplight safety status
+  updateTrafficLightDashboard();
 }
 
-sensitivitySelect.addEventListener('change', updateSensitivityUI);
+function updateTrafficLightDashboard() {
+  const sensitivity = sensitivitySelect.value;
+  const isEnabled = guardrailsToggle.checked;
+  
+  // Reset all lights and shield classes
+  lightRed.classList.remove('active');
+  lightOrange.classList.remove('active');
+  lightGreen.classList.remove('active');
+  shieldIconWrapper.className = 'shield-icon-wrapper';
+  
+  if (!isEnabled || sensitivity === 'Public') {
+    lightGreen.classList.add('active');
+    shieldStatusText.textContent = 'SAFE MODE ACTIVE';
+    shieldSubstatusText.textContent = 'Safe for Public Data. Basic jailbreak protection only.';
+  } else if (sensitivity === 'Internal' || sensitivity === 'Confidential') {
+    lightOrange.classList.add('active');
+    shieldIconWrapper.classList.add('orange-shield');
+    shieldStatusText.textContent = 'PROTECTED MODE ACTIVE';
+    shieldSubstatusText.textContent = 'API keys & credentials locked locally.';
+  } else if (sensitivity === 'Restricted') {
+    lightRed.classList.add('active');
+    shieldIconWrapper.classList.add('red-shield');
+    shieldStatusText.textContent = 'STRICT LOCK ACTIVE';
+    shieldSubstatusText.textContent = 'Certified lock: Medical/Financial data offline.';
+  }
+}
+
+const PROFILES = {
+  legal: {
+    chunkSize: 1500,
+    chunkOverlap: 300,
+    sensitivity: 'Internal',
+    guardrails: true,
+    name: 'Standard Contract',
+    icon: '',
+    desc: 'Legal terms & clause analysis'
+  },
+  medical: {
+    chunkSize: 1000,
+    chunkOverlap: 200,
+    sensitivity: 'Restricted',
+    guardrails: true,
+    name: 'Financial/Medical',
+    icon: '',
+    desc: 'Strict security table & HIPAA audit'
+  },
+  quick: {
+    chunkSize: 600,
+    chunkOverlap: 100,
+    sensitivity: 'Public',
+    guardrails: true,
+    name: 'Quick Read',
+    icon: '',
+    desc: 'Fast summarizing for short documents'
+  },
+  basic: {
+    chunkSize: 800,
+    chunkOverlap: 150,
+    sensitivity: 'Public',
+    guardrails: true,
+    name: 'General / Basic',
+    icon: '',
+    desc: 'Optimized for basic reading & general queries'
+  },
+  it: {
+    chunkSize: 2000,
+    chunkOverlap: 400,
+    sensitivity: 'Internal',
+    guardrails: true,
+    name: 'IT / Technical',
+    icon: '',
+    desc: 'Large chunks optimized for code and technical docs'
+  }
+};
+
+function loadCustomProfiles() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('ragbot_custom_profiles') || '{}');
+    Object.assign(PROFILES, saved);
+  } catch (e) {
+    console.error("Failed to load custom profiles:", e);
+  }
+}
+
+function renderProfileButtons() {
+  const container = $('profileOptionsContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const activeProfile = state.currentProfile;
+
+  Object.entries(PROFILES).forEach(([key, config]) => {
+    const btn = document.createElement('button');
+    btn.className = 'profile-btn' + (activeProfile === key ? ' active' : '');
+    btn.type = 'button';
+    btn.dataset.profile = key;
+
+    btn.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+        ${key.startsWith('custom_') ? `<span class="profile-delete-btn" data-key="${key}" title="Delete profile" style="font-size:0.85rem; color:var(--text-muted); cursor:pointer; padding:2px 6px; font-weight:bold; line-height:1; margin-left:auto;">✕</span>` : ''}
+      </div>
+      <span class="profile-name" style="margin-top:0.3rem;">${escapeHtml(config.name)}</span>
+      <span class="profile-desc" style="margin-top:0.1rem;">${escapeHtml(config.desc)}</span>
+    `;
+
+    btn.addEventListener('click', (e) => {
+      if (e.target.classList.contains('profile-delete-btn') || e.target.parentElement.classList.contains('profile-delete-btn')) {
+        e.stopPropagation();
+        deleteCustomProfile(key);
+        return;
+      }
+      selectProfile(key);
+    });
+
+    container.appendChild(btn);
+  });
+}
+
+async function deleteCustomProfile(key) {
+  const confirmed = await showCustomConfirm(
+    'Delete Profile',
+    `Are you sure you want to delete the custom profile "${PROFILES[key].name}"?`,
+    true
+  );
+  if (!confirmed) return;
+
+  delete PROFILES[key];
+  
+  try {
+    const saved = JSON.parse(localStorage.getItem('ragbot_custom_profiles') || '{}');
+    delete saved[key];
+    localStorage.setItem('ragbot_custom_profiles', JSON.stringify(saved));
+  } catch (e) {
+    console.error(e);
+  }
+
+  if (state.currentProfile === key) {
+    selectProfile('legal');
+  } else {
+    renderProfileButtons();
+  }
+  toast('Profile deleted.', 'info');
+}
+
+function selectProfile(profileName) {
+  state.currentProfile = profileName;
+  
+  const config = PROFILES[profileName];
+  if (config) {
+    chunkSize.value = config.chunkSize;
+    chunkOverlap.value = config.chunkOverlap;
+    sensitivitySelect.value = config.sensitivity;
+    guardrailsToggle.checked = config.guardrails;
+    
+    updateSensitivityUI();
+  }
+
+  renderProfileButtons();
+}
+
+function syncProfileHighlight() {
+  const currentChunkSize = parseInt(chunkSize.value, 10);
+  const currentChunkOverlap = parseInt(chunkOverlap.value, 10);
+  const currentSensitivity = sensitivitySelect.value;
+  const currentGuardrails = guardrailsToggle.checked;
+
+  let matchedProfile = null;
+  for (const [name, config] of Object.entries(PROFILES)) {
+    if (
+      config.chunkSize === currentChunkSize &&
+      config.chunkOverlap === currentChunkOverlap &&
+      config.sensitivity === currentSensitivity &&
+      config.guardrails === currentGuardrails
+    ) {
+      matchedProfile = name;
+      break;
+    }
+  }
+
+  state.currentProfile = matchedProfile;
+  renderProfileButtons();
+}
+
+sensitivitySelect.addEventListener('change', () => {
+  updateSensitivityUI();
+  syncProfileHighlight();
+});
 guardrailsToggle.addEventListener('change', () => {
   sensitivitySelect.disabled = !guardrailsToggle.checked;
   guardrailsIndicator.classList.toggle('active', guardrailsToggle.checked);
   updateSensitivityUI();
+  syncProfileHighlight();
 });
+if (chunkSize) chunkSize.addEventListener('change', syncProfileHighlight);
+if (chunkOverlap) chunkOverlap.addEventListener('change', syncProfileHighlight);
 
 // ─── STORAGE POOL (Document Library) ─────────────────────────────────────────
 async function loadStoragePool() {
@@ -546,10 +867,10 @@ async function loadStoragePool() {
         <div class="storage-card-meta">
           <span class="storage-meta-tag">${col.model || '?'}</span>
           <span class="storage-meta-tag">${date}</span>
-          ${!col.available ? '<span class="storage-meta-tag unavail">⚠ Missing</span>' : ''}
+          ${!col.available ? '<span class="storage-meta-tag unavail">Missing</span>' : ''}
         </div>
         <button class="btn btn-secondary storage-load-btn" data-db-id="${col.db_id}" ${!col.available ? 'disabled' : ''}>
-          ↩ Load Session
+          Load Session
         </button>
       `;
 
@@ -577,7 +898,7 @@ async function loadStoredSession(col) {
   const card = storagePool.querySelector(`[data-db-id="${col.db_id}"]`);
   if (card) {
     card.classList.add('active');
-    card.querySelector('.storage-load-btn').textContent = '⏳ Loading…';
+    card.querySelector('.storage-load-btn').textContent = 'Loading…';
     card.querySelector('.storage-load-btn').disabled = true;
   }
 
@@ -597,7 +918,7 @@ async function loadStoredSession(col) {
     state.activeDocName = col.files.length > 1 ? `${col.files[0]} (+${col.files.length - 1} more)` : col.files[0];
 
     // Update upload status text
-    setUploadStatus(`✓ Loaded: ${data.files.join(', ')}`, 'success');
+    setUploadStatus(`Loaded: ${data.files.join(', ')}`, 'success');
     toast(`Loaded "${data.files.join(', ')}" from library.`, 'success');
     showChatReady();
     autoCollapseUpload();
@@ -606,14 +927,19 @@ async function loadStoredSession(col) {
     toast(`Failed to load: ${e.message}`, 'error', 6000);
     if (card) {
       card.classList.remove('active');
-      card.querySelector('.storage-load-btn').textContent = '↩ Load Session';
+      card.querySelector('.storage-load-btn').textContent = 'Load Session';
       card.querySelector('.storage-load-btn').disabled = false;
     }
   }
 }
 
 async function deleteStoredSession(dbId, cardEl) {
-  if (!confirm('Delete this indexed collection from disk? This cannot be undone.')) return;
+  const confirmed = await showCustomConfirm(
+    'Delete Session',
+    'Are you sure you want to delete this indexed collection from disk? This cannot be undone.',
+    true
+  );
+  if (!confirmed) return;
   try {
     await apiFetch('/api/storage/delete', {
       method: 'POST',
@@ -674,6 +1000,24 @@ function addFiles(files) {
   const names = new Set(state.selectedFiles.map(f => f.name));
   valid.filter(f => !names.has(f.name)).forEach(f => state.selectedFiles.push(f));
   renderFileList();
+  
+  if (state.selectedFiles.length > 0) {
+    step2Card.classList.remove('disabled');
+  }
+}
+
+function translateError(error) {
+  const msg = (error.message || String(error)).toLowerCase();
+  if (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('503')) {
+    return '<strong>Ollama is currently asleep.</strong> Please open the Ollama app on your computer and click "Retry".';
+  }
+  if (msg.includes('model') && (msg.includes('not found') || msg.includes('not installed'))) {
+    return '<strong>Selected model is not installed.</strong> Please select another model in the sidebar, or run <code>ollama pull</code> in your terminal.';
+  }
+  if (msg.includes('empty') || msg.includes('no text')) {
+    return '<strong>No readable text found.</strong> This document seems to be empty or contains scanned images. Try using an OCR-scanned PDF or a text file.';
+  }
+  return `<strong>Error:</strong> ${error.message || error}`;
 }
 
 dropZone.addEventListener('click', () => fileInput.click());
@@ -695,6 +1039,7 @@ btnReset.addEventListener('click', () => {
   state.selectedFiles = [];
   state.sessionId = null;
   state.currentDbId = null;
+  step2Card.classList.add('disabled');
   renderFileList();
   setUploadStatus('');
   setUploadPanelOpen(true);
@@ -703,7 +1048,7 @@ btnReset.addEventListener('click', () => {
 
 // ─── UPLOAD / PROCESS ─────────────────────────────────────────────────────────
 function setUploadStatus(msg, type = '') {
-  uploadStatus.textContent = msg;
+  uploadStatus.innerHTML = msg;
   uploadStatus.className = `upload-status ${type}`.trim();
 }
 
@@ -719,7 +1064,7 @@ async function processDocuments() {
   state.isProcessing = true;
   btnProcess.disabled = true;
   btnReset.disabled = true;
-  setUploadStatus('⏳ Embedding documents — please wait…', 'loading');
+  setUploadStatus('Embedding documents — please wait…', 'loading');
 
   const form = new FormData();
   state.selectedFiles.forEach(f => form.append('files', f));
@@ -727,6 +1072,7 @@ async function processDocuments() {
   form.append('chunk_size', chunkSize.value);
   form.append('chunk_overlap', chunkOverlap.value);
   form.append('ollama_host', getOllamaEndpoint());
+  form.append('redact_pii', 'true');
 
   try {
     const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: form });
@@ -742,12 +1088,12 @@ async function processDocuments() {
     toast('Documents ready — start chatting!', 'success');
     showChatReady();
     autoCollapseUpload();
-    // Refresh the library so the new collection appears
     await loadStoragePool();
   } catch (e) {
     console.error("Error in processDocuments:", e);
-    setUploadStatus(`✗ ${e.message} (Stack: ${e.stack})`, 'error');
-    toast(e.message, 'error', 6000);
+    const friendly = translateError(e);
+    setUploadStatus(friendly, 'error');
+    toast(e.message || 'Processing failed', 'error', 6000);
   } finally {
     state.isProcessing = false;
     btnProcess.disabled = false;
@@ -763,9 +1109,49 @@ function showEmptyState() {
   activeDocBanner.style.display = 'none';
   typingIndicator.style.display = 'none';
   inputBarWrapper.style.display = 'none';
+  magicPromptsWrapper.style.display = 'none';
   chatInput.disabled = true;
   btnSend.disabled = true;
   chatMessages.innerHTML = '';
+}
+
+const MAGIC_PROMPTS = {
+  legal: [
+    { label: 'Risks', text: 'Summarize the top 3 risks in this contract.' },
+    { label: 'Deadlines', text: 'Extract all key deadlines and dates into a list.' },
+    { label: 'Hidden Fees', text: 'Are there any hidden fees or penalties mentioned?' }
+  ],
+  medical: [
+    { label: 'Diagnosis', text: 'Summarize the diagnosis and treatment recommendations.' },
+    { label: 'Metrics', text: 'Extract key financial/medical numbers into a summary table.' },
+    { label: 'Action Plan', text: 'What are the key patient details and next follow-up steps?' }
+  ],
+  quick: [
+    { label: 'Summarize', text: 'Provide a concise bulleted summary of this document.' },
+    { label: 'Takeaways', text: 'What are the main takeaways from this text?' },
+    { label: 'Key Questions', text: 'Create a list of 3 questions to test comprehension of this content.' }
+  ]
+};
+
+function renderMagicPrompts() {
+  const profile = state.currentProfile || 'legal';
+  const prompts = MAGIC_PROMPTS[profile] || MAGIC_PROMPTS.quick;
+  
+  magicPrompts.innerHTML = '';
+  prompts.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'magic-prompt-btn';
+    btn.type = 'button';
+    btn.innerHTML = p.label;
+    btn.addEventListener('click', () => {
+      chatInput.value = p.text;
+      chatInput.dispatchEvent(new Event('input'));
+      sendMessage();
+    });
+    magicPrompts.appendChild(btn);
+  });
+  
+  magicPromptsWrapper.style.display = 'block';
 }
 
 function showChatReady() {
@@ -777,11 +1163,21 @@ function showChatReady() {
   inputBarWrapper.style.display = 'block';
   chatInput.disabled = false;
   btnSend.disabled = false;
+  
+  fetchDocSuggestions();
+  
   requestAnimationFrame(() => chatInput.focus());
 }
 
 // ─── CLEAR CONVERSATION ───────────────────────────────────────────────────────
 async function clearConversation() {
+  const confirmed = await showCustomConfirm(
+    'Clear Conversation',
+    'Are you sure you want to clear the conversation history? This will reset the active session.',
+    true
+  );
+  if (!confirmed) return;
+
   if (state.sessionId) {
     try {
       await apiFetch('/api/clear', {
@@ -847,11 +1243,12 @@ async function sendMessage() {
       }),
     });
     typingIndicator.style.display = 'none';
-    appendMessage('assistant', data.answer, data.blocked);
+    appendMessage('assistant', data.answer, data.blocked, false, data.citations || [], data.latency_sec || 0);
   } catch (e) {
     typingIndicator.style.display = 'none';
-    appendMessage('assistant', `Error: ${e.message}`, false, true);
-    toast(e.message, 'error', 6000);
+    const friendly = translateError(e);
+    appendMessage('assistant', friendly, false, true);
+    toast(e.message || 'Chat query failed', 'error', 6000);
   } finally {
     state.isChatting = false;
     chatInput.disabled = false;
@@ -861,7 +1258,7 @@ async function sendMessage() {
 }
 
 // ─── RENDER MESSAGE ───────────────────────────────────────────────────────────
-function appendMessage(role, text, blocked = false, isError = false) {
+function appendMessage(role, text, blocked = false, isError = false, citations = [], latencySec = 0) {
   const wrap = document.createElement('div');
   wrap.className = `chat-message ${role}`;
 
@@ -886,6 +1283,20 @@ function appendMessage(role, text, blocked = false, isError = false) {
     : escapeHtml(text);
   bubble.appendChild(content);
 
+  if (role === 'assistant' && citations && citations.length > 0) {
+    const inspectBtn = document.createElement('button');
+    inspectBtn.className = 'btn btn-secondary inspect-citations-btn';
+    inspectBtn.style.marginTop = '0.65rem';
+    inspectBtn.style.fontSize = '0.68rem';
+    inspectBtn.style.padding = '0.35rem 0.75rem';
+    inspectBtn.style.minHeight = 'unset';
+    inspectBtn.textContent = 'Inspect Citations';
+    inspectBtn.addEventListener('click', () => {
+      showCitationsInspector(citations, latencySec);
+    });
+    bubble.appendChild(inspectBtn);
+  }
+
   wrap.appendChild(avatar);
   wrap.appendChild(bubble);
   chatMessages.appendChild(wrap);
@@ -906,21 +1317,541 @@ function scrollToBottom() {
   });
 }
 
+// ─── CITATIONS INSPECTOR ─────────────────────────────────────────────────────
+const citationsInspectorPanel = $('citationsInspectorPanel');
+const btnCloseCitations = $('btnCloseCitations');
+
+if (btnCloseCitations) {
+  btnCloseCitations.addEventListener('click', () => {
+    citationsInspectorPanel.style.display = 'none';
+  });
+}
+if (citationsInspectorPanel) {
+  citationsInspectorPanel.addEventListener('click', (e) => {
+    if (e.target === citationsInspectorPanel) {
+      citationsInspectorPanel.style.display = 'none';
+    }
+  });
+}
+
+function showCitationsInspector(citations, latencySec) {
+  const panel = $('citationsInspectorPanel');
+  const latencyVal = $('citationsLatencyVal');
+  const countVal = $('citationsCountVal');
+  const container = $('citationsListContainer');
+
+  latencyVal.textContent = (latencySec || 0).toFixed(3) + 's';
+  countVal.textContent = citations ? citations.length : 0;
+  container.innerHTML = '';
+
+  if (!citations || citations.length === 0) {
+    container.innerHTML = '<div class="hint-text">No source citations available for this response.</div>';
+  } else {
+    citations.forEach((c, idx) => {
+      const card = document.createElement('div');
+      card.className = 'citation-card';
+      card.style.background = 'var(--bg-raised)';
+      card.style.border = '1px solid var(--border)';
+      card.style.borderRadius = 'var(--radius-sm)';
+      card.style.padding = '0.8rem';
+      
+      const pageStr = c.page ? ` (Page ${c.page})` : '';
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-size:0.72rem; color:var(--text-muted);">
+          <span><strong>Source #${idx + 1}:</strong> ${escapeHtml(c.source)}${pageStr}</span>
+          <span style="font-family:var(--font-mono); color:var(--accent);">Score: ${(c.score || 0).toFixed(4)}</span>
+        </div>
+        <div style="font-size:0.78rem; line-height:1.5; color:var(--text-secondary); white-space:pre-wrap;">${escapeHtml(c.content)}</div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  panel.style.display = 'flex';
+}
+
+// ─── DYNAMIC SUGGESTIONS ─────────────────────────────────────────────────────
+async function fetchDocSuggestions() {
+  if (!state.sessionId) return;
+  
+  magicPrompts.innerHTML = '<span style="font-size:0.68rem; color:var(--text-muted); padding:0.35rem 0.55rem;">Generating custom questions…</span>';
+  magicPromptsWrapper.style.display = 'block';
+  
+  try {
+    const data = await apiFetch('/api/suggest_questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: state.sessionId }),
+    });
+    
+    const questions = data.questions || [];
+    magicPrompts.innerHTML = '';
+    
+    if (questions.length === 0) {
+      magicPromptsWrapper.style.display = 'none';
+      return;
+    }
+    
+    questions.forEach(q => {
+      const btn = document.createElement('button');
+      btn.className = 'magic-prompt-btn';
+      btn.type = 'button';
+      btn.innerHTML = escapeHtml(q);
+      btn.addEventListener('click', () => {
+        chatInput.value = q;
+        chatInput.dispatchEvent(new Event('input'));
+        sendMessage();
+      });
+      magicPrompts.appendChild(btn);
+    });
+  } catch (e) {
+    console.error("Failed to fetch custom question suggestions:", e);
+    renderMagicPrompts();
+  }
+}
+
+// ─── POLICIES ────────────────────────────────────────────────────────────────
+async function fetchPolicies() {
+  try {
+    const data = await apiFetch('/api/policies');
+    const level = $('policyLevelSelect').value;
+    const policy = data[level] || { description: '', input_patterns: [], output_patterns: [] };
+    
+    $('policyDescInput').value = policy.description || '';
+    $('policyInputPatterns').value = (policy.input_patterns || []).join(', ');
+    $('policyOutputPatterns').value = (policy.output_patterns || []).join(', ');
+  } catch (e) {
+    console.error("Failed to fetch policies:", e);
+  }
+}
+
+async function savePolicyRules() {
+  const level = $('policyLevelSelect').value;
+  const desc = $('policyDescInput').value.trim();
+  const inputPat = $('policyInputPatterns').value.split(',').map(s => s.trim()).filter(Boolean);
+  const outputPat = $('policyOutputPatterns').value.split(',').map(s => s.trim()).filter(Boolean);
+
+  try {
+    const currentPolicies = await apiFetch('/api/policies');
+    currentPolicies[level] = {
+      description: desc,
+      input_patterns: inputPat,
+      output_patterns: outputPat
+    };
+
+    await apiFetch('/api/policies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentPolicies)
+    });
+    toast('Policy rules updated successfully.', 'success');
+  } catch (e) {
+    toast(`Failed to save policy: ${e.message}`, 'error');
+  }
+}
+
+// ─── VECTOR DB CONFIG ────────────────────────────────────────────────────────
+async function loadVectorConfig() {
+  try {
+    const config = await apiFetch('/api/vector/config');
+    $('vectorStoreType').value = config.type || 'FAISS';
+    $('vectorStoreHost').value = config.host || '';
+    $('vectorStoreApiKey').value = config.api_key || '';
+    
+    toggleVectorConfigInputs();
+  } catch (e) {
+    console.error("Failed to load vector config:", e);
+  }
+}
+
+function toggleVectorConfigInputs() {
+  const type = $('vectorStoreType').value;
+  const showRemote = (type === 'Qdrant' || type === 'Chroma');
+  $('remoteVectorUrlGroup').style.display = showRemote ? 'block' : 'none';
+  $('remoteVectorApiKeyGroup').style.display = (showRemote && type === 'Qdrant') ? 'block' : 'none';
+}
+
+async function testVectorConnection() {
+  const type = $('vectorStoreType').value;
+  const host = $('vectorStoreHost').value.trim();
+  const apiKey = $('vectorStoreApiKey').value.trim();
+
+  const testBtn = $('btnTestVector');
+  testBtn.disabled = true;
+  testBtn.textContent = 'Testing...';
+
+  try {
+    const res = await apiFetch('/api/vector/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, host, api_key: apiKey })
+    });
+    toast(res.message || 'Connection test successful!', 'success');
+  } catch (e) {
+    toast(`Connection failed: ${e.message}`, 'error');
+  } finally {
+    testBtn.disabled = false;
+    testBtn.textContent = 'Test Link';
+  }
+}
+
+async function saveVectorConfig() {
+  const type = $('vectorStoreType').value;
+  const host = $('vectorStoreHost').value.trim();
+  const apiKey = $('vectorStoreApiKey').value.trim();
+
+  try {
+    await apiFetch('/api/vector/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, host, api_key: apiKey })
+    });
+    toast('Vector database configuration saved.', 'success');
+  } catch (e) {
+    toast(`Failed to save vector config: ${e.message}`, 'error');
+  }
+}
+
+// ─── AUDIT LOGS ──────────────────────────────────────────────────────────────
+async function refreshAuditLogs() {
+  const container = $('auditLoggerContent');
+  if (!container) return;
+
+  try {
+    const data = await apiFetch('/api/audit/logs');
+    const logs = data.logs || [];
+    if (logs.length === 0) {
+      container.innerHTML = '<div class="audit-log-entry" style="color:var(--text-muted);">No logs recorded.</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    logs.forEach(log => {
+      const entry = document.createElement('div');
+      entry.className = 'audit-log-entry';
+      
+      let color = 'var(--text-secondary)';
+      if (log.type === 'safety_alert') color = 'var(--danger)';
+      else if (log.type === 'retrieval') color = 'var(--success)';
+      else if (log.type === 'system') color = 'var(--info)';
+
+      const timeStr = log.timestamp ? log.timestamp.split('T')[1]?.substring(0, 8) || '' : '';
+      entry.innerHTML = `<span style="color:var(--text-muted);">[${timeStr}]</span> <span style="color:${color}; font-weight:bold;">${log.type.toUpperCase()}</span> ${escapeHtml(log.message)}`;
+      container.appendChild(entry);
+    });
+  } catch (e) {
+    console.error("Failed to load audit logs:", e);
+  }
+}
+
+// ─── TOOLTIP LOGIC ────────────────────────────────────────────────────────────
+const TOOLTIP_DATA = {
+  'active-model': {
+    title: 'Active Model',
+    desc: 'The specific local language model used to generate responses.',
+    why: 'Allows switching between different models depending on your hardware capability and quality requirements.',
+    how: 'Select from the dropdown of currently downloaded models.',
+    example: 'gemma3:1b'
+  },
+  'safety-privacy': {
+    title: 'Safety & Privacy',
+    desc: 'Enables or disables safety guardrails and sets the sensitivity levels.',
+    why: 'Prevents the AI from outputting confidential data, jailbreaks, or violating safety compliance rules.',
+    how: 'Toggle guardrails on or off, and select the sensitivity classification matching your documents.',
+    example: 'Confidential level blocks names, locations, and personal identifiers.'
+  },
+  'enable-guardrails': {
+    title: 'Enable Guardrails',
+    desc: 'Controls NVIDIA NeMo Guardrails to enforce alignment policies.',
+    why: 'Keeps the model\'s inputs and outputs within safe boundaries, rejecting jailbreaks and protecting sensitive terms.',
+    how: 'Toggle the switch to enable or disable real-time policy filtering.',
+    example: 'Blocks user prompt attempts to bypass safety filters (jailbreaking).'
+  },
+  'sensitivity-level': {
+    title: 'Sensitivity Level',
+    desc: 'Determines which data classification policy rules are enforced (Public, Internal, Confidential, Restricted).',
+    why: 'Higher sensitivity tiers automatically redact more information like PII and credentials.',
+    how: 'Select the classification matching the vulnerability of your input documents.',
+    example: 'Restricted blocks medical or financial references.'
+  },
+  'sensitivity-reference': {
+    title: 'Sensitivity Reference',
+    desc: 'A summary of what types of data are blocked/redacted at each sensitivity level.',
+    why: 'Provides transparency on exactly what safety policies are active, helping you audit compliance requirements.',
+    how: 'Refer to this table to see the progression of protection from Public to Restricted.',
+    example: 'Internal blocks API keys and passwords.'
+  },
+  'document-library': {
+    title: 'Document Library',
+    desc: 'A list of document collections previously uploaded and indexed on this system.',
+    why: 'Allows reloading past documents instantly without reprocessing or re-embedding them.',
+    how: 'Click Load Session on any card to restore the knowledge base for that document.',
+    example: 'Standard Contract session'
+  },
+  'system-settings': {
+    title: 'System Settings',
+    desc: 'Configures the core local LLM infrastructure for running the AI engine.',
+    why: 'Controls the host and local backend execution parameters for offline privacy.',
+    how: 'Enable the Advanced Settings (Pro) toggle below to view and configure these settings.',
+    example: 'Modify endpoint URL if hosting Ollama on a different port or machine.'
+  },
+  'ollama-endpoint': {
+    title: 'Ollama Endpoint',
+    desc: 'The local network address where your Ollama server is hosted.',
+    why: 'Connects the app directly to Ollama, enabling local inference with no third-party data sharing.',
+    how: 'Enter the endpoint URL (default is http://localhost:11434). If using a remote server, use ngrok or cloudflared tunnel.',
+    example: 'http://localhost:11434 or https://xxxx.ngrok-free.app'
+  },
+  'chunking-parameters': {
+    title: 'Chunking Parameters',
+    desc: 'Configures how uploaded documents are split into smaller segments (chunks) and how much they overlap.',
+    why: 'Optimizes how search queries locate relevant context inside large documents.',
+    how: 'Increase chunk size for long-form narrative text; decrease it for tables or precise data.',
+    example: 'Size: 1000, Overlap: 200'
+  },
+  'vector-db-config': {
+    title: 'Vector Database Config',
+    desc: 'Selects the storage engine and path for document vector embeddings.',
+    why: 'Stores vectorized document structures for semantic search queries.',
+    how: 'Choose FAISS for local storage, or connect to remote Qdrant/Chroma servers.',
+    example: 'FAISS (Local)'
+  },
+  'policy-rules-editor': {
+    title: 'Visual Policy Rules Editor',
+    desc: 'Interface to define custom safety policy rules, description, input and output patterns.',
+    why: 'Allows tailoring specific domain guardrails (such as legal, engineering, HR) for custom blocking rules.',
+    how: 'Select a policy tier, enter blocked keywords or patterns, and click Save Policy Rules.',
+    example: 'Add pattern "CONFIDENTIAL_PROJECT" to block related output.'
+  },
+  'security-auditor': {
+    title: 'Security Sandbox & Auditor',
+    desc: 'Live audit log window tracking guardrail violations and safety validations.',
+    why: 'Provides real-time visibility into why queries were blocked or redacted.',
+    how: 'Read the chronological logs here or click Refresh Logs.',
+    example: 'Security audit entry: "Blocked query: user requested API key"'
+  },
+  'step1-select-doc': {
+    title: 'Select Document',
+    desc: 'Drag and drop or browse to select your source files.',
+    why: 'Ingests documents into local memory so the AI can use them as context.',
+    how: 'Supports PDF, TXT, DOC, and DOCX formats.',
+    example: 'contract.pdf'
+  },
+  'step2-smart-profile': {
+    title: 'Choose Smart Profile',
+    desc: 'Select a preset configuration profile optimized for different document types.',
+    why: 'Sets chunk size, overlap, and sensitivity parameters automatically.',
+    how: 'Click on a card profile like Contracts or Quick Read, or save your own custom configuration.',
+    example: 'Financial/Medical profile'
+  },
+  'step3-safety-dashboard': {
+    title: 'Safety Dashboard',
+    desc: 'Real-time indicators showing the current guardrail classification and status.',
+    why: 'Gives visual confirmation of security mode (Safe, Protected, or Strict Lock).',
+    how: 'Updates dynamically as you switch profiles or change sensitivity levels.',
+    example: 'Strict Lock Active when Restricted sensitivity is selected'
+  }
+};
+
+function initInfoTooltips() {
+  const tooltipEl = $('infoFloatingTooltip');
+  if (!tooltipEl) return;
+
+  const infoButtons = document.querySelectorAll('.info-btn');
+  infoButtons.forEach(btn => {
+    const infoKey = btn.getAttribute('data-info');
+    const data = TOOLTIP_DATA[infoKey];
+    if (!data) return;
+
+    btn.addEventListener('mouseenter', showTooltip);
+    btn.addEventListener('mouseleave', hideTooltip);
+    btn.addEventListener('focus', showTooltip);
+    btn.addEventListener('blur', hideTooltip);
+
+    function showTooltip() {
+      tooltipEl.innerHTML = `
+        <div class="info-tooltip-title">${escapeHtml(data.title)}</div>
+        <div class="info-tooltip-desc">${escapeHtml(data.desc)}</div>
+        <div class="info-tooltip-why">
+          <strong>Why Use This:</strong>
+          ${escapeHtml(data.why)}
+        </div>
+        <div class="info-tooltip-section">
+          <strong>How to Modify:</strong>
+          ${escapeHtml(data.how)}
+        </div>
+        <div class="info-tooltip-section">
+          <strong>Example:</strong>
+          <code>${escapeHtml(data.example)}</code>
+        </div>
+      `;
+
+      tooltipEl.classList.add('visible');
+      tooltipEl.style.display = 'block';
+
+      // Position calculations
+      const rect = btn.getBoundingClientRect();
+      const tooltipRect = tooltipEl.getBoundingClientRect();
+
+      let top = rect.top - tooltipRect.height - 8;
+      let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+
+      if (top < 8) {
+        top = rect.bottom + 8;
+      }
+      if (left < 8) {
+        left = 8;
+      } else if (left + tooltipRect.width > window.innerWidth - 8) {
+        left = window.innerWidth - tooltipRect.width - 8;
+      }
+
+      tooltipEl.style.top = `${top + window.scrollY}px`;
+      tooltipEl.style.left = `${left + window.scrollX}px`;
+    }
+
+    function hideTooltip() {
+      tooltipEl.classList.remove('visible');
+      tooltipEl.style.display = 'none';
+    }
+  });
+
+  window.addEventListener('scroll', () => {
+    tooltipEl.classList.remove('visible');
+    tooltipEl.style.display = 'none';
+  }, { passive: true });
+  document.addEventListener('scroll', () => {
+    tooltipEl.classList.remove('visible');
+    tooltipEl.style.display = 'none';
+  }, { capture: true, passive: true });
+  window.addEventListener('resize', () => {
+    tooltipEl.classList.remove('visible');
+    tooltipEl.style.display = 'none';
+  }, { passive: true });
+}
+
+function initAdvancedToggle() {
+  if (advancedToggle && advancedSettingsContainer) {
+    advancedToggle.addEventListener('change', () => {
+      advancedSettingsContainer.style.display = advancedToggle.checked ? 'block' : 'none';
+    });
+  }
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 (async function init() {
-  // 1. Fetch server config → auto-populate endpoint URL from server or localStorage
-  await fetchConfig();
-  updateSensitivityUI();
-
   state.sidebarCollapsed = false;
   sidebarExpandBtn.style.display = 'none';
 
-  // 2. Check Ollama health with whatever endpoint was loaded
-  await refreshHealth();
+  // 1. Bind static UI elements and event listeners (run immediately, non-blocking)
+  initAdvancedToggle();
+  initInfoTooltips();
 
-  // 3. Load stored document library
-  await loadStoragePool();
+  if (btnSaveCustomProfile) {
+    btnSaveCustomProfile.addEventListener('click', async () => {
+      const name = await showCustomPrompt(
+        'Save Custom Profile',
+        'Enter a name for your custom configuration profile:',
+        'My Custom Profile'
+      );
+      if (!name) return;
 
-  // 4. Poll health every 12 s
+      const key = 'custom_' + Date.now();
+      const newProfile = {
+        chunkSize: parseInt(chunkSize.value, 10) || 1000,
+        chunkOverlap: parseInt(chunkOverlap.value, 10) || 200,
+        sensitivity: sensitivitySelect.value,
+        guardrails: guardrailsToggle.checked,
+        name: name,
+        icon: '',
+        desc: `Custom preset (Chunk: ${chunkSize.value}, Safety: ${sensitivitySelect.value})`
+      };
+
+      PROFILES[key] = newProfile;
+
+      try {
+        const saved = JSON.parse(localStorage.getItem('ragbot_custom_profiles') || '{}');
+        saved[key] = newProfile;
+        localStorage.setItem('ragbot_custom_profiles', JSON.stringify(saved));
+      } catch (e) {
+        console.error(e);
+      }
+
+      selectProfile(key);
+      toast(`Profile "${name}" saved!`, 'success');
+    });
+  }
+
+  // Load custom profiles from local storage
+  loadCustomProfiles();
+
+  // Set default profile selection (also triggers renderProfileButtons())
+  selectProfile('legal');
+
+  // Bind change event to toggle redact names toggle
+  if (redactNamesToggle) {
+    redactNamesToggle.addEventListener('change', () => {});
+  }
+
+  // Vector DB settings event bindings
+  if ($('vectorStoreType')) {
+    $('vectorStoreType').addEventListener('change', toggleVectorConfigInputs);
+  }
+  if ($('btnTestVector')) {
+    $('btnTestVector').addEventListener('click', testVectorConnection);
+  }
+  if ($('btnSaveVector')) {
+    $('btnSaveVector').addEventListener('click', saveVectorConfig);
+  }
+  if ($('policyLevelSelect')) {
+    $('policyLevelSelect').addEventListener('change', fetchPolicies);
+  }
+  if ($('btnSavePolicy')) {
+    $('btnSavePolicy').addEventListener('click', savePolicyRules);
+  }
+  if ($('btnRefreshAuditLogs')) {
+    $('btnRefreshAuditLogs').addEventListener('click', refreshAuditLogs);
+  }
+
+  // 2. Load background server dependencies (non-blocking, try-catch protected)
+  try {
+    await fetchConfig();
+  } catch (e) {
+    console.warn("Failed to load server config:", e);
+  }
+  
+  try {
+    await fetchPolicies();
+  } catch (e) {
+    console.warn("Failed to load policies:", e);
+  }
+
+  try {
+    await loadVectorConfig();
+  } catch (e) {
+    console.warn("Failed to load vector config:", e);
+  }
+
+  try {
+    await refreshAuditLogs();
+  } catch (e) {
+    console.warn("Failed to load audit logs:", e);
+  }
+
+  try {
+    await refreshHealth();
+  } catch (e) {
+    console.warn("Failed to check health:", e);
+  }
+
+  try {
+    await loadStoragePool();
+  } catch (e) {
+    console.warn("Failed to load storage pool:", e);
+  }
+
+  // 3. Poll health every 12 s
   setInterval(refreshHealth, 12_000);
+  
+  // 4. Poll audit logs every 5 s
+  setInterval(refreshAuditLogs, 5_000);
 })();

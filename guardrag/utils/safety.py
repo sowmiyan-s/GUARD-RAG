@@ -11,7 +11,10 @@ JAILBREAK_PATTERNS = [
     "you are now", "disregard your", "override your",
 ]
 
-SENSITIVITY_PROFILES = {
+import json
+from pathlib import Path
+
+DEFAULT_SENSITIVITY_PROFILES = {
     "Public": {
         "description": "No data classification restrictions. Basic jailbreak protection only.",
         "input_patterns": [],
@@ -64,6 +67,46 @@ SENSITIVITY_PROFILES = {
         "badge": "restricted",
     },
 }
+
+def load_policies() -> dict:
+    storage_path = Path(".guardrag_storage")
+    policies_path = storage_path / "policies.json"
+    if policies_path.exists():
+        try:
+            return json.loads(policies_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return DEFAULT_SENSITIVITY_PROFILES
+
+def save_policies(policies: dict) -> None:
+    storage_path = Path(".guardrag_storage")
+    storage_path.mkdir(exist_ok=True)
+    policies_path = storage_path / "policies.json"
+    policies_path.write_text(json.dumps(policies, indent=2, ensure_ascii=False), encoding="utf-8")
+
+class DynamicSensitivityProfiles(dict):
+    def __getitem__(self, key):
+        return load_policies()[key]
+
+    def get(self, key, default=None):
+        return load_policies().get(key, default)
+
+    def items(self):
+        return load_policies().items()
+
+    def keys(self):
+        return load_policies().keys()
+
+    def values(self):
+        return load_policies().values()
+
+    def __contains__(self, key):
+        return key in load_policies()
+
+    def __repr__(self):
+        return repr(load_policies())
+
+SENSITIVITY_PROFILES = DynamicSensitivityProfiles()
 
 
 def check_input_safety(

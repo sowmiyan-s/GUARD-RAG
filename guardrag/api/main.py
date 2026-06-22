@@ -89,6 +89,14 @@ from guardrag.utils.ollama import (
     is_ollama_running,
     start_ollama_server,
 )
+from guardrag.utils.redactor import redact_text, rehydrate_text
+from guardrag.utils.safety import (
+    check_input_safety,
+    check_output_safety,
+    load_policies,
+    save_policies,
+    SENSITIVITY_PROFILES,
+)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # App setup
@@ -128,13 +136,15 @@ def _load_faiss_meta() -> dict:
 def _save_faiss_meta(meta: dict):
     FAISS_META_FILE.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
 
-def _register_faiss_entry(db_id: str, file_names: list, model: str, chunk_size: int, chunk_overlap: int):
+def _register_faiss_entry(db_id: str, file_names: list, model: str, chunk_size: int, chunk_overlap: int, redact_pii: bool = False, manual_redactions: list = None):
     meta = _load_faiss_meta()
     meta[db_id] = {
         "files": file_names,
         "model": model,
         "chunk_size": chunk_size,
         "chunk_overlap": chunk_overlap,
+        "redact_pii": redact_pii,
+        "manual_redactions": manual_redactions or [],
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }
     _save_faiss_meta(meta)
@@ -177,80 +187,20 @@ class LoadSessionRequest(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Safety system
+# Audit logging system
 # ─────────────────────────────────────────────────────────────────────────────
-JAILBREAK_PATTERNS = [
-    "ignore previous", "forget your instructions", "ignore all prior",
-    "jailbreak", "dan mode", "pretend you are", "act as if you are",
-    "you are now", "disregard your", "override your",
-]
+_audit_logs = []
 
-SENSITIVITY_PROFILES = {
-    "Public": {
-        "description": "No data classification restrictions. Basic jailbreak protection only.",
-        "input_patterns": [],
-        "output_patterns": [],
-        "badge": "public",
-    },
-    "Internal": {
-        "description": "Suitable for internal business data. Blocks credential and API key exposure.",
-        "input_patterns": ["api key", "api_key", "password", "secret key", "access token", "private key", "credential"],
-        "output_patterns": ["api_key", "api key", "password", "access_token", "credential", "private_key", "bearer token"],
-        "badge": "internal",
-    },
-    "Confidential": {
-        "description": "For confidential data. Adds PII protection.",
-        "input_patterns": [
-            "api key", "api_key", "password", "secret key", "access token", "private key", "credential",
-            "social security", "ssn", "date of birth", "home address", "phone number", "email address",
-            "credit card", "bank account",
-        ],
-        "output_patterns": [
-            "api_key", "api key", "password", "access_token", "credential", "private_key", "bearer token",
-            "ssn", "social security", "date of birth", "credit card", "bank account",
-        ],
-        "badge": "confidential",
-    },
-    "Restricted": {
-        "description": "Maximum protection. For highly sensitive or regulated data (HIPAA, GDPR, financial).",
-        "input_patterns": [
-            "api key", "api_key", "password", "secret key", "access token", "private key", "credential",
-            "social security", "ssn", "date of birth", "home address", "phone number", "email address",
-            "credit card", "bank account", "medical record", "diagnosis", "prescription", "patient",
-            "salary", "tax return", "financial statement", "trading", "investment",
-        ],
-        "output_patterns": [
-            "api_key", "api key", "password", "access_token", "credential", "private_key", "bearer token",
-            "ssn", "social security", "date of birth", "credit card", "bank account",
-            "medical record", "diagnosis", "prescription", "patient id",
-            "salary", "tax", "financial",
-        ],
-        "badge": "restricted",
-    },
-}
-
-def check_input_safety(user_input: str, sensitivity: str, enabled: bool) -> Optional[str]:
-    if not enabled:
-        return None
-    lower = user_input.lower()
-    for pat in JAILBREAK_PATTERNS:
-        if pat in lower:
-            return "This request has been blocked. Prompt injection and instruction-override attempts are not permitted."
-    profile = SENSITIVITY_PROFILES.get(sensitivity, SENSITIVITY_PROFILES["Internal"])
-    for pat in profile["input_patterns"]:
-        if pat in lower:
-            return f"This request has been blocked under the active **{sensitivity}** data sensitivity policy."
-    return None
-
-def check_output_safety(response: str, sensitivity: str, enabled: bool) -> Optional[str]:
-    if not enabled:
-        return None
-    lower = response.lower()
-    profile = SENSITIVITY_PROFILES.get(sensitivity, SENSITIVITY_PROFILES["Internal"])
-    for pat in profile["output_patterns"]:
-        if pat in lower:
-            return f"[REDACTED — Output blocked by {sensitivity} data sensitivity policy.]"
-    return None
+def add_audit_log(event_type: str, message: str, details: dict = None):
+    log_entry = {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "event_type": event_type,
+        "message": message,
+        "details": details or {}
+    }
+    _audit_logs.append(log_entry)
+    if len(_audit_logs) > 200:
+        _audit_logs.pop(0)
 
 
 # RAG functions are now imported from guardrag.rag.core
@@ -304,6 +254,89 @@ async def ollama_start():
     )
 
 
+class SuggestQuestionsRequest(BaseModel):
+    session_id: str
+
+def parse_questions_from_response(text: str) -> list[str]:
+    import re
+    text = text.strip()
+    # Find the first '[' and last ']'
+    start = text.find('[')
+    end = text.rfind(']')
+    if start != -1 and end != -1 and end > start:
+        try:
+            questions = json.loads(text[start:end+1])
+            if isinstance(questions, list):
+                cleaned = [str(q).strip() for q in questions if str(q).strip()]
+                if cleaned:
+                    return cleaned[:3]
+        except Exception:
+            pass
+            
+    # Fallback parsing
+    lines = text.split('\n')
+    questions = []
+    for line in lines:
+        line = line.strip()
+        cleaned = re.sub(r'^(\d+[\.\)]|[\-\*•])\s*', '', line).strip()
+        cleaned = cleaned.strip('"\'')
+        if cleaned and len(cleaned) > 10 and cleaned.endswith('?'):
+            questions.append(cleaned)
+            if len(questions) >= 3:
+                break
+                
+    if len(questions) < 3:
+        for line in lines:
+            line = line.strip().strip('"\'')
+            if line and line.endswith('?') and line not in questions:
+                questions.append(line)
+                if len(questions) >= 3:
+                    break
+                    
+    if not questions:
+        questions = [
+            "What is the main topic of this document?",
+            "Can you summarize the key findings or clauses?",
+            "Are there any specific dates, deadlines, or requirements mentioned?"
+        ]
+    return questions[:3]
+
+@app.post("/api/suggest_questions")
+async def suggest_questions(req: SuggestQuestionsRequest):
+    session = _sessions.get(req.session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found.")
+        
+    question = (
+        "Generate exactly 3 short, specific questions that a user might want to ask about this document context. "
+        "Format the output as a raw JSON list of strings, e.g., [\"question 1\", \"question 2\", \"question 3\"]. "
+        "Do not write anything else. Return only the JSON list."
+    )
+    
+    try:
+        result = await asyncio.to_thread(
+            session["rag_chain"].invoke, {"input": question, "chat_history": []}
+        )
+        if isinstance(result, dict) and "answer" in result:
+            answer = result["answer"]
+        elif isinstance(result, str):
+            answer = result
+        else:
+            answer = str(result)
+            
+        questions = parse_questions_from_response(answer)
+        return {"questions": questions}
+    except Exception as e:
+        print(f"Error generating suggestions: {e}")
+        return {
+            "questions": [
+                "What is the main summary of this document?",
+                "Are there any key deadlines or dates mentioned?",
+                "What are the main risks or highlights?"
+            ]
+        }
+
+
 @app.post("/api/upload")
 async def upload_documents(
     files: list[UploadFile] = File(...),
@@ -311,6 +344,8 @@ async def upload_documents(
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
     ollama_host: str = "",
+    redact_pii: bool = False,
+    manual_redactions: str = "",
 ):
     # Use server-configured host if the client didn't supply one
     host = (ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
@@ -338,9 +373,11 @@ async def upload_documents(
                 detail=f"Ollama is not reachable at {host}. Check the OLLAMA_HOST setting.",
             )
 
+        manual_list = [w.strip() for w in manual_redactions.split(",") if w.strip()]
+
         try:
             db_id, rag_chain = await asyncio.to_thread(
-                build_rag_chain, temp_paths, model, chunk_size, chunk_overlap, host
+                build_rag_chain, temp_paths, model, chunk_size, chunk_overlap, host, redact_pii=redact_pii, manual_redactions=manual_list
             )
         except Exception as e:
             import traceback
@@ -351,7 +388,7 @@ async def upload_documents(
             ) from e
 
         h = hashlib.md5(
-            ("|".join(sorted(file_names)) + model + str(chunk_size) + str(chunk_overlap)).encode()
+            ("|".join(sorted(file_names)) + model + str(chunk_size) + str(chunk_overlap) + str(redact_pii) + manual_redactions).encode()
         ).hexdigest()[:16]
 
         _sessions[h] = {
@@ -363,9 +400,12 @@ async def upload_documents(
             "files": file_names,
             "db_id": db_id,
             "ollama_host": host,
+            "redact_pii": redact_pii,
+            "manual_redactions": manual_list,
         }
 
-        await asyncio.to_thread(_register_faiss_entry, db_id, file_names, model, chunk_size, chunk_overlap)
+        await asyncio.to_thread(_register_faiss_entry, db_id, file_names, model, chunk_size, chunk_overlap, redact_pii, manual_list)
+        add_audit_log("upload", f"Indexed {len(files)} file(s) into database {db_id}", {"model": model, "chunk_size": chunk_size, "redact_pii": redact_pii})
         return {"session_id": h, "db_id": db_id, "files": file_names, "model": model}
 
     finally:
@@ -390,6 +430,8 @@ async def list_storage():
             "model": info.get("model", "unknown"),
             "chunk_size": info.get("chunk_size", 1000),
             "chunk_overlap": info.get("chunk_overlap", 200),
+            "redact_pii": info.get("redact_pii", False),
+            "manual_redactions": info.get("manual_redactions", []),
             "created_at": info.get("created_at", ""),
             "available": persist_dir.exists(),
         })
@@ -433,6 +475,8 @@ async def load_session(req: LoadSessionRequest):
         "files": info.get("files", []),
         "db_id": req.db_id,
         "ollama_host": host,
+        "redact_pii": info.get("redact_pii", False),
+        "manual_redactions": info.get("manual_redactions", []),
     }
 
     return {
@@ -486,12 +530,41 @@ async def chat(req: ChatRequest):
                 detail=f"Failed to dynamically switch RAG chain to model '{req.model}': {str(e)}"
             ) from e
 
-    # Input safety
+    # Input safety on the original question
     blocked = check_input_safety(req.question, req.sensitivity_level, req.enable_guardrails)
     if blocked:
-        return {"answer": blocked, "blocked": True, "source": "input_guard"}
+        add_audit_log("safety_alert", f"Input question blocked by {req.sensitivity_level} policy.", {"question": req.question})
+        return {"answer": blocked, "blocked": True, "source": "input_guard", "citations": [], "latency_sec": 0.0}
 
-    # Build chat history
+    # Load session mapping if redact_pii is active
+    mapping = {}
+    is_redacted = session.get("redact_pii", False)
+    db_id = session.get("db_id")
+    if is_redacted and db_id:
+        mapping_path = FAISS_STORAGE / db_id / "mapping.json"
+        if mapping_path.exists():
+            try:
+                mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+    # Map user question to tokens to align with redacted database splits
+    question = req.question
+    if is_redacted:
+        from guardrag.utils.redactor import redact_and_map
+        question, updated_map = redact_and_map(question, redact_names=True, existing_map=mapping)
+        if len(updated_map) > len(mapping):
+            mapping = updated_map
+            # Save updated mapping back to disk
+            if db_id:
+                mapping_path = FAISS_STORAGE / db_id / "mapping.json"
+                try:
+                    mapping_path.write_text(json.dumps(mapping, indent=2, ensure_ascii=False), encoding="utf-8")
+                except Exception:
+                    pass
+        add_audit_log("redaction", f"Redacted user query before LLM processing.")
+
+    # Build chat history using redacted inputs/outputs from session
     history = []
     for msg in session["messages"]:
         if msg["role"] == "user":
@@ -499,14 +572,16 @@ async def chat(req: ChatRequest):
         elif msg["role"] == "assistant":
             history.append(AIMessage(content=msg["content"]))
 
+    start_time = time.time()
     try:
         result = await asyncio.to_thread(
-            session["rag_chain"].invoke, {"input": req.question, "chat_history": history}
+            session["rag_chain"].invoke, {"input": question, "chat_history": history}
         )
     except Exception as e:
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}") from e
+    latency_sec = time.time() - start_time
 
     if isinstance(result, dict) and "answer" in result:
         answer = result["answer"]
@@ -515,18 +590,69 @@ async def chat(req: ChatRequest):
     else:
         answer = str(result)
 
-    # Output safety
-    blocked_out = check_output_safety(answer, req.sensitivity_level, req.enable_guardrails)
+    # Rehydrate placeholder tokens back to real names for final output
+    rehydrated_answer = rehydrate_text(answer, mapping) if (is_redacted and mapping) else answer
+
+    # Output safety check on rehydrated answer
+    blocked_out = check_output_safety(rehydrated_answer, req.sensitivity_level, req.enable_guardrails)
     if blocked_out:
         answer = blocked_out
-        session["messages"].append({"role": "user", "content": req.question})
+        session["messages"].append({"role": "user", "content": question})
         session["messages"].append({"role": "assistant", "content": answer})
-        return {"answer": answer, "blocked": True, "source": "output_guard"}
+        add_audit_log("safety_alert", f"LLM output blocked and redacted under {req.sensitivity_level} policy.")
+        return {"answer": answer, "blocked": True, "source": "output_guard", "citations": [], "latency_sec": latency_sec}
 
-    session["messages"].append({"role": "user", "content": req.question})
+    # Extract citations & calculate similarity scores
+    citations = []
+    if isinstance(result, dict) and "context" in result:
+        context_docs = result["context"]
+        try:
+            from guardrag.rag.core import _get_embeddings
+            embeddings = _get_embeddings()
+            query_vector = embeddings.embed_query(question)
+            doc_contents = [doc.page_content for doc in context_docs]
+            if doc_contents:
+                doc_vectors = embeddings.embed_documents(doc_contents)
+                for doc, doc_vector in zip(context_docs, doc_vectors):
+                    score = sum(q * d for q, d in zip(query_vector, doc_vector))
+                    disp_content = rehydrate_text(doc.page_content, mapping) if (is_redacted and mapping) else doc.page_content
+                    source_path = doc.metadata.get("source", "Unknown")
+                    source_name = os.path.basename(source_path) if source_path else "Unknown"
+                    citations.append({
+                        "source": source_name,
+                        "page": doc.metadata.get("page", 0) + 1 if "page" in doc.metadata else None,
+                        "content": disp_content,
+                        "score": round(float(score), 4),
+                    })
+        except Exception as e:
+            print(f"Error computing citation scores: {e}")
+            for doc in context_docs:
+                disp_content = rehydrate_text(doc.page_content, mapping) if (is_redacted and mapping) else doc.page_content
+                source_path = doc.metadata.get("source", "Unknown")
+                source_name = os.path.basename(source_path) if source_path else "Unknown"
+                citations.append({
+                    "source": source_name,
+                    "page": doc.metadata.get("page", 0) + 1 if "page" in doc.metadata else None,
+                    "content": disp_content,
+                    "score": 0.0,
+                })
+
+    session["messages"].append({"role": "user", "content": question})
     session["messages"].append({"role": "assistant", "content": answer})
 
-    return {"answer": answer, "blocked": False, "source": "llm"}
+    add_audit_log("retrieval", f"Successfully completed RAG query in {latency_sec:.3f}s", {
+        "latency_sec": latency_sec,
+        "citations_count": len(citations),
+        "question": req.question
+    })
+
+    return {
+        "answer": rehydrated_answer,
+        "blocked": False,
+        "source": "llm",
+        "citations": citations,
+        "latency_sec": latency_sec
+    }
 
 
 @app.post("/api/clear")
@@ -535,6 +661,85 @@ async def clear_chat(req: ClearRequest):
     if session:
         session["messages"] = []
     return {"cleared": True}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Dynamic Policies & Vector Store Endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get("/api/policies")
+async def get_policies():
+    return load_policies()
+
+@app.post("/api/policies")
+async def update_policies(policies: dict):
+    try:
+        save_policies(policies)
+        return {"success": True, "policies": policies}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save policies: {str(e)}")
+
+@app.get("/api/vector/config")
+async def get_vector_config():
+    from guardrag.rag.core import load_vector_settings
+    return load_vector_settings()
+
+@app.post("/api/vector/config")
+async def update_vector_config(config: dict):
+    try:
+        storage_path = FAISS_STORAGE
+        settings_file = storage_path / "vector_settings.json"
+        settings_file.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
+        return {"success": True, "config": config}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save vector config: {str(e)}")
+
+@app.post("/api/vector/test")
+async def test_vector_connectivity(config: dict):
+    store_type = config.get("type", "FAISS").upper()
+    if store_type == "FAISS":
+        return {"success": True, "message": "Local FAISS storage is always available."}
+    
+    host = config.get("host", "")
+    if not host:
+        raise HTTPException(status_code=400, detail="Host URL is required for remote vector stores.")
+        
+    if store_type == "QDRANT":
+        try:
+            from qdrant_client import QdrantClient
+            client = QdrantClient(url=host, api_key=config.get("api_key"), timeout=3.0)
+            client.get_collections()
+            return {"success": True, "message": "Successfully connected to Qdrant server!"}
+        except ImportError:
+            raise HTTPException(
+                status_code=400,
+                detail="The 'qdrant-client' package is not installed on the server. Please run 'pip install qdrant-client'."
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to connect to Qdrant: {str(e)}")
+            
+    elif store_type == "CHROMA":
+        try:
+            import chromadb
+            parsed = host.replace("http://", "").replace("https://", "").split(":")
+            h = parsed[0]
+            p = int(parsed[1]) if len(parsed) > 1 else 8000
+            client = chromadb.HttpClient(host=h, port=p)
+            client.heartbeat()
+            return {"success": True, "message": "Successfully connected to Chroma server!"}
+        except ImportError:
+            raise HTTPException(
+                status_code=400,
+                detail="The 'chromadb' package is not installed on the server. Please run 'pip install chromadb'."
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to connect to Chroma: {str(e)}")
+            
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported vector store type: {store_type}")
+
+@app.get("/api/audit/logs")
+async def get_audit_logs():
+    return {"logs": _audit_logs}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

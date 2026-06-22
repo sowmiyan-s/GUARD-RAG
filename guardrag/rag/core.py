@@ -56,13 +56,39 @@ def _get_embeddings():
     return _embeddings
 
 
+def load_vector_settings() -> dict:
+    storage_path = Path(".guardrag_storage")
+    settings_file = storage_path / "vector_settings.json"
+    if settings_file.exists():
+        try:
+            import json
+            return json.loads(settings_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {"type": "FAISS", "persist_directory": None}
+
+
+def is_db_registered(db_id: str, storage_dir: str) -> bool:
+    meta_file = Path(storage_dir) / "_meta.json"
+    if meta_file.exists():
+        try:
+            import json
+            meta = json.loads(meta_file.read_text(encoding="utf-8"))
+            return db_id in meta
+        except Exception:
+            pass
+    return False
+
+
 def build_rag_chain(
     file_paths: list[str],
     model: str = "gemma3:1b",
     chunk_size: int = 1000,
     chunk_overlap: int = 200,
     ollama_host: str = "http://localhost:11434",
-    storage_dir: str = ".guardrag_storage"
+    storage_dir: str = ".guardrag_storage",
+    redact_pii: bool = False,
+    manual_redactions: list[str] = None
 ) -> tuple[str, Any]:
     """
     Build a RAG chain from document files.
@@ -74,6 +100,7 @@ def build_rag_chain(
         chunk_overlap: Overlap between chunks
         ollama_host: Ollama server URL
         storage_dir: Directory to store FAISS indices
+        redact_pii: Whether to redact sensitive details (PII) from document text
         
     Returns:
         Tuple of (db_id, rag_chain)
@@ -88,17 +115,25 @@ def build_rag_chain(
         with open(fp, "rb") as f:
             for chunk in iter(lambda: f.read(8192), b""):
                 hasher.update(chunk)
-    db_id = f"{hasher.hexdigest()}_{chunk_size}_{chunk_overlap}_Offline"
+    redact_suffix = "_Redacted" if redact_pii else "_Raw"
+    db_id = f"{hasher.hexdigest()}_{chunk_size}_{chunk_overlap}{redact_suffix}_Offline"
     persist_dir = str(storage_path / db_id)
     
+    # Load pluggable configuration
+    config = load_vector_settings()
+    is_faiss = config.get("type", "FAISS").upper() == "FAISS"
+    if is_faiss:
+        config["persist_directory"] = persist_dir
+        is_cached = os.path.exists(persist_dir) and os.path.exists(os.path.join(persist_dir, "index.faiss"))
+    else:
+        config["collection_name"] = db_id
+        is_cached = is_db_registered(db_id, storage_dir)
+        
     # Load from cache if available
-    if os.path.exists(persist_dir):
-        print(f"Loading cached embeddings from {persist_dir}...")
-        vectorstore = FAISS.load_local(
-            persist_dir,
-            embeddings,
-            allow_dangerous_deserialization=True
-        )
+    if is_cached:
+        print(f"Loading cached embeddings for {db_id}...")
+        from guardrag.rag.vector_factory import get_vector_store
+        vectorstore = get_vector_store(config, embeddings)
     else:
         print("Loading documents...")
         docs = []
@@ -134,6 +169,21 @@ def build_rag_chain(
             raise ValueError("No documents were successfully loaded.")
         
         print(f"Splitting {len(docs)} documents into chunks...")
+        mapping = {}
+        if redact_pii:
+            from guardrag.utils.redactor import redact_and_map
+            print("Applying context-aware PII token mapping to document contents...")
+            for doc in docs:
+                doc.page_content, mapping = redact_and_map(doc.page_content, redact_names=True, existing_map=mapping)
+        if manual_redactions:
+            import re
+            print(f"Applying custom manual redactions to document contents...")
+            for doc in docs:
+                for word in manual_redactions:
+                    if not word:
+                        continue
+                    pattern = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
+                    doc.page_content = pattern.sub("[MANUAL_REDACTED]", doc.page_content)
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap
@@ -144,19 +194,19 @@ def build_rag_chain(
             raise ValueError("No text could be extracted from the uploaded documents.")
 
         print(f"Creating embeddings for {len(splits)} chunks...")
-        vectorstore = None
+        from guardrag.rag.vector_factory import get_vector_store
+        vectorstore = get_vector_store(config, embeddings)
         for i in range(0, len(splits), 100):
             batch = splits[i : i + 100]
-            if vectorstore is None:
-                vectorstore = FAISS.from_documents(documents=batch, embedding=embeddings)
-            else:
-                vectorstore.add_documents(documents=batch)
+            vectorstore.add_documents(batch)
         
-        if vectorstore is None:
-            raise ValueError("Failed to create FAISS vector store.")
-
-        print(f"Saving FAISS index to {persist_dir}...")
-        vectorstore.save_local(persist_dir)
+        # Save token mapping dictionary to disk (always stored locally under storage_dir/db_id)
+        import json
+        mapping_path = Path(storage_path) / db_id / "mapping.json"
+        mapping_path.parent.mkdir(exist_ok=True, parents=True)
+        with open(mapping_path, "w", encoding="utf-8") as f:
+            json.dump(mapping, f, indent=2, ensure_ascii=False)
+        print(f"Saved token mapping dictionary to {mapping_path}")
     
     # Build RAG chain
     rag_chain = _build_chain_from_vectorstore(vectorstore, model, ollama_host)
@@ -255,15 +305,19 @@ def load_stored_rag_chain(
     Returns:
         The RAG chain
     """
-    persist_dir = Path(storage_dir) / db_id
-    if not persist_dir.exists():
-        raise FileNotFoundError(f"No stored index for db_id: {db_id}")
-    
     embeddings = _get_embeddings()
-    vectorstore = FAISS.load_local(
-        str(persist_dir),
-        embeddings,
-        allow_dangerous_deserialization=True
-    )
+    config = load_vector_settings()
+    is_faiss = config.get("type", "FAISS").upper() == "FAISS"
+    
+    if is_faiss:
+        persist_dir = Path(storage_dir) / db_id
+        if not persist_dir.exists():
+            raise FileNotFoundError(f"No stored index for db_id: {db_id}")
+        config["persist_directory"] = str(persist_dir)
+    else:
+        config["collection_name"] = db_id
+        
+    from guardrag.rag.vector_factory import get_vector_store
+    vectorstore = get_vector_store(config, embeddings)
     
     return _build_chain_from_vectorstore(vectorstore, model, ollama_host)
