@@ -88,7 +88,8 @@ def build_rag_chain(
     ollama_host: str = "http://localhost:11434",
     storage_dir: str = ".guardrag_storage",
     redact_pii: bool = False,
-    manual_redactions: list[str] = None
+    manual_redactions: list[str] = None,
+    system_prompt: str = None
 ) -> tuple[str, Any]:
     """
     Build a RAG chain from document files.
@@ -209,23 +210,20 @@ def build_rag_chain(
         print(f"Saved token mapping dictionary to {mapping_path}")
     
     # Build RAG chain
-    rag_chain = _build_chain_from_vectorstore(vectorstore, model, ollama_host)
+    rag_chain = _build_chain_from_vectorstore(vectorstore, model, ollama_host, system_prompt=system_prompt)
     
     print("RAG chain ready!")
     return db_id, rag_chain
 
 
-def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str):
-    """Build a LangChain RAG chain from a FAISS vectorstore."""
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
-    
+def _get_llm(model: str, ollama_host: str):
+    """Initialize the LLM based on ollama_host (supports Ollama and OpenAI-compatible endpoints)."""
     host_lower = ollama_host.lower()
     is_openai_style = any(x in host_lower for x in ["api.openai.com", "api.groq.com", "openrouter.ai", "api.anthropic.com", "api.cohere.ai"])
     is_cloud_model = any(x in model.lower() for x in ["gpt-", "claude-", "gemini-", "command-r", "meta-llama"])
     
     if is_openai_style or is_cloud_model:
         from langchain_openai import ChatOpenAI
-        # Set base API endpoint
         api_base = ollama_host.rstrip("/")
         if not api_base.endswith("/v1") and "localhost" not in api_base and "127.0.0.1" not in api_base:
             if "groq" in api_base:
@@ -233,14 +231,13 @@ def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str):
             else:
                 api_base = api_base + "/v1"
                 
-        # Resolve API keys
         api_key = os.environ.get("OLLAMA_API_KEY") or os.environ.get("OPENAI_API_KEY")
         if "groq" in host_lower:
             api_key = os.environ.get("GROQ_API_KEY") or api_key
         elif "openrouter" in host_lower:
             api_key = os.environ.get("OPENROUTER_API_KEY") or api_key
             
-        llm = ChatOpenAI(
+        return ChatOpenAI(
             model=model,
             openai_api_base=api_base,
             openai_api_key=api_key,
@@ -252,12 +249,19 @@ def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str):
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
             
-        llm = ChatOllama(
+        return ChatOllama(
             model=model,
             base_url=ollama_host.rstrip("/"),
             num_ctx=4096,
             headers=headers
         )
+
+
+def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str, system_prompt: str = None):
+    """Build a LangChain RAG chain from a FAISS vectorstore."""
+    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+    
+    llm = _get_llm(model, ollama_host)
     
     # History-aware retriever
     ctx_q_prompt = ChatPromptTemplate.from_messages([
@@ -271,14 +275,17 @@ def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str):
     ])
     history_retriever = create_history_aware_retriever(llm, retriever, ctx_q_prompt)
     
+    if not system_prompt:
+        system_prompt = (
+            "You are GuardRAG, a professional AI document assistant. "
+            "Answer the user's question using ONLY the provided context. "
+            "If the context doesn't contain the answer, politely state that the information is missing from the uploaded documents. "
+            "Maintain a helpful, concise, and accurate tone."
+        )
+
     # Q&A chain
     qa_prompt = ChatPromptTemplate.from_messages([
-        ("system",
-         "You are GuardRAG, a professional AI document assistant. "
-         "Answer the user's question using ONLY the provided context. "
-         "If the context doesn't contain the answer, politely state that the information is missing from the uploaded documents. "
-         "Maintain a helpful, concise, and accurate tone.\n\n"
-         "Context:\n{context}"),
+        ("system", system_prompt + "\n\nContext:\n{context}"),
         MessagesPlaceholder("chat_history"),
         ("human", "{input}"),
     ])
@@ -287,24 +294,8 @@ def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str):
     return create_retrieval_chain(history_retriever, qa_chain)
 
 
-def load_stored_rag_chain(
-    db_id: str,
-    model: str = "gemma3:1b",
-    ollama_host: str = "http://localhost:11434",
-    storage_dir: str = ".guardrag_storage"
-):
-    """
-    Load a previously persisted FAISS index and build the RAG chain.
-    
-    Args:
-        db_id: The database/index ID
-        model: Ollama model name
-        ollama_host: Ollama server URL
-        storage_dir: Directory where FAISS indices are stored
-        
-    Returns:
-        The RAG chain
-    """
+def get_stored_vectorstore(db_id: str, storage_dir: str = ".guardrag_storage"):
+    """Load a previously persisted vectorstore index."""
     embeddings = _get_embeddings()
     config = load_vector_settings()
     is_faiss = config.get("type", "FAISS").upper() == "FAISS"
@@ -318,6 +309,28 @@ def load_stored_rag_chain(
         config["collection_name"] = db_id
         
     from guardrag.rag.vector_factory import get_vector_store
-    vectorstore = get_vector_store(config, embeddings)
+    return get_vector_store(config, embeddings)
+
+
+def load_stored_rag_chain(
+    db_id: str,
+    model: str = "gemma3:1b",
+    ollama_host: str = "http://localhost:11434",
+    storage_dir: str = ".guardrag_storage",
+    system_prompt: str = None
+):
+    """
+    Load a previously persisted FAISS index and build the RAG chain.
     
-    return _build_chain_from_vectorstore(vectorstore, model, ollama_host)
+    Args:
+        db_id: The database/index ID
+        model: Ollama model name
+        ollama_host: Ollama server URL
+        storage_dir: Directory where FAISS indices are stored
+        system_prompt: Custom system prompt to override default instruction
+        
+    Returns:
+        The RAG chain
+    """
+    vectorstore = get_stored_vectorstore(db_id, storage_dir=storage_dir)
+    return _build_chain_from_vectorstore(vectorstore, model, ollama_host, system_prompt=system_prompt)

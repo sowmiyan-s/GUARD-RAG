@@ -1019,9 +1019,9 @@ select.form-control {
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  overflow: hidden;
+  overflow-y: auto;
   transition: max-height .3s cubic-bezier(.4, 0, .2, 1), padding .3s ease;
-  max-height: 380px;
+  max-height: 450px;
   padding: .9rem 1.3rem;
 }
 
@@ -1029,6 +1029,7 @@ select.form-control {
   max-height: 0;
   padding-top: 0;
   padding-bottom: 0;
+  overflow: hidden;
 }
 
 .upload-section-header {
@@ -1956,6 +1957,20 @@ select.form-control {
   color: var(--accent);
 }
 
+.setup-wizard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .setup-wizard-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+}
+
 .wizard-step-card {
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -2251,5 +2266,194 @@ select.form-control {
   color: var(--accent);
   background: var(--accent-dim);
   transform: translateY(-1px);
+}
+
+/* Model Onboarding Guide Card */
+.model-guide-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  max-width: 480px;
+  width: 100%;
+  text-align: left;
+  margin-top: 1rem;
+}
+
+.guide-header {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.guide-desc {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.guide-steps ol {
+  padding-left: 1.2rem;
+  margin: 0;
+}
+
+.guide-steps li {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+}
+
+.code-copy-wrapper {
+  background: var(--bg-base);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+  margin-top: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent);
+  word-break: break-all;
+}
+
+/* ── Unified Upload Card ─────────────────────────────────────────── */
+.upload-unified-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  width: 100%;
+}
+
+.upload-unified-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 2rem;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .upload-unified-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.upload-left-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.upload-right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.panel-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.settings-safety-row {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1.25rem;
+  align-items: stretch;
+  flex: 1;
+}
+
+@media (max-width: 1024px) {
+  .settings-safety-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profiles-column {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.safety-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.safety-dashboard {
+  flex: 1;
+}
+
+/* ── Info Buttons reset ─────────────────────────────────────────── */
+.info-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  min-height: auto;
+  line-height: 1;
+  outline: none;
+  transition: color var(--transition);
+  vertical-align: middle;
+}
+
+.info-btn:hover {
+  color: var(--text-primary);
+}
+
+.info-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+/* Shared Session Banner styling */
+.shared-session-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px dashed rgba(16, 185, 129, 0.35);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  animation: slideIn 0.3s ease-out;
+}
+
+.shared-session-text {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.shared-session-text strong {
+  color: var(--success);
+}
+
+/* Share button styles */
+.btn-share {
+  transition: all var(--transition) !important;
+}
+
+.btn-share:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px rgba(16, 163, 127, 0.15);
 }
 

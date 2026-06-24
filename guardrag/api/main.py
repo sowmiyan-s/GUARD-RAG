@@ -167,6 +167,8 @@ class ChatRequest(BaseModel):
     # Frontend sends whatever the user has in the Endpoint URL box;
     # if blank the server default (SERVER_OLLAMA_HOST) is used.
     ollama_host: str = ""
+    custom_rules: Optional[list[str]] = []
+    system_prompt: Optional[str] = ""
 
     def resolved_host(self) -> str:
         return (self.ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
@@ -178,6 +180,7 @@ class LoadSessionRequest(BaseModel):
     db_id: str
     model: str = "gemma3:1b"
     ollama_host: str = ""
+    system_prompt: Optional[str] = ""
 
     def resolved_host(self) -> str:
         return (self.ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
@@ -307,27 +310,73 @@ async def suggest_questions(req: SuggestQuestionsRequest):
     if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
         
-    question = (
-        "Generate exactly 3 short, specific questions that a user might want to ask about this document context. "
-        "Format the output as a raw JSON list of strings, e.g., [\"question 1\", \"question 2\", \"question 3\"]. "
-        "Do not write anything else. Return only the JSON list."
-    )
+    db_id = session.get("db_id")
+    model = session.get("model", "gemma3:1b")
+    ollama_host = session.get("ollama_host", SERVER_OLLAMA_HOST)
     
+    if not db_id:
+        raise HTTPException(status_code=400, detail="Invalid session database ID.")
+        
     try:
-        result = await asyncio.to_thread(
-            session["rag_chain"].invoke, {"input": question, "chat_history": []}
+        from guardrag.rag.core import get_stored_vectorstore, _get_llm
+        
+        # 1. Retrieve the vectorstore
+        vectorstore = await asyncio.to_thread(get_stored_vectorstore, db_id)
+        
+        # 2. Get representative chunks
+        docs = await asyncio.to_thread(
+            vectorstore.similarity_search, 
+            "summary overview main topics highlights key findings timeline requirements", 
+            k=3
         )
-        if isinstance(result, dict) and "answer" in result:
-            answer = result["answer"]
-        elif isinstance(result, str):
-            answer = result
+        
+        if not docs:
+            # Fallback to first few chunks if similarity search returns nothing
+            if hasattr(vectorstore, "docstore") and hasattr(vectorstore.docstore, "_dict"):
+                docs = list(vectorstore.docstore._dict.values())[:3]
+                
+        if not docs:
+            raise ValueError("No documents/chunks found in vectorstore.")
+            
+        context_text = "\n\n".join([d.page_content for d in docs])
+        
+        # 3. Initialize the raw LLM
+        llm = _get_llm(model, ollama_host)
+        
+        # 4. Prompt the LLM directly
+        prompt = (
+            "You are a document analyzer. Read the following document excerpt and generate exactly 3 short, "
+            "highly specific questions that a user would want to ask about this specific document.\n\n"
+            f"Document Excerpt:\n{context_text}\n\n"
+            "Format your output as a raw JSON list of strings, containing only the 3 questions. E.g.,\n"
+            "[\"First question?\", \"Second question?\", \"Third question?\"]\n"
+            "Do not include any intro, explanation, markdown formatting (like ```json), or extra text. Output only the JSON list."
+        )
+        
+        response = await asyncio.to_thread(llm.invoke, prompt)
+        
+        if hasattr(response, "content"):
+            answer = response.content
         else:
-            answer = str(result)
+            answer = str(response)
             
         questions = parse_questions_from_response(answer)
+        
+        # Rehydrate question text if document was redacted
+        is_redacted = session.get("redact_pii", False)
+        if is_redacted:
+            mapping_path = FAISS_STORAGE / db_id / "mapping.json"
+            if mapping_path.exists():
+                try:
+                    mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
+                    questions = [rehydrate_text(q, mapping) for q in questions]
+                except Exception:
+                    pass
+                    
         return {"questions": questions}
+        
     except Exception as e:
-        print(f"Error generating suggestions: {e}")
+        print(f"Error generating realtime suggestions: {e}")
         return {
             "questions": [
                 "What is the main summary of this document?",
@@ -346,6 +395,7 @@ async def upload_documents(
     ollama_host: str = "",
     redact_pii: bool = False,
     manual_redactions: str = "",
+    system_prompt: str = "",
 ):
     # Use server-configured host if the client didn't supply one
     host = (ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
@@ -377,7 +427,7 @@ async def upload_documents(
 
         try:
             db_id, rag_chain = await asyncio.to_thread(
-                build_rag_chain, temp_paths, model, chunk_size, chunk_overlap, host, redact_pii=redact_pii, manual_redactions=manual_list
+                build_rag_chain, temp_paths, model, chunk_size, chunk_overlap, host, redact_pii=redact_pii, manual_redactions=manual_list, system_prompt=system_prompt
             )
         except Exception as e:
             import traceback
@@ -402,6 +452,9 @@ async def upload_documents(
             "ollama_host": host,
             "redact_pii": redact_pii,
             "manual_redactions": manual_list,
+            "system_prompt": system_prompt,
+            "sensitivity_level": "Internal",
+            "enable_guardrails": True,
         }
 
         await asyncio.to_thread(_register_faiss_entry, db_id, file_names, model, chunk_size, chunk_overlap, redact_pii, manual_list)
@@ -459,7 +512,7 @@ async def load_session(req: LoadSessionRequest):
         )
 
     try:
-        rag_chain = await asyncio.to_thread(load_stored_rag_chain, req.db_id, req.model, host)
+        rag_chain = await asyncio.to_thread(load_stored_rag_chain, req.db_id, req.model, host, system_prompt=req.system_prompt)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load index: {str(e)}") from e
 
@@ -477,6 +530,9 @@ async def load_session(req: LoadSessionRequest):
         "ollama_host": host,
         "redact_pii": info.get("redact_pii", False),
         "manual_redactions": info.get("manual_redactions", []),
+        "system_prompt": req.system_prompt,
+        "sensitivity_level": "Internal",
+        "enable_guardrails": True,
     }
 
     return {
@@ -508,22 +564,47 @@ async def delete_storage_entry(body: dict):
     return {"deleted": True, "db_id": db_id}
 
 
+@app.get("/api/sessions/info/{session_id}")
+async def get_session_info(session_id: str):
+    session = _sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found or has expired.")
+    return {
+        "db_id": session.get("db_id"),
+        "files": session.get("files", []),
+        "model": session.get("model", "gemma3:1b"),
+        "sensitivity_level": session.get("sensitivity_level", "Internal"),
+        "enable_guardrails": session.get("enable_guardrails", True),
+        "system_prompt": session.get("system_prompt", ""),
+        "ollama_host": session.get("ollama_host", ""),
+        "custom_rules": session.get("custom_rules", []),
+    }
+
+
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
     session = _sessions.get(req.session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found. Please upload documents first.")
 
-    # Dynamically switch model / host if they changed in the UI
+    session["sensitivity_level"] = req.sensitivity_level
+    session["enable_guardrails"] = req.enable_guardrails
+    if req.custom_rules:
+        session["custom_rules"] = req.custom_rules
+
+    # Dynamically switch model / host / system prompt if they changed in the UI
     requested_host = req.resolved_host()
-    if req.model != session.get("model") or requested_host != session.get("ollama_host"):
+    if (req.model != session.get("model") or 
+        requested_host != session.get("ollama_host") or 
+        req.system_prompt != session.get("system_prompt", "")):
         try:
             new_chain = await asyncio.to_thread(
-                load_stored_rag_chain, session["db_id"], req.model, requested_host
+                load_stored_rag_chain, session["db_id"], req.model, requested_host, system_prompt=req.system_prompt
             )
             session["rag_chain"] = new_chain
             session["model"] = req.model
             session["ollama_host"] = requested_host
+            session["system_prompt"] = req.system_prompt
         except Exception as e:
             raise HTTPException(
                 status_code=500,
@@ -531,7 +612,7 @@ async def chat(req: ChatRequest):
             ) from e
 
     # Input safety on the original question
-    blocked = check_input_safety(req.question, req.sensitivity_level, req.enable_guardrails)
+    blocked = check_input_safety(req.question, req.sensitivity_level, req.enable_guardrails, custom_rules=req.custom_rules)
     if blocked:
         add_audit_log("safety_alert", f"Input question blocked by {req.sensitivity_level} policy.", {"question": req.question})
         return {"answer": blocked, "blocked": True, "source": "input_guard", "citations": [], "latency_sec": 0.0}
@@ -594,7 +675,7 @@ async def chat(req: ChatRequest):
     rehydrated_answer = rehydrate_text(answer, mapping) if (is_redacted and mapping) else answer
 
     # Output safety check on rehydrated answer
-    blocked_out = check_output_safety(rehydrated_answer, req.sensitivity_level, req.enable_guardrails)
+    blocked_out = check_output_safety(rehydrated_answer, req.sensitivity_level, req.enable_guardrails, custom_rules=req.custom_rules)
     if blocked_out:
         answer = blocked_out
         session["messages"].append({"role": "user", "content": question})

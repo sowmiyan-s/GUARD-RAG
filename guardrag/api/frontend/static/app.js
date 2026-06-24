@@ -23,6 +23,9 @@ const state = {
   currentProfile: 'legal',
   rawPreviewText: '',
   redactedPreviewText: '',
+  isSharedSession: false,
+  sharedSystemPrompt: '',
+  sharedCustomRules: [],
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -323,6 +326,7 @@ document.addEventListener('keydown', e => {
     }
     if (confirmModal && confirmModal.style.display !== 'none') $('btnConfirmCancel').click();
     if (promptModal && promptModal.style.display !== 'none') $('btnPromptCancel').click();
+    if ($('customProfileModal') && $('customProfileModal').style.display !== 'none') $('btnCustomProfileCancel').click();
   }
 });
 
@@ -334,6 +338,12 @@ if (confirmModal) {
 if (promptModal) {
   promptModal.addEventListener('click', e => {
     if (e.target === promptModal) $('btnPromptCancel').click();
+  });
+}
+const cpModal = $('customProfileModal');
+if (cpModal) {
+  cpModal.addEventListener('click', e => {
+    if (e.target === cpModal) $('btnCustomProfileCancel').click();
   });
 }
 
@@ -497,6 +507,10 @@ async function refreshHealth() {
     if (railStartOllama) railStartOllama.style.display = 'none';
     if (startOllamaHint) startOllamaHint.style.display = 'none';
 
+    // Hide onboarding guide when Ollama is running to clean up UI
+    const modelGuideCard = document.querySelector('.model-guide-card');
+    if (modelGuideCard) modelGuideCard.style.display = 'none';
+
     // Update badge in header
     connectionBadge.textContent = isLocal ? 'OLLAMA: ONLINE (LOCAL)' : 'OLLAMA: CONNECTED (REMOTE)';
     connectionBadge.classList.add('active');
@@ -532,6 +546,10 @@ async function refreshHealth() {
         ? 'Ollama is offline. Click above to try starting it.'
         : 'Remote server unreachable. Check URL or tunnel.';
     }
+
+    // Show onboarding guide when Ollama is offline
+    const modelGuideCard = document.querySelector('.model-guide-card');
+    if (modelGuideCard) modelGuideCard.style.display = 'block';
 
     connectionBadge.textContent = 'OLLAMA: OFFLINE';
     connectionBadge.classList.remove('active');
@@ -665,50 +683,35 @@ function updateTrafficLightDashboard() {
 }
 
 const PROFILES = {
-  legal: {
-    chunkSize: 1500,
-    chunkOverlap: 300,
+  balanced: {
+    chunkSize: 1000,
+    chunkOverlap: 200,
     sensitivity: 'Internal',
     guardrails: true,
-    name: 'Standard Contract',
-    icon: '',
-    desc: 'Legal terms & clause analysis'
+    name: 'Balanced (Default)',
+    desc: 'Optimized for general reading & balanced safety.',
+    goal: 'You are GuardRAG, a professional AI document assistant. Answer the user\'s question using ONLY the provided context. If the context doesn\'t contain the answer, politely state that the information is missing from the uploaded documents. Maintain a helpful, concise, and accurate tone.',
+    rules: ''
   },
-  medical: {
+  strict: {
     chunkSize: 1000,
     chunkOverlap: 200,
     sensitivity: 'Restricted',
     guardrails: true,
-    name: 'Financial/Medical',
-    icon: '',
-    desc: 'Strict security table & HIPAA audit'
+    name: 'Strict Privacy',
+    desc: 'Strict compliance: blocks PII, medical & financial references.',
+    goal: 'You are GuardRAG, a highly secure AI assistant operating under strict confidentiality. Answer the user\'s question using ONLY the provided context. Do not mention any sensitive details, names, or addresses unless explicitly verified in the context. If you cannot answer using only the context, state that clearly.',
+    rules: 'ssn, password, api key, credit card, medical record'
   },
-  quick: {
+  fast: {
     chunkSize: 600,
     chunkOverlap: 100,
     sensitivity: 'Public',
     guardrails: true,
-    name: 'Quick Read',
-    icon: '',
-    desc: 'Fast summarizing for short documents'
-  },
-  basic: {
-    chunkSize: 800,
-    chunkOverlap: 150,
-    sensitivity: 'Public',
-    guardrails: true,
-    name: 'General / Basic',
-    icon: '',
-    desc: 'Optimized for basic reading & general queries'
-  },
-  it: {
-    chunkSize: 2000,
-    chunkOverlap: 400,
-    sensitivity: 'Internal',
-    guardrails: true,
-    name: 'IT / Technical',
-    icon: '',
-    desc: 'Large chunks optimized for code and technical docs'
+    name: 'Fast Summarizer',
+    desc: 'Fast summary for short documents.',
+    goal: 'You are GuardRAG, a quick summarization assistant. Provide direct, bulleted, and very concise summaries or answers based strictly on the provided context.',
+    rules: ''
   }
 };
 
@@ -774,7 +777,7 @@ async function deleteCustomProfile(key) {
   }
 
   if (state.currentProfile === key) {
-    selectProfile('legal');
+    selectProfile('balanced');
   } else {
     renderProfileButtons();
   }
@@ -903,6 +906,7 @@ async function loadStoredSession(col) {
   }
 
   try {
+    const activeProfile = PROFILES[state.currentProfile] || PROFILES.balanced;
     const data = await apiFetch('/api/sessions/load', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -910,6 +914,7 @@ async function loadStoredSession(col) {
         db_id: col.db_id,
         model: modelSelect.value,
         ollama_host: getOllamaEndpoint(),
+        system_prompt: activeProfile.goal || '',
       }),
     });
 
@@ -1001,9 +1006,7 @@ function addFiles(files) {
   valid.filter(f => !names.has(f.name)).forEach(f => state.selectedFiles.push(f));
   renderFileList();
   
-  if (state.selectedFiles.length > 0) {
-    step2Card.classList.remove('disabled');
-  }
+  // step2Card is always enabled now, no need to toggle disabled class
 }
 
 function translateError(error) {
@@ -1039,7 +1042,7 @@ btnReset.addEventListener('click', () => {
   state.selectedFiles = [];
   state.sessionId = null;
   state.currentDbId = null;
-  step2Card.classList.add('disabled');
+  // step2Card is always enabled now, no need to toggle disabled class
   renderFileList();
   setUploadStatus('');
   setUploadPanelOpen(true);
@@ -1066,6 +1069,7 @@ async function processDocuments() {
   btnReset.disabled = true;
   setUploadStatus('Embedding documents — please wait…', 'loading');
 
+  const activeProfile = PROFILES[state.currentProfile] || PROFILES.balanced;
   const form = new FormData();
   state.selectedFiles.forEach(f => form.append('files', f));
   form.append('model', modelSelect.value);
@@ -1073,6 +1077,7 @@ async function processDocuments() {
   form.append('chunk_overlap', chunkOverlap.value);
   form.append('ollama_host', getOllamaEndpoint());
   form.append('redact_pii', 'true');
+  form.append('system_prompt', activeProfile.goal || '');
 
   try {
     const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: form });
@@ -1116,26 +1121,26 @@ function showEmptyState() {
 }
 
 const MAGIC_PROMPTS = {
-  legal: [
-    { label: 'Risks', text: 'Summarize the top 3 risks in this contract.' },
-    { label: 'Deadlines', text: 'Extract all key deadlines and dates into a list.' },
-    { label: 'Hidden Fees', text: 'Are there any hidden fees or penalties mentioned?' }
+  balanced: [
+    { label: 'Key Info', text: 'What is the main subject of this document?' },
+    { label: 'Summary', text: 'Provide a concise overview of the key points.' },
+    { label: 'Timeline', text: 'Extract any dates or timeline details from the document.' }
   ],
-  medical: [
-    { label: 'Diagnosis', text: 'Summarize the diagnosis and treatment recommendations.' },
-    { label: 'Metrics', text: 'Extract key financial/medical numbers into a summary table.' },
-    { label: 'Action Plan', text: 'What are the key patient details and next follow-up steps?' }
+  strict: [
+    { label: 'Risks', text: 'Identify any potential legal or financial risks mentioned.' },
+    { label: 'Obligations', text: 'List the main duties or obligations of the parties.' },
+    { label: 'Data Audit', text: 'Identify any potential sensitive data references.' }
   ],
-  quick: [
-    { label: 'Summarize', text: 'Provide a concise bulleted summary of this document.' },
-    { label: 'Takeaways', text: 'What are the main takeaways from this text?' },
-    { label: 'Key Questions', text: 'Create a list of 3 questions to test comprehension of this content.' }
+  fast: [
+    { label: 'TL;DR', text: 'Give a 1-sentence TL;DR summary.' },
+    { label: 'Bullets', text: 'Summarize the document in 3 bullet points.' },
+    { label: 'Action Items', text: 'Are there any action items mentioned?' }
   ]
 };
 
 function renderMagicPrompts() {
-  const profile = state.currentProfile || 'legal';
-  const prompts = MAGIC_PROMPTS[profile] || MAGIC_PROMPTS.quick;
+  const profile = state.currentProfile || 'balanced';
+  const prompts = MAGIC_PROMPTS[profile] || MAGIC_PROMPTS.balanced;
   
   magicPrompts.innerHTML = '';
   prompts.forEach(p => {
@@ -1230,6 +1235,13 @@ async function sendMessage() {
   scrollToBottom();
 
   try {
+    const activeProfile = state.isSharedSession
+      ? { goal: state.sharedSystemPrompt || '', rules: (state.sharedCustomRules || []).join(', ') }
+      : (PROFILES[state.currentProfile] || PROFILES.balanced);
+    const rulesList = activeProfile.rules 
+      ? activeProfile.rules.split(',').map(s => s.trim()).filter(Boolean) 
+      : [];
+
     const data = await apiFetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1240,6 +1252,8 @@ async function sendMessage() {
         enable_guardrails: guardrailsToggle.checked,
         sensitivity_level: sensitivitySelect.value,
         ollama_host: getOllamaEndpoint(),
+        system_prompt: activeProfile.goal || '',
+        custom_rules: rulesList
       }),
     });
     typingIndicator.style.display = 'none';
@@ -1737,6 +1751,177 @@ function initAdvancedToggle() {
   }
 }
 
+function showCustomProfileModal() {
+  return new Promise((resolve) => {
+    const modal = $('customProfileModal');
+    const nameInput = $('customProfileName');
+    const goalInput = $('customProfileGoal');
+    const rulesInput = $('customProfileRules');
+    const sensSelect = $('customProfileSensitivity');
+    const guardSelect = $('customProfileGuardrails');
+    const sizeInput = $('customProfileChunkSize');
+    const overlapInput = $('customProfileChunkOverlap');
+    const saveBtn = $('btnCustomProfileSave');
+    const cancelBtn = $('btnCustomProfileCancel');
+    const closeBtn = $('btnCustomProfileClose');
+
+    // Populate with current settings
+    nameInput.value = '';
+    goalInput.value = '';
+    rulesInput.value = '';
+    sensSelect.value = sensitivitySelect.value;
+    guardSelect.value = guardrailsToggle.checked ? 'true' : 'false';
+    sizeInput.value = chunkSize.value;
+    overlapInput.value = chunkOverlap.value;
+
+    modal.style.display = 'flex';
+    setTimeout(() => nameInput.focus(), 50);
+
+    function cleanUp(result) {
+      modal.style.display = 'none';
+      saveBtn.removeEventListener('click', onSave);
+      cancelBtn.removeEventListener('click', onCancel);
+      closeBtn.removeEventListener('click', onCancel);
+      resolve(result);
+    }
+
+    function onSave() {
+      const name = nameInput.value.trim();
+      if (!name) {
+        toast('Profile name is required.', 'warn');
+        return;
+      }
+      cleanUp({
+        name,
+        goal: goalInput.value.trim(),
+        rules: rulesInput.value.trim(),
+        sensitivity: sensSelect.value,
+        guardrails: guardSelect.value === 'true',
+        chunkSize: parseInt(sizeInput.value, 10) || 1000,
+        chunkOverlap: parseInt(overlapInput.value, 10) || 200
+      });
+    }
+
+    function onCancel() {
+      cleanUp(null);
+    }
+
+    saveBtn.addEventListener('click', onSave);
+    cancelBtn.addEventListener('click', onCancel);
+    closeBtn.addEventListener('click', onCancel);
+  });
+}
+
+// ─── SHARE SESSION ────────────────────────────────────────────────────────────
+async function shareSession() {
+  if (!state.sessionId) {
+    toast('No active session to share.', 'warn');
+    return;
+  }
+  
+  const shareUrl = `${window.location.protocol}//${window.location.host}/?share=${state.sessionId}`;
+  
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(shareUrl);
+      toast('Share URL copied to clipboard!', 'success');
+    } else {
+      const textArea = document.createElement('textarea');
+      textArea.value = shareUrl;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      toast('Share URL copied to clipboard!', 'success');
+    }
+  } catch (err) {
+    console.error('Failed to copy share URL:', err);
+    await showCustomConfirm('Share Link', `Could not copy to clipboard automatically. Here is your share URL:\n\n${shareUrl}`, false);
+  }
+}
+
+async function checkSharedSession() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const shareSessionId = urlParams.get('share');
+  if (!shareSessionId) return;
+
+  try {
+    const sessionInfo = await apiFetch(`/api/sessions/info/${shareSessionId}`);
+    if (sessionInfo && sessionInfo.db_id) {
+      state.sessionId = shareSessionId;
+      state.currentDbId = sessionInfo.db_id;
+      state.activeDocName = sessionInfo.files.join(', ') || 'Shared Document';
+      state.isSharedSession = true;
+      state.sharedSystemPrompt = sessionInfo.system_prompt || '';
+      state.sharedCustomRules = sessionInfo.custom_rules || [];
+
+      // 1. Hide/disable the sidebar & hamburger
+      if (sidebar) sidebar.style.display = 'none';
+      if (sidebarOpen) sidebarOpen.style.display = 'none';
+      if (sidebarCollapseBtn) sidebarCollapseBtn.style.display = 'none';
+      if (sidebarExpandBtn) sidebarExpandBtn.style.display = 'none';
+      if (sidebarBackdrop) sidebarBackdrop.style.display = 'none';
+      
+      const mainWrapper = $('mainWrapper');
+      if (mainWrapper) {
+        mainWrapper.style.marginLeft = '0';
+        mainWrapper.style.width = '100%';
+      }
+
+      // 2. Hide upload panel and the toggle button
+      if (uploadSection) uploadSection.style.display = 'none';
+      if (uploadPanelToggle) uploadPanelToggle.style.display = 'none';
+      
+      // 3. Show shared session banner
+      const sharedBanner = $('sharedSessionBanner');
+      if (sharedBanner) sharedBanner.style.display = 'flex';
+
+      // Hide share button inside the banner since we are in guest mode
+      const shareBtn = $('btnShareSession');
+      if (shareBtn) shareBtn.style.display = 'none';
+
+      // 4. Set active model and safety settings from the session metadata
+      if (modelSelect) {
+        let modelExists = false;
+        for (let i = 0; i < modelSelect.options.length; i++) {
+          if (modelSelect.options[i].value === sessionInfo.model) {
+            modelExists = true;
+            break;
+          }
+        }
+        if (!modelExists) {
+          const opt = document.createElement('option');
+          opt.value = sessionInfo.model;
+          opt.textContent = sessionInfo.model;
+          modelSelect.appendChild(opt);
+        }
+        modelSelect.value = sessionInfo.model;
+      }
+      
+      if (guardrailsToggle) guardrailsToggle.checked = sessionInfo.enable_guardrails;
+      if (sensitivitySelect) sensitivitySelect.value = sessionInfo.sensitivity_level;
+      
+      updateSensitivityUI();
+
+      if (ollamaEndpointInput && sessionInfo.ollama_host) {
+        ollamaEndpointInput.value = sessionInfo.ollama_host;
+      }
+
+      // Recheck health using the new endpoint
+      await refreshHealth();
+
+      // 5. Transition to chat ready
+      showChatReady();
+      toast('Connected to shared session!', 'success');
+    }
+  } catch (e) {
+    console.error("Failed to load shared session:", e);
+    toast('The shared session does not exist or has expired.', 'error', 8000);
+  }
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 (async function init() {
   state.sidebarCollapsed = false;
@@ -1746,24 +1931,26 @@ function initAdvancedToggle() {
   initAdvancedToggle();
   initInfoTooltips();
 
+  const btnShareSession = $('btnShareSession');
+  if (btnShareSession) {
+    btnShareSession.addEventListener('click', shareSession);
+  }
+
   if (btnSaveCustomProfile) {
     btnSaveCustomProfile.addEventListener('click', async () => {
-      const name = await showCustomPrompt(
-        'Save Custom Profile',
-        'Enter a name for your custom configuration profile:',
-        'My Custom Profile'
-      );
-      if (!name) return;
+      const data = await showCustomProfileModal();
+      if (!data) return;
 
       const key = 'custom_' + Date.now();
       const newProfile = {
-        chunkSize: parseInt(chunkSize.value, 10) || 1000,
-        chunkOverlap: parseInt(chunkOverlap.value, 10) || 200,
-        sensitivity: sensitivitySelect.value,
-        guardrails: guardrailsToggle.checked,
-        name: name,
-        icon: '',
-        desc: `Custom preset (Chunk: ${chunkSize.value}, Safety: ${sensitivitySelect.value})`
+        chunkSize: data.chunkSize,
+        chunkOverlap: data.chunkOverlap,
+        sensitivity: data.sensitivity,
+        guardrails: data.guardrails,
+        name: data.name,
+        desc: data.rules ? `Goal prompt + custom rules: ${data.rules}` : `Goal prompt only`,
+        goal: data.goal,
+        rules: data.rules
       };
 
       PROFILES[key] = newProfile;
@@ -1777,7 +1964,7 @@ function initAdvancedToggle() {
       }
 
       selectProfile(key);
-      toast(`Profile "${name}" saved!`, 'success');
+      toast(`Profile "${data.name}" saved!`, 'success');
     });
   }
 
@@ -1785,12 +1972,9 @@ function initAdvancedToggle() {
   loadCustomProfiles();
 
   // Set default profile selection (also triggers renderProfileButtons())
-  selectProfile('legal');
+  selectProfile('balanced');
 
-  // Bind change event to toggle redact names toggle
-  if (redactNamesToggle) {
-    redactNamesToggle.addEventListener('change', () => {});
-  }
+  // Bind change event to toggle redact names toggle (removed redactNamesToggle ReferenceError)
 
   // Vector DB settings event bindings
   if ($('vectorStoreType')) {
@@ -1849,9 +2033,14 @@ function initAdvancedToggle() {
     console.warn("Failed to load storage pool:", e);
   }
 
+  // Check if this page load is for a shared session
+  await checkSharedSession();
+
   // 3. Poll health every 12 s
   setInterval(refreshHealth, 12_000);
   
   // 4. Poll audit logs every 5 s
-  setInterval(refreshAuditLogs, 5_000);
+  if (!state.isSharedSession) {
+    setInterval(refreshAuditLogs, 5_000);
+  }
 })();

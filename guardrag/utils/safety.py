@@ -112,7 +112,8 @@ SENSITIVITY_PROFILES = DynamicSensitivityProfiles()
 def check_input_safety(
     user_input: str,
     sensitivity: str,
-    enabled: bool = True
+    enabled: bool = True,
+    custom_rules: list[str] = None
 ) -> Optional[str]:
     """
     Check user input against jailbreak and sensitivity-level patterns.
@@ -121,6 +122,7 @@ def check_input_safety(
         user_input: The user's input text
         sensitivity: Sensitivity level (Public, Internal, Confidential, Restricted)
         enabled: Whether to enforce guardrails
+        custom_rules: List of custom blocked patterns
         
     Returns:
         Error message if blocked, None otherwise
@@ -135,6 +137,12 @@ def check_input_safety(
         if pat in lower:
             return "This request has been blocked. Prompt injection and instruction-override attempts are not permitted."
     
+    # Check custom safety rules
+    if custom_rules:
+        for pat in custom_rules:
+            if pat.strip() and pat.strip().lower() in lower:
+                return f"This request has been blocked under the custom safety policy rules: '{pat}'."
+    
     # Check sensitivity-level patterns
     profile = SENSITIVITY_PROFILES.get(sensitivity, SENSITIVITY_PROFILES["Internal"])
     for pat in profile["input_patterns"]:
@@ -147,7 +155,8 @@ def check_input_safety(
 def check_output_safety(
     response: str,
     sensitivity: str,
-    enabled: bool = True
+    enabled: bool = True,
+    custom_rules: list[str] = None
 ) -> Optional[str]:
     """
     Check LLM output against sensitivity-level patterns.
@@ -156,6 +165,7 @@ def check_output_safety(
         response: The LLM's response text
         sensitivity: Sensitivity level (Public, Internal, Confidential, Restricted)
         enabled: Whether to enforce guardrails
+        custom_rules: List of custom blocked patterns
         
     Returns:
         Redaction message if blocked, None otherwise
@@ -164,6 +174,13 @@ def check_output_safety(
         return None
     
     lower = response.lower()
+    
+    # Check custom safety rules
+    if custom_rules:
+        for pat in custom_rules:
+            if pat.strip() and pat.strip().lower() in lower:
+                return f"[REDACTED — Output blocked by custom safety policy rules: '{pat}']"
+                
     profile = SENSITIVITY_PROFILES.get(sensitivity, SENSITIVITY_PROFILES["Internal"])
     
     for pat in profile["output_patterns"]:
