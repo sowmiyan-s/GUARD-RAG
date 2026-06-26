@@ -7,7 +7,7 @@ name = "guard-rag"
 version = "1.2.6"
 description = "Privacy-first, fully offline AI document assistant secured by tiered safety guardrails"
 readme = {file = "README.md", content-type = "text/markdown"}
-license = {file = "LICENSE"}
+license = "MIT"
 authors = [
     {name = "Sowmiyan S", email = "sowmisowmiyan58@gmail.com"},
 ]
@@ -47,7 +47,6 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",

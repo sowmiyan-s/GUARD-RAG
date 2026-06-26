@@ -22,7 +22,6 @@ setup(
     long_description_content_type="text/markdown",
     author="Sowmiyan S",
     author_email="sowmisowmiyan58@gmail.com",
-    license="MIT",
     url="https://github.com/sowmiyan-s/GUARD-RAG",
     project_urls={
         "Documentation": "https://github.com/sowmiyan-s/GUARD-RAG#readme",
