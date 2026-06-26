@@ -101,9 +101,25 @@ def display_banner(mode="CLI", version="1.2.1"):
         ollama_active = is_ollama_running("http://localhost:11434")
         ollama_status = "[bold white]ONLINE[/bold white]" if ollama_active else "[dim white]OFFLINE[/dim white]"
         
+        # Get LAN IP to print sharing URL
+        import socket
+        def _get_local_ip():
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(("8.8.8.8", 80))
+                ip = s.getsockname()[0]
+                s.close()
+                return ip
+            except Exception:
+                return "127.0.0.1"
+        
+        local_ip = _get_local_ip()
+        
         table = Table(box=None, show_header=False, padding=(0, 2))
         table.add_row("STATUS:", "ENGINES READY")
-        table.add_row("ACCESS:", "[white underline]http://127.0.0.1:8000[/white underline]")
+        table.add_row("ACCESS (Local):", "[white underline]http://127.0.0.1:8000[/white underline]")
+        if local_ip != "127.0.0.1":
+            table.add_row("ACCESS (LAN):", f"[white underline]http://{local_ip}:8000[/white underline]")
         table.add_row("OLLAMA:", ollama_status)
         console.print(Align.center(table))
     
@@ -140,7 +156,7 @@ def run_web_ui():
     threading.Thread(target=open_browser, daemon=True).start()
     # Reduced log level to hide unwanted server dump info
     from guardrag.api.main import app
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
     sys.exit(0)
 
 

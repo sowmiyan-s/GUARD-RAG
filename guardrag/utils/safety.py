@@ -109,6 +109,23 @@ class DynamicSensitivityProfiles(dict):
 SENSITIVITY_PROFILES = DynamicSensitivityProfiles()
 
 
+def _matches_pattern(text: str, pattern: str) -> bool:
+    """Helper to check if a pattern matches the text with word boundaries if it's a single word."""
+    import re
+    pattern_clean = pattern.strip().lower()
+    text_clean = text.lower()
+    if not pattern_clean:
+        return False
+    
+    # If the pattern is a single alphabetic word, check with word boundaries and optional plural 's'
+    if re.match(r'^[a-z]+$', pattern_clean):
+        regex = re.compile(r'\b' + re.escape(pattern_clean) + r's?\b')
+        return bool(regex.search(text_clean))
+    else:
+        # Fallback to substring matching for phrases or patterns with symbols
+        return pattern_clean in text_clean
+
+
 def check_input_safety(
     user_input: str,
     sensitivity: str,
@@ -140,13 +157,13 @@ def check_input_safety(
     # Check custom safety rules
     if custom_rules:
         for pat in custom_rules:
-            if pat.strip() and pat.strip().lower() in lower:
+            if _matches_pattern(user_input, pat):
                 return f"This request has been blocked under the custom safety policy rules: '{pat}'."
     
     # Check sensitivity-level patterns
     profile = SENSITIVITY_PROFILES.get(sensitivity, SENSITIVITY_PROFILES["Internal"])
     for pat in profile["input_patterns"]:
-        if pat in lower:
+        if _matches_pattern(user_input, pat):
             return f"This request has been blocked under the active **{sensitivity}** data sensitivity policy."
     
     return None
@@ -173,18 +190,16 @@ def check_output_safety(
     if not enabled:
         return None
     
-    lower = response.lower()
-    
     # Check custom safety rules
     if custom_rules:
         for pat in custom_rules:
-            if pat.strip() and pat.strip().lower() in lower:
+            if _matches_pattern(response, pat):
                 return f"[REDACTED — Output blocked by custom safety policy rules: '{pat}']"
                 
     profile = SENSITIVITY_PROFILES.get(sensitivity, SENSITIVITY_PROFILES["Internal"])
     
     for pat in profile["output_patterns"]:
-        if pat in lower:
+        if _matches_pattern(response, pat):
             return f"[REDACTED — Output blocked by {sensitivity} data sensitivity policy.]"
     
     return None

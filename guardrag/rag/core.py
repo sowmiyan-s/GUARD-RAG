@@ -160,7 +160,10 @@ def build_rag_chain(
                     continue
                 
                 print(f"  {os.path.basename(fp)}")
-                docs.extend(loader.load())
+                loaded_docs = loader.load()
+                for d in loaded_docs:
+                    d.metadata["source"] = os.path.basename(fp)
+                docs.extend(loaded_docs)
             except Exception as e:
                 print(f"  Error loading {os.path.basename(fp)}: {e}")
                 # Re-raise to be caught by the outer build_rag_chain caller if critical
@@ -257,9 +260,65 @@ def _get_llm(model: str, ollama_host: str):
         )
 
 
+class GuardRAGChain:
+    """A custom LangChain-compatible RAG chain wrapper that optimizes retrieval.
+    It bypasses the query reformulation step when the chat history is empty,
+    which saves a slow LLM call and prevents the model from distorting the initial question.
+    """
+    def __init__(self, history_retriever, qa_chain, retriever):
+        self.history_retriever = history_retriever
+        self.qa_chain = qa_chain
+        self.retriever = retriever
+
+    def invoke(self, inputs: dict) -> dict:
+        input_query = inputs["input"]
+        chat_history = inputs.get("chat_history", [])
+        
+        if not chat_history:
+            # Bypass history-aware retrieval entirely on empty history
+            docs = self.retriever.invoke(input_query)
+            res = self.qa_chain.invoke({
+                "input": input_query, 
+                "chat_history": chat_history, 
+                "context": docs
+            })
+            answer = res if isinstance(res, str) else res.get("answer", str(res))
+            return {
+                "input": input_query, 
+                "chat_history": chat_history, 
+                "context": docs, 
+                "answer": answer
+            }
+        else:
+            # Run normal history-aware retrieval
+            docs = self.history_retriever.invoke({
+                "input": input_query, 
+                "chat_history": chat_history
+            })
+            res = self.qa_chain.invoke({
+                "input": input_query, 
+                "chat_history": chat_history, 
+                "context": docs
+            })
+            answer = res if isinstance(res, str) else res.get("answer", str(res))
+            return {
+                "input": input_query, 
+                "chat_history": chat_history, 
+                "context": docs, 
+                "answer": answer
+            }
+
+
 def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str, system_prompt: str = None):
     """Build a LangChain RAG chain from a FAISS vectorstore."""
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+    # Adjust context size (k) based on whether we are using a local or cloud LLM
+    # to avoid context window overflow on small local models.
+    host_lower = ollama_host.lower()
+    is_cloud = any(x in host_lower for x in ["api.openai.com", "api.groq.com", "openrouter.ai", "api.anthropic.com", "api.cohere.ai"]) or \
+               any(x in model.lower() for x in ["gpt-", "claude-", "gemini-", "command-r", "meta-llama"])
+    
+    k = 8 if is_cloud else 4
+    retriever = vectorstore.as_retriever(search_kwargs={"k": k})
     
     llm = _get_llm(model, ollama_host)
     
@@ -274,13 +333,17 @@ def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str, sys
         ("human", "{input}"),
     ])
     history_retriever = create_history_aware_retriever(llm, retriever, ctx_q_prompt)
-    
+    from langchain_core.prompts import PromptTemplate
+
     if not system_prompt:
         system_prompt = (
-            "You are GuardRAG, a professional AI document assistant. "
-            "Answer the user's question using ONLY the provided context. "
-            "If the context doesn't contain the answer, politely state that the information is missing from the uploaded documents. "
-            "Maintain a helpful, concise, and accurate tone."
+            "You are GuardRAG, a professional and extremely precise AI document assistant.\n"
+            "Your task is to answer the user's query using ONLY the provided document context below.\n"
+            "Strictly follow these rules:\n"
+            "1. Ground your answer solely in the provided context chunks. Do NOT assume, extrapolate, or bring in outside knowledge.\n"
+            "2. If the context does not contain the answer, or if the retrieved information is not relevant to the query, state clearly and politely that the information is missing from the uploaded documents.\n"
+            "3. If different documents or chunks provide contradictory information, point out the discrepancy with their source names.\n"
+            "4. Keep your response clear, factual, and concise."
         )
 
     # Q&A chain
@@ -289,9 +352,14 @@ def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str, sys
         MessagesPlaceholder("chat_history"),
         ("human", "{input}"),
     ])
-    qa_chain = create_stuff_documents_chain(llm, qa_prompt)
     
-    return create_retrieval_chain(history_retriever, qa_chain)
+    document_prompt = PromptTemplate(
+        input_variables=["page_content", "source"],
+        template="[Source Document: {source}]\n{page_content}"
+    )
+    qa_chain = create_stuff_documents_chain(llm, qa_prompt, document_prompt=document_prompt)
+    
+    return GuardRAGChain(history_retriever, qa_chain, retriever)
 
 
 def get_stored_vectorstore(db_id: str, storage_dir: str = ".guardrag_storage"):

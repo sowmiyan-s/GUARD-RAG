@@ -15,7 +15,63 @@
     href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <link rel="stylesheet" href="static/style.css?v=1.2.7" />
+  <link rel="stylesheet" href="static/style.css?v=1.3.1" />
+  <style>
+    /* In-document fallback for floating tooltip to prevent layout distortion (e.g. from browser CSS cache) */
+    .info-floating-tooltip {
+      position: fixed !important;
+      display: none;
+      z-index: 10000 !important;
+      background: rgba(20, 20, 25, 0.96) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-radius: 8px !important;
+      padding: 12px 16px !important;
+      max-width: 320px !important;
+      color: #ececf1 !important;
+      font-family: inherit !important;
+      font-size: 0.82rem !important;
+      line-height: 1.45 !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+      backdrop-filter: blur(8px) !important;
+      pointer-events: none !important;
+      transition: opacity 0.2s ease, transform 0.2s ease !important;
+      box-sizing: border-box !important;
+    }
+    .info-floating-tooltip.visible {
+      opacity: 1 !important;
+    }
+    .info-tooltip-title {
+      font-weight: 700 !important;
+      font-size: 0.92rem !important;
+      margin-bottom: 6px !important;
+      color: #3b82f6 !important;
+    }
+    .info-tooltip-desc {
+      margin-bottom: 8px !important;
+      color: #b4b4b8 !important;
+    }
+    .info-tooltip-why, .info-tooltip-section {
+      margin-top: 8px !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+      padding-top: 6px !important;
+    }
+    .info-tooltip-why strong, .info-tooltip-section strong {
+      display: block !important;
+      font-size: 0.72rem !important;
+      text-transform: uppercase !important;
+      color: #9a9a9a !important;
+      letter-spacing: 0.05em !important;
+      margin-bottom: 2px !important;
+    }
+    .info-tooltip-section code {
+      background: rgba(255, 255, 255, 0.05) !important;
+      padding: 2px 4px !important;
+      border-radius: 4px !important;
+      font-family: monospace !important;
+      font-size: 0.78rem !important;
+      color: #38bdf8 !important;
+    }
+  </style>
 </head>
 
 <body>
@@ -346,8 +402,12 @@
         </svg>
       </button>
 
-      <div class="header-text-wrap">
-        <h1 class="header-title">GuardRAG</h1>
+      <div class="header-text-wrap" style="display:flex; align-items:center; gap:1.25rem;">
+        <h1 class="header-title" style="margin:0;">GuardRAG</h1>
+        <div id="viewTabs" class="view-tabs" style="display:none;" role="tablist">
+          <button id="tabNewChat" class="tab-btn active" role="tab" aria-selected="true" type="button">New Chat</button>
+          <button id="tabActiveChat" class="tab-btn" role="tab" aria-selected="false" type="button">Chat</button>
+        </div>
       </div>
 
       <div class="header-right">
@@ -365,8 +425,9 @@
       </div>
     </header>
 
-    <!-- UPLOAD SECTION (collapsible) -->
-    <section class="upload-section" id="uploadSection" aria-label="Document upload">
+    <div class="main-content-scrollable" id="mainContentScrollable">
+      <!-- UPLOAD SECTION (collapsible) -->
+      <section class="upload-section" id="uploadSection" aria-label="Document upload">
 
       <div class="upload-section-header">
         <span class="section-label" style="margin:0; border:0;">Document Upload</span>
@@ -552,6 +613,8 @@
       <div class="typing-dot"></div>
       <span class="typing-text">Processing…</span>
     </div>
+
+    </div><!-- /main-content-scrollable -->
 
     <!-- INPUT BAR -->
     <div class="input-bar-wrapper" id="inputBarWrapper" style="display:none;">
@@ -799,9 +862,9 @@
   </div>
 
   <!-- Floating Help Tooltip Dialog -->
-  <div id="infoFloatingTooltip" class="info-floating-tooltip" style="display:none;" aria-hidden="true"></div>
+  <div id="infoFloatingTooltip" class="info-floating-tooltip" style="display: none; position: fixed !important; z-index: 10000 !important; pointer-events: none !important; box-sizing: border-box !important;" aria-hidden="true"></div>
 
-  <script src="static/app.js?v=1.2.7"></script>
+  <script src="static/app.js?v=1.3.1"></script>
 </body>
 
 </html>

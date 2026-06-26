@@ -26,6 +26,7 @@ const state = {
   isSharedSession: false,
   sharedSystemPrompt: '',
   sharedCustomRules: [],
+  activeTab: 'new-chat',
 };
 
 // ─── DOM refs ─────────────────────────────────────────────────────────────────
@@ -1108,6 +1109,10 @@ async function processDocuments() {
 
 // ─── CHAT STATE TRANSITIONS ───────────────────────────────────────────────────
 function showEmptyState() {
+  state.activeTab = 'new-chat';
+  const tabs = $('viewTabs');
+  if (tabs) tabs.style.display = 'none';
+  
   emptyState.style.display = '';
   chatMessages.style.display = 'none';
   readyBanner.style.display = 'none';
@@ -1160,18 +1165,48 @@ function renderMagicPrompts() {
 }
 
 function showChatReady() {
-  emptyState.style.display = 'none';
-  chatMessages.style.display = 'flex';
-  readyBanner.style.display = 'flex';
-  activeDocBanner.style.display = 'flex';
-  activeDocName.textContent = state.activeDocName;
-  inputBarWrapper.style.display = 'block';
-  chatInput.disabled = false;
-  btnSend.disabled = false;
+  state.activeTab = 'chat';
+  const tabs = $('viewTabs');
+  if (tabs) tabs.style.display = 'inline-flex';
+  updateTabUI();
   
   fetchDocSuggestions();
-  
   requestAnimationFrame(() => chatInput.focus());
+}
+
+function updateTabUI() {
+  const tabNew = $('tabNewChat');
+  const tabActive = $('tabActiveChat');
+  
+  if (state.activeTab === 'chat') {
+    tabActive.classList.add('active');
+    tabNew.classList.remove('active');
+    
+    emptyState.style.display = 'none';
+    chatMessages.style.display = 'flex';
+    activeDocBanner.style.display = 'flex';
+    inputBarWrapper.style.display = 'block';
+    
+    // Collapse upload section when chatting
+    uploadSection.classList.add('collapsed');
+    if (uploadToggleIcon) {
+      uploadToggleIcon.style.transform = 'rotate(180deg)';
+    }
+  } else {
+    tabNew.classList.add('active');
+    tabActive.classList.remove('active');
+    
+    emptyState.style.display = '';
+    chatMessages.style.display = 'none';
+    activeDocBanner.style.display = 'none';
+    inputBarWrapper.style.display = 'none';
+    
+    // Expand upload section when starting a new chat
+    uploadSection.classList.remove('collapsed');
+    if (uploadToggleIcon) {
+      uploadToggleIcon.style.transform = 'rotate(0deg)';
+    }
+  }
 }
 
 // ─── CLEAR CONVERSATION ───────────────────────────────────────────────────────
@@ -1327,7 +1362,8 @@ function escapeHtml(str) {
 
 function scrollToBottom() {
   requestAnimationFrame(() => {
-    if (chatSection) chatSection.scrollTop = chatSection.scrollHeight;
+    const scrollContainer = $('mainContentScrollable');
+    if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
   });
 }
 
@@ -1719,8 +1755,8 @@ function initInfoTooltips() {
         left = window.innerWidth - tooltipRect.width - 8;
       }
 
-      tooltipEl.style.top = `${top + window.scrollY}px`;
-      tooltipEl.style.left = `${left + window.scrollX}px`;
+      tooltipEl.style.top = `${top}px`;
+      tooltipEl.style.left = `${left}px`;
     }
 
     function hideTooltip() {
@@ -1930,6 +1966,20 @@ async function checkSharedSession() {
   // 1. Bind static UI elements and event listeners (run immediately, non-blocking)
   initAdvancedToggle();
   initInfoTooltips();
+
+  const tabNew = $('tabNewChat');
+  const tabActive = $('tabActiveChat');
+  if (tabNew && tabActive) {
+    tabNew.addEventListener('click', () => {
+      state.activeTab = 'new-chat';
+      updateTabUI();
+    });
+    tabActive.addEventListener('click', () => {
+      state.activeTab = 'chat';
+      updateTabUI();
+      scrollToBottom();
+    });
+  }
 
   const btnShareSession = $('btnShareSession');
   if (btnShareSession) {
