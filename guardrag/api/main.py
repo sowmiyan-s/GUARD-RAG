@@ -101,10 +101,16 @@ from guardrag.utils.safety import (
 # ─────────────────────────────────────────────────────────────────────────────
 # App setup
 # ─────────────────────────────────────────────────────────────────────────────
+try:
+    import guardrag as _guardrag_pkg
+    _API_VERSION = _guardrag_pkg.__version__
+except Exception:
+    _API_VERSION = "1.2.6"
+
 app = FastAPI(
     title="Guardrails Local RAG Bot",
     description="Privacy-first, fully offline AI document assistant secured by tiered safety guardrails.",
-    version="1.2.1",
+    version=_API_VERSION,
 )
 
 app.add_middleware(

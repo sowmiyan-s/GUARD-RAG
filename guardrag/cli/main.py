@@ -70,8 +70,14 @@ except (ImportError, OSError) as e:
     # Re-raise if it's something else
     raise e
 
-def display_banner(mode="CLI", version="1.2.1"):
+def display_banner(mode="CLI", version=None):
     """Display a unified, premium centered banner for GuardRAG."""
+    if version is None:
+        try:
+            import guardrag
+            version = guardrag.__version__
+        except Exception:
+            version = "1.2.6"
     # Big Project Name
     title = Text("GUARD - RAG", style="bold white")
     # Small Description

@@ -13,7 +13,7 @@ Currently support is only provided for the latest version of GuardRAG.
 
 We take the security of GuardRAG seriously. If you discover a security vulnerability, please do NOT open a public issue. Instead, please report it privately.
 
-To report a vulnerability, please email **sowmiyan.s-dev@example.com** with a detailed description of the issue, including steps to reproduce.
+To report a vulnerability, please email **sowmiyan.btech.ai@gmail.com** with a detailed description of the issue, including steps to reproduce.
 
 ### What to include in your report:
 - A clear description of the vulnerability.
