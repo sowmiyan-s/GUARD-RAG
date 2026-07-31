@@ -156,9 +156,45 @@ def _register_faiss_entry(db_id: str, file_names: list, model: str, chunk_size: 
     _save_faiss_meta(meta)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# In-memory session store (single-user; extend with Redis for multi-user)
+# Persistent session store (SQLite) and LRU Cache for RAG chains
 # ─────────────────────────────────────────────────────────────────────────────
-_sessions: dict = {}   # session_id → { rag_chain, messages, settings }
+from guardrag.api import db
+from collections import OrderedDict
+
+class LRUChainCache:
+    def __init__(self, capacity: int):
+        self.cache = OrderedDict()
+        self.capacity = capacity
+    def get(self, key):
+        if key not in self.cache:
+            return None
+        self.cache.move_to_end(key)
+        return self.cache[key]
+    def put(self, key, value):
+        self.cache[key] = value
+        self.cache.move_to_end(key)
+        if len(self.cache) > self.capacity:
+            self.cache.popitem(last=False)
+            
+_rag_chains = LRUChainCache(capacity=5)
+
+def _update_db_session(session: dict):
+    db.save_session(
+        session_id=session["session_id"],
+        db_id=session["db_id"],
+        model=session["model"],
+        files=session["files"],
+        chunk_size=session["chunk_size"],
+        redact_pii=session["redact_pii"],
+        system_prompt=session.get("system_prompt", ""),
+        sensitivity_level=session.get("sensitivity_level", "Internal"),
+        enable_guardrails=session.get("enable_guardrails", True),
+        temperature=session.get("temperature", 0.0),
+        chunk_overlap=session.get("chunk_overlap", 200),
+        custom_rules=session.get("custom_rules", []),
+        messages=session.get("messages", [])
+    )
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -175,9 +211,17 @@ class ChatRequest(BaseModel):
     ollama_host: str = ""
     custom_rules: Optional[list[str]] = []
     system_prompt: Optional[str] = ""
+    temperature: float = 0.0
 
     def resolved_host(self) -> str:
         return (self.ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
+
+
+class ShareGenerateRequest(BaseModel):
+    session_id: str
+    show_history: bool = False
+    read_only: bool = False
+    sync: bool = False
 
 class ClearRequest(BaseModel):
     session_id: str
@@ -187,6 +231,7 @@ class LoadSessionRequest(BaseModel):
     model: str = "gemma3:1b"
     ollama_host: str = ""
     system_prompt: Optional[str] = ""
+    temperature: float = 0.0
 
     def resolved_host(self) -> str:
         return (self.ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
@@ -312,7 +357,7 @@ def parse_questions_from_response(text: str) -> list[str]:
 
 @app.post("/api/suggest_questions")
 async def suggest_questions(req: SuggestQuestionsRequest):
-    session = _sessions.get(req.session_id)
+    session = db.get_session(req.session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
         
@@ -402,6 +447,7 @@ async def upload_documents(
     redact_pii: bool = False,
     manual_redactions: str = "",
     system_prompt: str = "",
+    temperature: float = 0.0,
 ):
     # Use server-configured host if the client didn't supply one
     host = (ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
@@ -433,7 +479,7 @@ async def upload_documents(
 
         try:
             db_id, rag_chain = await asyncio.to_thread(
-                build_rag_chain, temp_paths, model, chunk_size, chunk_overlap, host, redact_pii=redact_pii, manual_redactions=manual_list, system_prompt=system_prompt
+                build_rag_chain, temp_paths, model, chunk_size, chunk_overlap, host, redact_pii=redact_pii, manual_redactions=manual_list, system_prompt=system_prompt, temperature=temperature
             )
         except Exception as e:
             import traceback
@@ -447,21 +493,23 @@ async def upload_documents(
             ("|".join(sorted(file_names)) + model + str(chunk_size) + str(chunk_overlap) + str(redact_pii) + manual_redactions).encode()
         ).hexdigest()[:16]
 
-        _sessions[h] = {
-            "rag_chain": rag_chain,
-            "messages": [],
-            "model": model,
-            "chunk_size": chunk_size,
-            "chunk_overlap": chunk_overlap,
-            "files": file_names,
-            "db_id": db_id,
-            "ollama_host": host,
-            "redact_pii": redact_pii,
-            "manual_redactions": manual_list,
-            "system_prompt": system_prompt,
-            "sensitivity_level": "Internal",
-            "enable_guardrails": True,
-        }
+        _rag_chains.put(h, rag_chain)
+        
+        db.save_session(
+            session_id=h,
+            db_id=db_id,
+            model=model,
+            files=file_names,
+            chunk_size=chunk_size,
+            redact_pii=redact_pii,
+            system_prompt=system_prompt,
+            sensitivity_level="Internal",
+            enable_guardrails=True,
+            temperature=temperature,
+            chunk_overlap=chunk_overlap,
+            custom_rules=manual_list,
+            messages=[]
+        )
 
         await asyncio.to_thread(_register_faiss_entry, db_id, file_names, model, chunk_size, chunk_overlap, redact_pii, manual_list)
         add_audit_log("upload", f"Indexed {len(files)} file(s) into database {db_id}", {"model": model, "chunk_size": chunk_size, "redact_pii": redact_pii})
@@ -518,28 +566,30 @@ async def load_session(req: LoadSessionRequest):
         )
 
     try:
-        rag_chain = await asyncio.to_thread(load_stored_rag_chain, req.db_id, req.model, host, system_prompt=req.system_prompt)
+        rag_chain = await asyncio.to_thread(load_stored_rag_chain, req.db_id, req.model, host, system_prompt=req.system_prompt, temperature=req.temperature)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load index: {str(e)}") from e
 
     info = meta[req.db_id]
     h = hashlib.md5((req.db_id + req.model + host).encode()).hexdigest()[:16]
 
-    _sessions[h] = {
-        "rag_chain": rag_chain,
-        "messages": [],
-        "model": req.model,
-        "chunk_size": info.get("chunk_size", 1000),
-        "chunk_overlap": info.get("chunk_overlap", 200),
-        "files": info.get("files", []),
-        "db_id": req.db_id,
-        "ollama_host": host,
-        "redact_pii": info.get("redact_pii", False),
-        "manual_redactions": info.get("manual_redactions", []),
-        "system_prompt": req.system_prompt,
-        "sensitivity_level": "Internal",
-        "enable_guardrails": True,
-    }
+    _rag_chains.put(h, rag_chain)
+
+    db.save_session(
+        session_id=h,
+        db_id=req.db_id,
+        model=req.model,
+        files=info.get("files", []),
+        chunk_size=info.get("chunk_size", 1000),
+        redact_pii=info.get("redact_pii", False),
+        system_prompt=req.system_prompt,
+        sensitivity_level="Internal",
+        enable_guardrails=True,
+        temperature=req.temperature,
+        chunk_overlap=info.get("chunk_overlap", 200),
+        custom_rules=info.get("manual_redactions", []),
+        messages=[]
+    )
 
     return {
         "session_id": h,
@@ -572,7 +622,7 @@ async def delete_storage_entry(body: dict):
 
 @app.get("/api/sessions/info/{session_id}")
 async def get_session_info(session_id: str):
-    session = _sessions.get(session_id)
+    session = db.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found or has expired.")
     return {
@@ -589,32 +639,39 @@ async def get_session_info(session_id: str):
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
-    session = _sessions.get(req.session_id)
+    session = db.get_session(req.session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found. Please upload documents first.")
+
+    if session.get("read_only", False):
+        raise HTTPException(status_code=403, detail="This session is read-only. You cannot send messages.")
 
     session["sensitivity_level"] = req.sensitivity_level
     session["enable_guardrails"] = req.enable_guardrails
     if req.custom_rules:
         session["custom_rules"] = req.custom_rules
 
-    # Dynamically switch model / host / system prompt if they changed in the UI
+    # Load rag_chain from LRU cache or rehydrate
+    rag_chain = _rag_chains.get(req.session_id)
     requested_host = req.resolved_host()
-    if (req.model != session.get("model") or 
-        requested_host != session.get("ollama_host") or 
+    
+    if (not rag_chain or
+        req.model != session.get("model") or 
+        requested_host != session.get("ollama_host", SERVER_OLLAMA_HOST) or 
         req.system_prompt != session.get("system_prompt", "")):
         try:
-            new_chain = await asyncio.to_thread(
+            rag_chain = await asyncio.to_thread(
                 load_stored_rag_chain, session["db_id"], req.model, requested_host, system_prompt=req.system_prompt
             )
-            session["rag_chain"] = new_chain
+            _rag_chains.put(req.session_id, rag_chain)
             session["model"] = req.model
             session["ollama_host"] = requested_host
             session["system_prompt"] = req.system_prompt
+            _update_db_session(session)
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to dynamically switch RAG chain to model '{req.model}': {str(e)}"
+                detail=f"Failed to load or dynamically switch RAG chain to model '{req.model}': {str(e)}"
             ) from e
 
     # Input safety on the original question
@@ -662,7 +719,7 @@ async def chat(req: ChatRequest):
     start_time = time.time()
     try:
         result = await asyncio.to_thread(
-            session["rag_chain"].invoke, {"input": question, "chat_history": history}
+            rag_chain.invoke, {"input": question, "chat_history": history}
         )
     except Exception as e:
         import traceback
@@ -686,6 +743,7 @@ async def chat(req: ChatRequest):
         answer = blocked_out
         session["messages"].append({"role": "user", "content": question})
         session["messages"].append({"role": "assistant", "content": answer})
+        _update_db_session(session)
         add_audit_log("safety_alert", f"LLM output blocked and redacted under {req.sensitivity_level} policy.")
         return {"answer": answer, "blocked": True, "source": "output_guard", "citations": [], "latency_sec": latency_sec}
 
@@ -726,6 +784,7 @@ async def chat(req: ChatRequest):
 
     session["messages"].append({"role": "user", "content": question})
     session["messages"].append({"role": "assistant", "content": answer})
+    _update_db_session(session)
 
     add_audit_log("retrieval", f"Successfully completed RAG query in {latency_sec:.3f}s", {
         "latency_sec": latency_sec,
@@ -744,9 +803,11 @@ async def chat(req: ChatRequest):
 
 @app.post("/api/clear")
 async def clear_chat(req: ClearRequest):
-    session = _sessions.get(req.session_id)
+    session = db.get_session(req.session_id)
     if session:
         session["messages"] = []
+        _update_db_session(session)
+        add_audit_log("system", "Conversation cleared for session.", {"session_id": req.session_id})
     return {"cleared": True}
 
 
@@ -845,3 +906,62 @@ if FRONTEND_DIR.exists():
         if requested.exists() and requested.is_file():
             return FileResponse(str(requested))
         return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+import uuid
+
+@app.post("/api/share/generate")
+async def generate_share_link(req: ShareGenerateRequest):
+    session = db.get_session(req.session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    
+    share_id = str(uuid.uuid4())[:12]
+    db.create_share_link(
+        share_id=share_id,
+        parent_session_id=req.session_id,
+        show_history=req.show_history,
+        read_only=req.read_only,
+        sync=req.sync
+    )
+    return {"share_id": share_id}
+
+@app.get("/api/share/resolve/{share_id}")
+async def resolve_share_link(share_id: str):
+    link = db.get_share_link(share_id)
+    if not link:
+        raise HTTPException(status_code=404, detail="Share link invalid or expired.")
+    
+    parent_session = db.get_session(link["parent_session_id"])
+    if not parent_session:
+        raise HTTPException(status_code=404, detail="Original session no longer exists.")
+
+    if link["sync"]:
+        # They share the exact same session (we don't modify the parent's read_only status)
+        return {
+            "session_id": link["parent_session_id"],
+            "read_only": link["read_only"]  # Frontend must enforce this if sync is true
+        }
+    else:
+        # Fork the session
+        new_session_id = str(uuid.uuid4())[:16]
+        messages = parent_session["messages"] if link["show_history"] else []
+        db.save_session(
+            session_id=new_session_id,
+            db_id=parent_session["db_id"],
+            model=parent_session["model"],
+            files=parent_session["files"],
+            chunk_size=parent_session["chunk_size"],
+            redact_pii=parent_session["redact_pii"],
+            system_prompt=parent_session["system_prompt"],
+            sensitivity_level=parent_session["sensitivity_level"],
+            enable_guardrails=parent_session["enable_guardrails"],
+            temperature=parent_session["temperature"],
+            chunk_overlap=parent_session["chunk_overlap"],
+            custom_rules=parent_session["custom_rules"],
+            messages=messages,
+            read_only=link["read_only"]
+        )
+        return {
+            "session_id": new_session_id,
+            "read_only": link["read_only"]
+        }

@@ -256,6 +256,7 @@ body {
   display: flex;
   flex-direction: column;
   padding: 0 0 1.5rem;
+  min-height: 0;
 }
 
 .sidebar-body>* {
@@ -1076,6 +1077,7 @@ select.form-control {
   opacity: 0;
   transition: opacity .22s ease;
   border-radius: inherit;
+  pointer-events: none;
 }
 
 .drop-zone:hover::before,
@@ -1088,6 +1090,14 @@ select.form-control {
   border-color: var(--accent);
 }
 
+.drop-icon,
+.drop-title,
+.drop-sub {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .drop-icon {
   font-size: 1.8rem;
   margin-bottom: .35rem;
@@ -1098,7 +1108,6 @@ select.form-control {
   font-size: .84rem;
   font-weight: 500;
   color: var(--text-secondary);
-  position: relative;
 }
 
 .drop-link {
@@ -1106,6 +1115,7 @@ select.form-control {
   cursor: pointer;
   font-weight: 700;
   transition: color var(--transition);
+  pointer-events: auto;
 }
 
 .drop-link:hover {

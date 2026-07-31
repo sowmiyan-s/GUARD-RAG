@@ -45,6 +45,7 @@ def get_installed_models(host: str = "http://localhost:11434") -> list[str]:
     """Get list of installed models from Ollama or OpenAI-style cloud endpoint."""
     api_key = os.environ.get("OLLAMA_API_KEY") or os.environ.get("OPENAI_API_KEY")
     host_clean = host.rstrip("/")
+    models = []
     
     # Try Ollama tags
     try:
@@ -53,7 +54,7 @@ def get_installed_models(host: str = "http://localhost:11434") -> list[str]:
             req.add_header("Authorization", f"Bearer {api_key}")
         res = urllib.request.urlopen(req, timeout=3)
         data = json.loads(res.read().decode("utf-8"))
-        return [m["name"] for m in data.get("models", [])]
+        models.extend([m["name"] for m in data.get("models", [])])
     except Exception:
         pass
 
@@ -70,9 +71,23 @@ def get_installed_models(host: str = "http://localhost:11434") -> list[str]:
             req.add_header("Authorization", f"Bearer {api_key}")
         res = urllib.request.urlopen(req, timeout=3)
         data = json.loads(res.read().decode("utf-8"))
-        return [m["id"] for m in data.get("data", [])]
+        models.extend([m["id"] for m in data.get("data", [])])
     except Exception:
-        return []
+        pass
+        
+    # Always check for OpenAI API Key and add standard cloud models if available
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    if openai_key and "api.openai.com" not in host_clean:
+        try:
+            req = urllib.request.Request("https://api.openai.com/v1/models", method="GET")
+            req.add_header("Authorization", f"Bearer {openai_key}")
+            res = urllib.request.urlopen(req, timeout=3)
+            data = json.loads(res.read().decode("utf-8"))
+            models.extend([m["id"] for m in data.get("data", [])])
+        except Exception:
+            pass
+
+    return list(dict.fromkeys(models))
 
 def get_ollama_version(host: str = "http://localhost:11434") -> str:
     """Get Ollama server version."""

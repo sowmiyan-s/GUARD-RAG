@@ -241,6 +241,12 @@ def main():
         choices=["Public", "Internal", "Confidential", "Restricted"],
         help="Data sensitivity level (default: Internal)"
     )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=0.0,
+        help="AI creativity level (0.0 to 1.0, default: 0.0)"
+    )
     
     args = parser.parse_args()
     
@@ -274,7 +280,8 @@ def main():
             model=args.model,
             chunk_size=args.chunk_size,
             chunk_overlap=args.chunk_overlap,
-            ollama_host=args.ollama_host
+            ollama_host=args.ollama_host,
+            temperature=args.temperature
         )
     except Exception as e:
         console.print(f"[bold red][x] Pipeline initialization failed: {e}[/bold red]")

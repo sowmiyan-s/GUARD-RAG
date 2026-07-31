@@ -999,15 +999,13 @@ function renderFileList() {
 }
 
 function addFiles(files) {
-  const allowed = new Set(['pdf', 'txt', 'doc', 'docx']);
+  const allowed = new Set(['pdf', 'txt', 'doc', 'docx', 'md', 'json', 'csv', 'log', 'py']);
   const incoming = Array.from(files);
   const valid = incoming.filter(f => allowed.has(getExt(f.name)));
   if (valid.length < incoming.length) toast('Some files skipped (unsupported format).', 'warn');
   const names = new Set(state.selectedFiles.map(f => f.name));
   valid.filter(f => !names.has(f.name)).forEach(f => state.selectedFiles.push(f));
   renderFileList();
-  
-  // step2Card is always enabled now, no need to toggle disabled class
 }
 
 function translateError(error) {
@@ -1201,8 +1199,14 @@ function updateTabUI() {
     activeDocBanner.style.display = 'none';
     inputBarWrapper.style.display = 'none';
     
-    // Expand upload section when starting a new chat
-    uploadSection.classList.remove('collapsed');
+    // Ensure upload section and drop zone are fully visible for New Chat
+    if (uploadSection) {
+      uploadSection.style.display = '';
+      uploadSection.classList.remove('collapsed');
+    }
+    if (uploadPanelToggle) uploadPanelToggle.style.display = '';
+    if (dropZone) dropZone.style.display = '';
+    
     if (uploadToggleIcon) {
       uploadToggleIcon.style.transform = 'rotate(0deg)';
     }
@@ -1855,28 +1859,66 @@ async function shareSession() {
     return;
   }
   
-  const shareUrl = `${window.location.protocol}//${window.location.host}/?share=${state.sessionId}`;
-  
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(shareUrl);
-      toast('Share URL copied to clipboard!', 'success');
-    } else {
-      const textArea = document.createElement('textarea');
-      textArea.value = shareUrl;
-      textArea.style.position = 'fixed';
-      textArea.style.opacity = '0';
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      toast('Share URL copied to clipboard!', 'success');
-    }
-  } catch (err) {
-    console.error('Failed to copy share URL:', err);
-    await showCustomConfirm('Share Link', `Could not copy to clipboard automatically. Here is your share URL:\n\n${shareUrl}`, false);
+  const modal = $('shareModal');
+  if (modal) {
+    if ($('shareLinkResult')) $('shareLinkResult').style.display = 'none';
+    if ($('shareUrlInput')) $('shareUrlInput').value = '';
+    modal.style.display = 'flex';
   }
 }
+
+$('btnShareGenerate')?.addEventListener('click', async () => {
+  if (!state.sessionId) return;
+  const includeHistory = $('shareIncludeHistory')?.checked;
+  const interactive = $('shareInteractive')?.checked;
+  const sync = $('shareSync')?.checked;
+
+  const generateBtn = $('btnShareGenerate');
+  if (generateBtn) generateBtn.disabled = true;
+
+  try {
+    const res = await apiFetch('/api/share/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: state.sessionId,
+        show_history: includeHistory,
+        read_only: !interactive,
+        sync: sync
+      })
+    });
+
+    const shareUrl = `${window.location.protocol}//${window.location.host}/?share=${res.share_id}`;
+    if ($('shareLinkResult')) $('shareLinkResult').style.display = 'block';
+    if ($('shareUrlInput')) $('shareUrlInput').value = shareUrl;
+  } catch (err) {
+    toast(`Share failed: ${err.message}`, 'error');
+  } finally {
+    if (generateBtn) generateBtn.disabled = false;
+  }
+});
+
+$('btnCopyShareUrl')?.addEventListener('click', async () => {
+  const url = $('shareUrlInput')?.value;
+  if (!url) return;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Share URL copied to clipboard!', 'success');
+  } catch (err) {
+    toast('Failed to copy. Please select and copy manually.', 'error');
+  }
+});
+
+const closeShareModal = () => {
+  const modal = $('shareModal');
+  if (modal) modal.style.display = 'none';
+  if ($('shareLinkResult')) $('shareLinkResult').style.display = 'none';
+  if ($('shareUrlInput')) $('shareUrlInput').value = '';
+};
+
+$('btnShareClose')?.addEventListener('click', closeShareModal);
+$('btnShareCancel')?.addEventListener('click', closeShareModal);
+
 
 async function checkSharedSession() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -1972,6 +2014,22 @@ async function checkSharedSession() {
   if (tabNew && tabActive) {
     tabNew.addEventListener('click', () => {
       state.activeTab = 'new-chat';
+      state.isSharedSession = false;
+      
+      // Cleanly remove ?share=... from address bar if present
+      if (window.history && window.history.replaceState && window.location.search.includes('share=')) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      
+      // Restore sidebar, banner, and upload section
+      if (sidebar) sidebar.style.display = '';
+      if (sidebarOpen) sidebarOpen.style.display = '';
+      if (uploadSection) uploadSection.style.display = '';
+      if (uploadPanelToggle) uploadPanelToggle.style.display = '';
+      if (dropZone) dropZone.style.display = '';
+      const sharedBanner = $('sharedSessionBanner');
+      if (sharedBanner) sharedBanner.style.display = 'none';
+
       updateTabUI();
     });
     tabActive.addEventListener('click', () => {

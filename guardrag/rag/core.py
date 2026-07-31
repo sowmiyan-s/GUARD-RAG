@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from langchain_community.document_loaders import Docx2txtLoader, PyPDFLoader, TextLoader
+from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_ollama import ChatOllama
@@ -38,21 +38,34 @@ os.environ.setdefault("no_proxy", _NO_PROXY)
 _embeddings = None
 
 def _get_embeddings():
-    """Get HuggingFace embeddings model (cached)."""
+    """Get ONNX-accelerated FastEmbed embeddings model (cached), with fallback to HuggingFace."""
     global _embeddings
     if _embeddings is None:
         try:
-            _embeddings = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2",
-                model_kwargs={"device": "cpu"},
-                encode_kwargs={"normalize_embeddings": True},
+            from langchain_community.embeddings import FastEmbedEmbeddings
+            import os
+            # Avoid excessive threads which can thrash CPU and cause slow down in ONNX runtime on Windows
+            threads = min(4, max(1, os.cpu_count() // 2)) if os.cpu_count() else None
+            _embeddings = FastEmbedEmbeddings(
+                model_name="BAAI/bge-small-en-v1.5",
+                threads=threads
             )
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to initialize HuggingFace embeddings. "
-                f"Ensure 'sentence-transformers', 'torch', and 'transformers' are installed correctly. "
-                f"Error: {str(e)}"
-            ) from e
+            print("Using ONNX-accelerated FastEmbed embeddings (BAAI/bge-small-en-v1.5).")
+        except Exception as fe_err:
+            print(f"FastEmbed fallback notice: {fe_err}. Falling back to HuggingFace Embeddings...")
+            try:
+                import torch
+                device = "cuda" if torch.cuda.is_available() else ("mps" if hasattr(torch.backends, "mps") and torch.backends.mps.is_available() else "cpu")
+                _embeddings = HuggingFaceEmbeddings(
+                    model_name="sentence-transformers/all-MiniLM-L6-v2",
+                    model_kwargs={"device": device},
+                    encode_kwargs={"normalize_embeddings": True, "batch_size": 128},
+                )
+            except Exception as e:
+                raise RuntimeError(
+                    f"Failed to initialize embeddings. "
+                    f"Error: {str(e)}"
+                ) from e
     return _embeddings
 
 
@@ -89,7 +102,8 @@ def build_rag_chain(
     storage_dir: str = ".guardrag_storage",
     redact_pii: bool = False,
     manual_redactions: list[str] = None,
-    system_prompt: str = None
+    system_prompt: str = None,
+    temperature: float = 0.0
 ) -> tuple[str, Any]:
     """
     Build a RAG chain from document files.
@@ -102,6 +116,7 @@ def build_rag_chain(
         ollama_host: Ollama server URL
         storage_dir: Directory to store FAISS indices
         redact_pii: Whether to redact sensitive details (PII) from document text
+        temperature: Creativity level for the LLM
         
     Returns:
         Tuple of (db_id, rag_chain)
@@ -141,26 +156,33 @@ def build_rag_chain(
         for fp in file_paths:
             ext = os.path.splitext(fp)[-1].lower()
             try:
+                loaded_docs = []
                 if ext == ".pdf":
                     try:
                         import pypdf
+                        reader = pypdf.PdfReader(fp)
+                        for i, page in enumerate(reader.pages):
+                            text = page.extract_text()
+                            if text:
+                                loaded_docs.append(Document(page_content=text, metadata={"page": i}))
                     except ImportError as err:
                         raise ImportError("The 'pypdf' package is required for PDF files. Run 'pip install pypdf'.") from err
-                    loader = PyPDFLoader(fp)
-                elif ext == ".txt":
-                    loader = TextLoader(fp, encoding="utf-8")
+                elif ext in [".txt", ".md", ".json", ".csv", ".log", ".py"]:
+                    with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                        loaded_docs.append(Document(page_content=f.read(), metadata={}))
                 elif ext in [".doc", ".docx"]:
                     try:
                         import docx2txt
+                        text = docx2txt.process(fp)
+                        if text:
+                            loaded_docs.append(Document(page_content=text, metadata={}))
                     except ImportError as err:
                         raise ImportError("The 'docx2txt' package is required for DOCX files. Run 'pip install docx2txt'.") from err
-                    loader = Docx2txtLoader(fp)
                 else:
                     print(f"Skipping unsupported file type: {ext}")
                     continue
                 
                 print(f"  {os.path.basename(fp)}")
-                loaded_docs = loader.load()
                 for d in loaded_docs:
                     d.metadata["source"] = os.path.basename(fp)
                 docs.extend(loaded_docs)
@@ -200,8 +222,9 @@ def build_rag_chain(
         print(f"Creating embeddings for {len(splits)} chunks...")
         from guardrag.rag.vector_factory import get_vector_store
         vectorstore = get_vector_store(config, embeddings)
-        for i in range(0, len(splits), 100):
-            batch = splits[i : i + 100]
+        batch_size = 500
+        for i in range(0, len(splits), batch_size):
+            batch = splits[i : i + batch_size]
             vectorstore.add_documents(batch)
         
         # Save token mapping dictionary to disk (always stored locally under storage_dir/db_id)
@@ -213,13 +236,13 @@ def build_rag_chain(
         print(f"Saved token mapping dictionary to {mapping_path}")
     
     # Build RAG chain
-    rag_chain = _build_chain_from_vectorstore(vectorstore, model, ollama_host, system_prompt=system_prompt)
+    rag_chain = _build_chain_from_vectorstore(vectorstore, model, ollama_host, system_prompt=system_prompt, temperature=temperature)
     
     print("RAG chain ready!")
     return db_id, rag_chain
 
 
-def _get_llm(model: str, ollama_host: str):
+def _get_llm(model: str, ollama_host: str, temperature: float = 0.0):
     """Initialize the LLM based on ollama_host (supports Ollama and OpenAI-compatible endpoints)."""
     host_lower = ollama_host.lower()
     is_openai_style = any(x in host_lower for x in ["api.openai.com", "api.groq.com", "openrouter.ai", "api.anthropic.com", "api.cohere.ai"])
@@ -244,7 +267,7 @@ def _get_llm(model: str, ollama_host: str):
             model=model,
             openai_api_base=api_base,
             openai_api_key=api_key,
-            temperature=0.0
+            temperature=temperature
         )
     else:
         headers = {}
@@ -256,6 +279,7 @@ def _get_llm(model: str, ollama_host: str):
             model=model,
             base_url=ollama_host.rstrip("/"),
             num_ctx=4096,
+            temperature=temperature,
             headers=headers
         )
 
@@ -309,7 +333,7 @@ class GuardRAGChain:
             }
 
 
-def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str, system_prompt: str = None):
+def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str, system_prompt: str = None, temperature: float = 0.0):
     """Build a LangChain RAG chain from a FAISS vectorstore."""
     # Adjust context size (k) based on whether we are using a local or cloud LLM
     # to avoid context window overflow on small local models.
@@ -320,7 +344,7 @@ def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str, sys
     k = 8 if is_cloud else 4
     retriever = vectorstore.as_retriever(search_kwargs={"k": k})
     
-    llm = _get_llm(model, ollama_host)
+    llm = _get_llm(model, ollama_host, temperature=temperature)
     
     # History-aware retriever
     ctx_q_prompt = ChatPromptTemplate.from_messages([
@@ -337,13 +361,14 @@ def _build_chain_from_vectorstore(vectorstore, model: str, ollama_host: str, sys
 
     if not system_prompt:
         system_prompt = (
-            "You are GuardRAG, a professional and extremely precise AI document assistant.\n"
+            "You are GuardRAG, an intelligent, multilingual, and creative agentic document assistant.\n"
             "Your task is to answer the user's query using ONLY the provided document context below.\n"
             "Strictly follow these rules:\n"
             "1. Ground your answer solely in the provided context chunks. Do NOT assume, extrapolate, or bring in outside knowledge.\n"
-            "2. If the context does not contain the answer, or if the retrieved information is not relevant to the query, state clearly and politely that the information is missing from the uploaded documents.\n"
+            "2. If the context does not contain the answer, state clearly and politely that the information is missing from the uploaded documents.\n"
             "3. If different documents or chunks provide contradictory information, point out the discrepancy with their source names.\n"
-            "4. Keep your response clear, factual, and concise."
+            "4. IMPORTANT: Always respond in the SAME language the user asks the question in, actively translating context if necessary.\n"
+            "5. Be creative in formatting your answer (use markdown, lists, tables, and emojis where appropriate) to make it highly readable and logically structured."
         )
 
     # Q&A chain
@@ -385,7 +410,8 @@ def load_stored_rag_chain(
     model: str = "gemma3:1b",
     ollama_host: str = "http://localhost:11434",
     storage_dir: str = ".guardrag_storage",
-    system_prompt: str = None
+    system_prompt: str = None,
+    temperature: float = 0.0
 ):
     """
     Load a previously persisted FAISS index and build the RAG chain.
@@ -401,4 +427,4 @@ def load_stored_rag_chain(
         The RAG chain
     """
     vectorstore = get_stored_vectorstore(db_id, storage_dir=storage_dir)
-    return _build_chain_from_vectorstore(vectorstore, model, ollama_host, system_prompt=system_prompt)
+    return _build_chain_from_vectorstore(vectorstore, model, ollama_host, system_prompt=system_prompt, temperature=temperature)

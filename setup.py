@@ -16,7 +16,7 @@ requirements = [r.strip() for r in requirements if r.strip() and not r.startswit
 
 setup(
     name="guard-rag",
-    version="1.2.6",
+    version="1.3.0",
     description="Privacy-first, fully offline AI document assistant secured by tiered safety guardrails",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -43,8 +43,9 @@ setup(
     },
     
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
+        "Intended Audience :: Information Technology",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
@@ -58,6 +59,7 @@ setup(
     keywords=[
         "rag", "retrieval-augmented-generation", "langchain", "ollama",
         "faiss", "embeddings", "chatbot", "llm", "privacy", "offline",
-        "security-guardrails", "document-qa", "private-gpt",
+        "security-guardrails", "document-qa", "private-gpt", "enterprise", 
+        "pii-redaction", "local-llm", "privacy-first"
     ],
 )
