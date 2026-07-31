@@ -357,7 +357,12 @@ def parse_questions_from_response(text: str) -> list[str]:
 
 @app.post("/api/suggest_questions")
 async def suggest_questions(req: SuggestQuestionsRequest):
-    session = db.get_session(req.session_id)
+    actual_session_id = req.session_id
+    share_link = db.get_share_link(req.session_id)
+    if share_link and share_link.get("sync"):
+        actual_session_id = share_link["parent_session_id"]
+        
+    session = db.get_session(actual_session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found.")
         
@@ -598,6 +603,42 @@ async def load_session(req: LoadSessionRequest):
         "model": req.model,
     }
 
+@app.post("/api/share/generate")
+async def generate_share_link(req: ShareGenerateRequest):
+    parent = db.get_session(req.session_id)
+    if not parent:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    
+    import secrets
+    share_id = secrets.token_hex(8)
+    
+    if req.sync:
+        # Create a share link pointer to the parent
+        db.create_share_link(share_id, req.session_id, True, req.read_only, True)
+    else:
+        # Fork a new session entirely
+        messages = parent["messages"].copy() if req.show_history else []
+        db.save_session(
+            session_id=share_id,
+            db_id=parent["db_id"],
+            model=parent["model"],
+            files=parent["files"],
+            chunk_size=parent["chunk_size"],
+            redact_pii=parent["redact_pii"],
+            system_prompt=parent["system_prompt"],
+            sensitivity_level=parent["sensitivity_level"],
+            enable_guardrails=parent["enable_guardrails"],
+            temperature=parent["temperature"],
+            chunk_overlap=parent["chunk_overlap"],
+            custom_rules=parent["custom_rules"],
+            messages=messages,
+            read_only=req.read_only
+        )
+        # Also create a pointer just for read_only/sync metadata so frontend can query it if needed,
+        # but the session itself works autonomously.
+        db.create_share_link(share_id, share_id, req.show_history, req.read_only, False)
+        
+    return {"share_id": share_id}
 
 @app.post("/api/storage/delete")
 async def delete_storage_entry(body: dict):
@@ -622,9 +663,20 @@ async def delete_storage_entry(body: dict):
 
 @app.get("/api/sessions/info/{session_id}")
 async def get_session_info(session_id: str):
-    session = db.get_session(session_id)
+    actual_session_id = session_id
+    is_shared = False
+    share_settings = None
+    
+    share_link = db.get_share_link(session_id)
+    if share_link:
+        actual_session_id = share_link["parent_session_id"]
+        is_shared = True
+        share_settings = share_link
+        
+    session = db.get_session(actual_session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found or has expired.")
+        
     return {
         "db_id": session.get("db_id"),
         "files": session.get("files", []),
@@ -634,16 +686,27 @@ async def get_session_info(session_id: str):
         "system_prompt": session.get("system_prompt", ""),
         "ollama_host": session.get("ollama_host", ""),
         "custom_rules": session.get("custom_rules", []),
+        "is_shared": is_shared,
+        "share_settings": share_settings
     }
 
 
 @app.post("/api/chat")
 async def chat(req: ChatRequest):
-    session = db.get_session(req.session_id)
+    actual_session_id = req.session_id
+    is_read_only = False
+    
+    share_link = db.get_share_link(req.session_id)
+    if share_link:
+        if share_link.get("sync"):
+            actual_session_id = share_link["parent_session_id"]
+        is_read_only = share_link.get("read_only", False)
+        
+    session = db.get_session(actual_session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found. Please upload documents first.")
 
-    if session.get("read_only", False):
+    if is_read_only or session.get("read_only", False):
         raise HTTPException(status_code=403, detail="This session is read-only. You cannot send messages.")
 
     session["sensitivity_level"] = req.sensitivity_level
@@ -652,7 +715,7 @@ async def chat(req: ChatRequest):
         session["custom_rules"] = req.custom_rules
 
     # Load rag_chain from LRU cache or rehydrate
-    rag_chain = _rag_chains.get(req.session_id)
+    rag_chain = _rag_chains.get(actual_session_id)
     requested_host = req.resolved_host()
     
     if (not rag_chain or
@@ -663,7 +726,7 @@ async def chat(req: ChatRequest):
             rag_chain = await asyncio.to_thread(
                 load_stored_rag_chain, session["db_id"], req.model, requested_host, system_prompt=req.system_prompt
             )
-            _rag_chains.put(req.session_id, rag_chain)
+            _rag_chains.put(actual_session_id, rag_chain)
             session["model"] = req.model
             session["ollama_host"] = requested_host
             session["system_prompt"] = req.system_prompt

@@ -440,6 +440,14 @@
       </div>
 
       <div class="header-right">
+        <!-- Guest Settings button in header (visible only for guests) -->
+        <button class="hamburger" id="btnGuestSettings" style="display:none; padding: 6px; background: var(--bg-raised); border: 1px solid var(--border); margin-right: 0.5rem;" aria-label="Guest Settings" title="Guest Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+            <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </button>
+
         <!-- Upload panel toggle button in header -->
         <div class="btn btn-ghost" id="uploadPanelToggle" title="Toggle upload panel" aria-expanded="true"
           aria-controls="uploadSection" aria-label="Toggle document upload panel"
@@ -936,6 +944,50 @@
       <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
         <button id="btnShareCancel" class="btn btn-secondary">Cancel</button>
         <button id="btnShareGenerate" class="btn btn-primary">Generate Link</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guest Settings Modal -->
+  <div id="guestSettingsModal" class="modal-overlay" style="display:none;" role="dialog">
+    <div class="modal-box" style="max-width: 400px;">
+      <button class="modal-close" id="btnGuestSettingsClose" aria-label="Close" style="float: right; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted);">✕</button>
+      <h3 style="margin-top: 0;">Session Settings</h3>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Configure your preferences for this shared session.</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1.5rem;">
+        <div>
+          <label class="form-label sb-text" for="guestModelSelect">AI Model</label>
+          <select id="guestModelSelect" class="form-control sb-text">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label sb-text" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+            <input type="checkbox" id="guestGuardrailsToggle" checked />
+            Enable Guardrails
+          </label>
+        </div>
+
+        <div>
+          <label class="form-label sb-text" for="guestSensitivitySelect">Sensitivity Level</label>
+          <select id="guestSensitivitySelect" class="form-control sb-text">
+            <option value="Public">Public (Jailbreak only)</option>
+            <option value="Internal">Internal (+ API keys, creds)</option>
+            <option value="Confidential">Confidential (+ PII / SSN)</option>
+            <option value="Restricted">Restricted (+ Medical / HIPAA)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label sb-text" for="guestSystemPrompt">System Prompt</label>
+          <textarea id="guestSystemPrompt" class="form-control sb-text" style="font-size:0.75rem;" rows="3" placeholder="You are a helpful assistant..."></textarea>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end;">
+        <button id="btnGuestSettingsSave" class="btn btn-primary">Save & Close</button>
       </div>
     </div>
   </div>

@@ -1919,6 +1919,56 @@ const closeShareModal = () => {
 $('btnShareClose')?.addEventListener('click', closeShareModal);
 $('btnShareCancel')?.addEventListener('click', closeShareModal);
 
+// ─── GUEST SETTINGS ───────────────────────────────────────────────────────────
+const openGuestSettings = () => {
+  const modal = $('guestSettingsModal');
+  if (modal) {
+    // Populate model select
+    const guestModelSelect = $('guestModelSelect');
+    if (guestModelSelect) {
+      guestModelSelect.innerHTML = '';
+      state.models.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        guestModelSelect.appendChild(opt);
+      });
+      // Fallback if current model isn't in state.models
+      if (!state.models.includes(state.selectedModel)) {
+        const opt = document.createElement('option');
+        opt.value = state.selectedModel;
+        opt.textContent = state.selectedModel;
+        guestModelSelect.appendChild(opt);
+      }
+      guestModelSelect.value = state.selectedModel;
+    }
+
+    $('guestGuardrailsToggle').checked = state.guardrailsEnabled;
+    $('guestSensitivitySelect').value = state.sensitivityLevel;
+    $('guestSystemPrompt').value = state.sharedSystemPrompt;
+    
+    modal.style.display = 'flex';
+  }
+};
+
+const closeGuestSettings = () => {
+  const modal = $('guestSettingsModal');
+  if (modal) modal.style.display = 'none';
+};
+
+$('btnGuestSettings')?.addEventListener('click', openGuestSettings);
+$('btnGuestSettingsClose')?.addEventListener('click', closeGuestSettings);
+
+$('btnGuestSettingsSave')?.addEventListener('click', () => {
+  state.selectedModel = $('guestModelSelect')?.value || state.selectedModel;
+  state.guardrailsEnabled = $('guestGuardrailsToggle')?.checked ?? true;
+  state.sensitivityLevel = $('guestSensitivitySelect')?.value || 'Internal';
+  state.sharedSystemPrompt = $('guestSystemPrompt')?.value || '';
+  toast('Session preferences saved', 'success');
+  closeGuestSettings();
+});
+
+
 
 async function checkSharedSession() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -1976,7 +2026,11 @@ async function checkSharedSession() {
           modelSelect.appendChild(opt);
         }
         modelSelect.value = sessionInfo.model;
+        modelSelect.value = sessionInfo.model;
       }
+      
+      const btnGuestSettings = $('btnGuestSettings');
+      if (btnGuestSettings) btnGuestSettings.style.display = 'block';
       
       if (guardrailsToggle) guardrailsToggle.checked = sessionInfo.enable_guardrails;
       if (sensitivitySelect) sensitivitySelect.value = sessionInfo.sensitivity_level;
