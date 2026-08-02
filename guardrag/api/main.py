@@ -612,33 +612,65 @@ async def generate_share_link(req: ShareGenerateRequest):
     import secrets
     share_id = secrets.token_hex(8)
     
-    if req.sync:
-        # Create a share link pointer to the parent
-        db.create_share_link(share_id, req.session_id, True, req.read_only, True)
-    else:
-        # Fork a new session entirely
-        messages = parent["messages"].copy() if req.show_history else []
-        db.save_session(
-            session_id=share_id,
-            db_id=parent["db_id"],
-            model=parent["model"],
-            files=parent["files"],
-            chunk_size=parent["chunk_size"],
-            redact_pii=parent["redact_pii"],
-            system_prompt=parent["system_prompt"],
-            sensitivity_level=parent["sensitivity_level"],
-            enable_guardrails=parent["enable_guardrails"],
-            temperature=parent["temperature"],
-            chunk_overlap=parent["chunk_overlap"],
-            custom_rules=parent["custom_rules"],
-            messages=messages,
-            read_only=req.read_only
-        )
-        # Also create a pointer just for read_only/sync metadata so frontend can query it if needed,
-        # but the session itself works autonomously.
-        db.create_share_link(share_id, share_id, req.show_history, req.read_only, False)
+    # Always create a pointer to the parent session to ensure real-time syncing
+    db.create_share_link(share_id, req.session_id, True, req.read_only, True)
         
     return {"share_id": share_id}
+
+@app.get("/api/sessions/{session_id}/messages")
+async def get_session_messages(session_id: str):
+    actual_session_id = session_id
+    share_link = db.get_share_link(session_id)
+    if share_link:
+        actual_session_id = share_link["parent_session_id"]
+        
+    session = db.get_session(actual_session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found.")
+        
+    return {"messages": session.get("messages", [])}
+
+import socket
+@app.get("/api/share/network-info")
+async def get_network_info():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+    except Exception:
+        ip = "127.0.0.1"
+    return {"local_ip": ip, "port": 8000}
+
+import subprocess
+import urllib.request
+ngrok_process = None
+
+@app.post("/api/share/ngrok")
+async def start_ngrok():
+    global ngrok_process
+    if ngrok_process is None or ngrok_process.poll() is not None:
+        try:
+            ngrok_process = subprocess.Popen(
+                ["ngrok", "http", "8000"], 
+                stdout=subprocess.DEVNULL, 
+                stderr=subprocess.DEVNULL
+            )
+            await asyncio.sleep(2)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to start ngrok. Is it installed? {str(e)}")
+            
+    try:
+        req = urllib.request.Request("http://127.0.0.1:4040/api/tunnels")
+        with urllib.request.urlopen(req) as response:
+            data = json.loads(response.read().decode())
+            tunnels = data.get("tunnels", [])
+            if tunnels:
+                return {"url": tunnels[0]["public_url"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Could not get ngrok URL. Make sure ngrok is running.")
+        
+    raise HTTPException(status_code=500, detail="Ngrok started but no tunnels found.")
 
 @app.post("/api/storage/delete")
 async def delete_storage_entry(body: dict):
