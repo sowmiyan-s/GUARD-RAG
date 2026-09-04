@@ -22,15 +22,20 @@ from langchain_ollama import ChatOllama
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 try:
-    from langchain.chains import create_history_aware_retriever, create_retrieval_chain
-    from langchain.chains.combine_documents import create_stuff_documents_chain
-except ImportError:
-    # Handle future versions (1.0+) where chains moved to langchain_classic
     from langchain_classic.chains import (
         create_history_aware_retriever,
         create_retrieval_chain,
     )
     from langchain_classic.chains.combine_documents import create_stuff_documents_chain
+except ImportError:
+    # Fallback for legacy LangChain (< 1.0) environments where chains lived under langchain.chains
+    from langchain.chains import (  # type: ignore[import-not-found, no-redef]
+        create_history_aware_retriever,
+        create_retrieval_chain,
+    )
+    from langchain.chains.combine_documents import (  # type: ignore[import-not-found, no-redef]
+        create_stuff_documents_chain,
+    )
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 # Fix OMP error for FAISS (must be before FAISS import)

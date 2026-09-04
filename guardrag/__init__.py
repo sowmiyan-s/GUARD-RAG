@@ -3,7 +3,7 @@ GuardRAG - A privacy-first, fully offline AI document assistant
 powered by Guardrails, LangChain, Ollama, and HuggingFace embeddings.
 """
 
-__version__ = "1.3.0"
+__version__ = "1.3.1"
 __author__ = "Sowmiyan S"
 __license__ = "MIT"
 
