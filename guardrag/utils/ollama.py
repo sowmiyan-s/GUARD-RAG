@@ -118,23 +118,12 @@ def get_ollama_version(host: str = "http://localhost:11434") -> str:
         data = json.loads(req.read().decode("utf-8"))
         return data.get("version", "unknown")
     except Exception:
-        # Fallback to CLI check if server not reachable or endpoint fails
-        try:
-            res = subprocess.check_output(
-                ["ollama", "--version"],
-                stderr=subprocess.STDOUT,
-                text=True,
-                timeout=2,
-                **_silent_subprocess_kwargs(),
-            )
-            return res.strip().split()[-1]
-        except Exception:
-            return "unknown"
+        return "unknown"
 
 
 def start_ollama_server() -> bool:
     """
-    Attempt to start a locally-installed Ollama process.
+    Attempt to start a locally-installed Ollama process silently in the background.
     
     Returns:
         True if Ollama started successfully, False otherwise.
@@ -143,33 +132,36 @@ def start_ollama_server() -> bool:
         return True
 
     import shutil
-    ollama_path = shutil.which("ollama")
-    if not ollama_path and os.name == "nt":
-        possible = [
-            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama.exe"),
-            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama app.exe"),
-            os.path.expandvars(r"%ProgramFiles%\Ollama\ollama.exe"),
-        ]
-        for p in possible:
-            if os.path.exists(p):
-                ollama_path = p
-                break
+    ollama_path = None
+    if os.name == "nt":
+        # Check standard Windows app paths
+        app_exe = os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama app.exe")
+        cli_exe = os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama.exe")
+        prog_exe = os.path.expandvars(r"%ProgramFiles%\Ollama\ollama.exe")
+        
+        if os.path.exists(app_exe):
+            cmd = [app_exe]
+        elif os.path.exists(cli_exe):
+            cmd = [cli_exe, "serve"]
+        elif os.path.exists(prog_exe):
+            cmd = [prog_exe, "serve"]
+        else:
+            which_p = shutil.which("ollama")
+            cmd = [which_p or "ollama", "serve"]
+    else:
+        which_p = shutil.which("ollama")
+        cmd = [which_p or "ollama", "serve"]
 
-    cmd = [ollama_path or "ollama", "serve"]
     try:
         kwargs = {}
         if os.name == "nt":
-            flags = (
-                getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
-                | getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
-                | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
-            )
+            flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
             si = subprocess.STARTUPINFO()
             si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            si.wShowWindow = 0
+            si.wShowWindow = 0  # SW_HIDE
             kwargs["creationflags"] = flags
             kwargs["startupinfo"] = si
-            
+
         subprocess.Popen(
             cmd,
             stdin=subprocess.DEVNULL,
@@ -178,7 +170,7 @@ def start_ollama_server() -> bool:
             close_fds=True if os.name != "nt" else False,
             **kwargs,
         )
-        # Wait up to 3 seconds for Ollama to start, then return True so client can poll
+        # Wait up to 3 seconds for Ollama to bind the port
         for _ in range(6):
             if is_ollama_running(timeout=0.5):
                 return True
@@ -200,7 +192,7 @@ def stop_ollama_server() -> bool:
     try:
         if os.name == "nt":
             subprocess.run(
-                ["taskkill", "/F", "/IM", "ollama.exe", "/IM", "ollama app.exe"],
+                ["taskkill", "/F", "/T", "/IM", "ollama.exe", "/IM", "ollama app.exe", "/IM", "ollama_llama_server.exe"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 **_silent_subprocess_kwargs(),

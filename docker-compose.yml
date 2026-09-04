@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  guardrag:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: guardrag-app
+    ports:
+      - "8000:8000"
+    environment:
+      - GUARDRAG_DATA_DIR=/data
+      - OLLAMA_HOST=http://ollama:11434
+      - GUARDRAG_API_KEY=${GUARDRAG_API_KEY:-}
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - guardrag_data:/data
+    restart: unless-stopped
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: guardrag-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  guardrag_data:
+    driver: local
+  ollama_models:
+    driver: local

@@ -1,15 +1,17 @@
 <div align="center">
 
+<img src="assets/banner.png" alt="GuardRAG Enterprise Banner" width="100%" />
+
 # 🛡️ GuardRAG Enterprise
 
 ### Privacy-First, 100% Offline AI Document Intelligence & Retrieval
-**Powered by Local LLMs, 4-Tier Safety Guardrails & Host-Controlled Multi-Device Sharing**
+**Powered by Local LLMs, 4-Tier Safety Guardrails, Real-Time Token Streaming & Host-Controlled Multi-Device Sharing**
 
 [![PyPI version](https://img.shields.io/pypi/v/guard-rag?style=for-the-badge&color=00b91e)](https://pypi.org/project/guard-rag/)
 ![Python](https://img.shields.io/badge/Python-3.9%2B-00b91e?style=for-the-badge&logo=python&logoColor=white)
 ![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-black?style=for-the-badge&logo=ollama&logoColor=white)
 ![FAISS](https://img.shields.io/badge/FAISS-Vector%20Store-0064A4?style=for-the-badge&logo=meta&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-64%20Passing-00b91e?style=for-the-badge&logo=pytest&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-73%20Passing-00b91e?style=for-the-badge&logo=pytest&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-00b91e?style=for-the-badge)
 
 <br/>
@@ -29,12 +31,15 @@ GuardRAG is tailored for privacy-sensitive industries—Legal, Healthcare, Finan
 | **Capability** | **Description** |
 | :--- | :--- |
 | 🛡️ **100% Offline Inference** | Operates entirely on local CPU/GPU using Ollama models (Gemma, LLaMA, DeepSeek, Mistral, Qwen, Phi) and FastEmbed embeddings. |
+| ⚡ **Real-Time Token Streaming** | Instant typewriter responses rendered with Server-Sent Events (SSE) via `/api/chat/stream` for zero perceived latency. |
 | 🔒 **4-Tier Safety Guardrails** | Configurable security tiers (*Public*, *Internal*, *Confidential*, *Restricted*) providing real-time credential blocking, PII redaction, and compliance filtering. |
-| 🎭 **Reasoning & Custom Profiles** | Switch between *Balanced*, *Strict Privacy*, and *Fast Summarizer* reasoning presets, or create and persist **Custom Profiles** with tailored personas and blocked terms. |
+| 🛡️ **Indirect Injection Defense** | Sanitizes ingested documents against prompt injection attacks, zero-width steganography, and markdown exfiltration payloads. |
+| 📜 **Persistent Audit Logging** | SQLite WAL-backed structured audit trails with indexed timestamps, event categories, and forensic metadata. |
+| 🔐 **Enterprise API Key Auth** | Protect administrative and document upload endpoints using optional `GUARDRAG_API_KEY` header verification. |
+| 🐳 **Docker & Compose Ready** | Multi-stage non-root container with persistent `/data` volume and instant one-command orchestration. |
+| 📈 **Telemetry & Metrics** | Real-time `/api/metrics` endpoint reporting query throughput, average latency, uptime, and vector store indices. |
+| 🎭 **Reasoning & Custom Profiles** | Switch between *Balanced*, *Strict Privacy*, and *Fast Summarizer* reasoning presets, or create and persist **Custom Profiles** with tailored personas. |
 | 🌐 **Host-Controlled LAN Sharing** | Share document Q&A across your local network. Host machines retain exclusive admin authority—guests cannot alter security levels or delete collections. |
-| ⚡ **Silent Background Ollama** | Start, stop, and monitor Ollama health with zero popup command windows on Windows, macOS, or Linux. |
-| 🎨 **ChatGPT-Style Interface** | Full-width, responsive UI featuring dynamic document tracking, source citation cards, model selectors, and brand styling. |
-| 📊 **Verifiable Citations** | Hallucination-free document grounding. Every answer links back to exact page numbers, chunk excerpts, and similarity scores. |
 | 📁 **Broad Document Support** | Ingest and search `.pdf`, `.docx`, `.doc`, `.txt`, `.md`, `.csv`, `.json`, `.log`, and `.py` files. |
 | 🔌 **Python SDK & Headless CLI** | Full programmatic access via clean Python APIs and headless command-line interface for CI/CD and automated document workflows. |
 
@@ -47,7 +52,8 @@ GuardRAG guarantees complete data isolation across ingestion, retrieval, and LLM
 ```mermaid
 graph TD
     User([User / Web UI / CLI]) -->|Raw Document| Ingest[Document Parser & Cleaner]
-    Ingest -->|Text Chunks| PIIRedactor[PII & Credential Redactor]
+    Ingest -->|Sanitize Injection| SafetyCleaner[Indirect Injection Sanitizer]
+    SafetyCleaner -->|Text Chunks| PIIRedactor[PII & Credential Redactor]
     PIIRedactor -->|Clean Chunks| Embedder[FastEmbed ONNX Vectorizer]
     Embedder --> VectorDB[(Local Vector Store: FAISS / Qdrant)]
     
@@ -56,8 +62,8 @@ graph TD
     Retriever --> VectorDB
     VectorDB -->|Top-K Grounded Chunks| PromptEngine[Persona & Reasoning Prompt Engine]
     PromptEngine -->|Context + Query| LocalLLM[Local LLM via Ollama / Cloud API]
-    LocalLLM -->|Raw Generation| OutputGuard[Output Safety & Redaction Filter]
-    OutputGuard -->|Verified & Grounded Answer| User
+    LocalLLM -->|Live Token Stream (SSE)| OutputGuard[Output Safety & Redaction Filter]
+    OutputGuard -->|Verified & Grounded Stream| User
 ```
 
 ---
@@ -86,7 +92,7 @@ Tailor how GuardRAG processes and responds to document queries:
    - Define custom system persona instructions.
    - Configure chunk sizes (e.g. 500 – 4000 chars) and overlap ratios.
    - Specify custom blocked keywords and topics.
-   - Settings persist automatically across sessions via local storage.
+   - Settings persist automatically across sessions in the persistent storage directory.
 
 ---
 
@@ -109,12 +115,12 @@ Host GuardRAG on your workstation or local server and collaborate across your te
 pip install guard-rag
 ```
 
-Or install with full development dependencies from source:
+Or install from source:
 
 ```bash
 git clone https://github.com/sowmiyan-s/GUARD-RAG.git
 cd GUARD-RAG
-pip install -e ".[all]"
+pip install -e ".[dev]"
 ```
 
 ### 2. Prerequisites
@@ -150,7 +156,22 @@ The server automatically displays local and LAN access URLs:
 ============================================================
 ```
 
-### 2. Command Line Interface (CLI)
+### 2. Docker & Container Deployment
+
+Run GuardRAG with persistent volume storage and non-root execution:
+
+```bash
+# Using Docker Compose (Bundled GuardRAG + Ollama)
+docker-compose up -d
+
+# Or build and run standalone container
+docker build -t guardrag:latest .
+docker run -d -p 8000:8000 -v guardrag_data:/data guardrag:latest
+```
+
+---
+
+### 3. Command Line Interface (CLI)
 
 Run ad-hoc queries in headless environments, CI/CD scripts, or terminal workflows:
 
@@ -222,7 +243,7 @@ GuardRAG parses, chunks, and indexes a wide range of document types:
 GuardRAG includes an automated test suite covering safety guardrails, PII redactions, multi-device isolation, background process handling, and API endpoints:
 
 ```bash
-pytest tests/
+python -m pytest tests/ -v
 ```
 
 ---
@@ -240,4 +261,3 @@ Built with ❤️ by **[Sowmiyan S](https://github.com/sowmiyan-s)**
 [GitHub Repository](https://github.com/sowmiyan-s/GUARD-RAG) · [Bug Reports & Feature Requests](https://github.com/sowmiyan-s/GUARD-RAG/issues)
 
 </div>
-

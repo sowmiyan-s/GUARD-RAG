@@ -17,7 +17,7 @@
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     rel="stylesheet" />
   <script src="static/marked.min.js"></script>
-  <link rel="stylesheet" href="static/style.css?v=1.3.1" />
+  <link rel="stylesheet" href="static/style.css?v=1.4.2" />
   <style>
     /* In-document fallback for floating tooltip to prevent layout distortion (e.g. from browser CSS cache) */
     .info-floating-tooltip {
@@ -86,10 +86,8 @@
 
     <!-- Brand header — always visible -->
     <div class="sidebar-brand">
-      <div style="display:flex; align-items:center; gap:0.55rem; flex:1;">
-        <img src="static/logo.png" alt="Duck Logo" style="width:26px; height:26px; flex-shrink:0; object-fit:contain;" />
-        <span class="sb-text brand-title" style="font-size:0.95rem; font-weight:800; letter-spacing:-0.01em;">GuardRAG</span>
-        <span class="sb-text" style="font-size:0.55rem; font-weight:700; padding:0.15rem 0.45rem; border-radius:4px; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25); text-transform:uppercase;">ENTERPRISE</span>
+      <div class="sidebar-brand-inner" style="display:flex; align-items:center; flex:1;">
+        <img src="static/GuardRag.png" alt="GuardRAG" style="height:25px; width:auto; max-width:145px; flex-shrink:0; object-fit:contain;" />
       </div>
       <!-- Desktop collapse toggle -->
       <button class="sb-collapse-btn" id="sidebarCollapseBtn" aria-label="Collapse sidebar" title="Collapse sidebar">
@@ -104,25 +102,33 @@
     <!-- Scrollable body -->
     <div class="sidebar-body" id="sidebarBody">
 
-      <!-- "+ New Chat" Action Button (ChatGPT Style) -->
-      <button id="btnClear" class="btn-chatgpt-new sb-text" type="button" aria-label="Start new chat session">
-        <div style="display:flex; align-items:center; gap:0.6rem;">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span style="font-weight:600;">New chat</span>
-        </div>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.55;" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-      </button>
+      <!-- "+ New Chat" Action Button (Full Width, Modern Pill Style) -->
+      <div class="sidebar-new-chat-wrap">
+        <button id="btnClear" class="btn-chatgpt-new sb-text" type="button" aria-label="Start new chat session">
+          <div class="btn-new-chat-left">
+            <svg class="new-chat-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>New chat</span>
+          </div>
+          <svg class="new-chat-icon-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"/>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+          </svg>
+        </button>
+      </div>
 
-      <!-- Document Library Collections List -->
-      <div class="sidebar-section-header sb-text" style="display:flex; align-items:center; justify-content:space-between; margin-top:0.75rem; padding:0.4rem 0.2rem; font-size:0.7rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em;">
-        <span>Document Library</span>
-        <button id="btnRefreshStorage" class="info-btn" title="Refresh Library" type="button" aria-label="Refresh library" style="width:20px; height:20px; padding:0;">
+      <!-- Chat History Collections List -->
+      <div class="sidebar-section-header sb-text">
+        <span>Chat History</span>
+        <button id="btnRefreshStorage" class="sidebar-icon-btn" title="Refresh Chat History" type="button" aria-label="Refresh chat history">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         </button>
       </div>
 
-      <div id="storagePool" class="storage-pool" style="margin-top:0.25rem;">
-        <div class="storage-empty sb-text" id="storageEmpty">No indexed collections yet.</div>
+      <div id="storagePool" class="storage-pool">
+        <div class="storage-empty sb-text" id="storageEmpty">No chat history yet.</div>
       </div>
 
       <!-- Hidden compatibility form inputs for app.js state reading -->
@@ -158,13 +164,13 @@
       </div>
 
       <!-- Sidebar Footer Navigation (ChatGPT Style) -->
-      <div class="sidebar-footer" style="margin-top:auto; padding-top:0.6rem; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:0.25rem;">
+      <div class="sidebar-footer">
         <button id="btnOpenSettingsCenter" class="sidebar-chatgpt-footer-btn sb-text" type="button">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <svg class="footer-gear-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span>Settings</span>
         </button>
 
-        <a href="https://github.com/sowmiyan-s/GUARD-RAG" target="_blank" rel="noopener" class="footer-link sb-text" style="font-size:0.68rem; color:var(--text-muted); text-align:center; padding:0.2rem 0; text-decoration:none;">
+        <a href="https://github.com/sowmiyan-s/GUARD-RAG" target="_blank" rel="noopener" class="footer-link sb-text">
           GuardRAG • MIT License
         </a>
       </div>

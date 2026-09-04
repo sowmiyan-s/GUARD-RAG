@@ -71,14 +71,16 @@ load_dotenv()
 # Override at any time by setting OLLAMA_HOST in .env or your PaaS settings.
 SERVER_OLLAMA_HOST: str = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
 
-from fastapi import FastAPI, File, HTTPException, UploadFile, Request, Query
+from fastapi import FastAPI, File, HTTPException, UploadFile, Request, Query, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from langchain_core.messages import AIMessage, HumanMessage
 from pydantic import BaseModel
 
 # Internal imports
+from guardrag.api import db
 from guardrag.rag.core import (
     build_rag_chain,
     load_stored_rag_chain,
@@ -106,7 +108,7 @@ try:
     import guardrag as _guardrag_pkg
     _API_VERSION = _guardrag_pkg.__version__
 except Exception:
-    _API_VERSION = "1.2.6"
+    _API_VERSION = "1.3.0"
 
 app = FastAPI(
     title="Guardrails Local RAG Bot",
@@ -123,11 +125,41 @@ app.add_middleware(
 )
 
 FRONTEND_DIR = Path(__file__).parent / "frontend"
-FAISS_STORAGE = Path.cwd() / ".guardrag_storage"
-FAISS_STORAGE.mkdir(exist_ok=True)
+FAISS_STORAGE = db.get_data_dir()
+FAISS_STORAGE.mkdir(parents=True, exist_ok=True)
 
 # Meta file that maps db_id → human-readable info (file names, date, model)
 FAISS_META_FILE = FAISS_STORAGE / "_meta.json"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Enterprise API Key Security Guard
+# ─────────────────────────────────────────────────────────────────────────────
+security = HTTPBearer(auto_error=False)
+
+def verify_api_key(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key")
+):
+    """Verify API authorization when GUARDRAG_API_KEY is configured in environment."""
+    server_key = os.environ.get("GUARDRAG_API_KEY")
+    if not server_key:
+        return True
+    
+    token = credentials.credentials if credentials else None
+    if token == server_key or x_api_key == server_key:
+        return True
+    
+    raise HTTPException(
+        status_code=401,
+        detail="Unauthorized: Missing or invalid API key."
+    )
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Global Metrics Telemetry
+# ─────────────────────────────────────────────────────────────────────────────
+_app_start_time: float = time.time()
+_query_count: int = 0
+_total_latency: float = 0.0
 
 # ─────────────────────────────────────────────────────────────────────────────
 # FAISS metadata helpers
@@ -159,7 +191,6 @@ def _register_faiss_entry(db_id: str, file_names: list, model: str, chunk_size: 
 # ─────────────────────────────────────────────────────────────────────────────
 # Persistent session store (SQLite) and LRU Cache for RAG chains
 # ─────────────────────────────────────────────────────────────────────────────
-from guardrag.api import db
 from collections import OrderedDict
 
 class LRUChainCache:
@@ -248,18 +279,34 @@ class LoadSessionRequest(BaseModel):
 # ─────────────────────────────────────────────────────────────────────────────
 # Audit logging system
 # ─────────────────────────────────────────────────────────────────────────────
-_audit_logs = []
-
 def add_audit_log(event_type: str, message: str, details: dict = None):
-    log_entry = {
-        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "event_type": event_type,
-        "message": message,
-        "details": details or {}
+    """Persist audit log entry to SQLite storage."""
+    db.add_audit_log(event_type, message, details)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Prometheus & Telemetry Endpoint
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get("/api/metrics")
+async def get_metrics():
+    """Expose application health and performance telemetry metrics."""
+    global _query_count, _total_latency, _app_start_time
+    uptime_sec = round(time.time() - _app_start_time, 2)
+    avg_latency = round(_total_latency / max(_query_count, 1), 3) if _query_count > 0 else 0.0
+    meta = await asyncio.to_thread(_load_faiss_meta)
+    collections_count = len(meta)
+    sessions = await asyncio.to_thread(db.list_sessions)
+    sessions_count = len(sessions)
+    
+    return {
+        "status": "healthy",
+        "uptime_seconds": uptime_sec,
+        "total_queries": _query_count,
+        "average_latency_seconds": avg_latency,
+        "indexed_collections": collections_count,
+        "active_sessions": sessions_count,
+        "memory_cached_chains": len(_rag_chains.cache),
+        "data_directory": str(FAISS_STORAGE),
     }
-    _audit_logs.append(log_entry)
-    if len(_audit_logs) > 200:
-        _audit_logs.pop(0)
 
 
 # RAG functions are now imported from guardrag.rag.core
@@ -473,6 +520,7 @@ async def upload_documents(
     manual_redactions: str = "",
     system_prompt: str = "",
     temperature: float = 0.0,
+    _auth: bool = Depends(verify_api_key)
 ):
     # Use server-configured host if the client didn't supply one
     host = (ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
@@ -480,7 +528,7 @@ async def upload_documents(
     if not files:
         raise HTTPException(status_code=400, detail="No files provided.")
 
-    allowed_ext = {".pdf", ".txt", ".doc", ".docx"}
+    allowed_ext = {".pdf", ".txt", ".doc", ".docx", ".md", ".json", ".csv", ".log", ".py"}
     temp_paths = []
     file_names = []
 
@@ -520,6 +568,9 @@ async def upload_documents(
 
         _rag_chains.put(h, rag_chain)
         
+        existing_session = db.get_session(h)
+        existing_messages = existing_session.get("messages", []) if existing_session else []
+
         db.save_session(
             session_id=h,
             db_id=db_id,
@@ -528,17 +579,17 @@ async def upload_documents(
             chunk_size=chunk_size,
             redact_pii=redact_pii,
             system_prompt=system_prompt,
-            sensitivity_level="Internal",
-            enable_guardrails=True,
+            sensitivity_level=existing_session.get("sensitivity_level", "Internal") if existing_session else "Internal",
+            enable_guardrails=existing_session.get("enable_guardrails", True) if existing_session else True,
             temperature=temperature,
             chunk_overlap=chunk_overlap,
             custom_rules=manual_list,
-            messages=[]
+            messages=existing_messages
         )
 
         await asyncio.to_thread(_register_faiss_entry, db_id, file_names, model, chunk_size, chunk_overlap, redact_pii, manual_list)
         add_audit_log("upload", f"Indexed {len(files)} file(s) into database {db_id}", {"model": model, "chunk_size": chunk_size, "redact_pii": redact_pii})
-        return {"session_id": h, "db_id": db_id, "files": file_names, "model": model}
+        return {"session_id": h, "db_id": db_id, "files": file_names, "model": model, "messages": existing_messages}
 
     finally:
         for p in temp_paths:
@@ -600,6 +651,9 @@ async def load_session(req: LoadSessionRequest):
 
     _rag_chains.put(h, rag_chain)
 
+    existing_session = db.get_session(h)
+    existing_messages = existing_session.get("messages", []) if existing_session else []
+
     db.save_session(
         session_id=h,
         db_id=req.db_id,
@@ -608,12 +662,12 @@ async def load_session(req: LoadSessionRequest):
         chunk_size=info.get("chunk_size", 1000),
         redact_pii=info.get("redact_pii", False),
         system_prompt=req.system_prompt,
-        sensitivity_level="Internal",
-        enable_guardrails=True,
+        sensitivity_level=existing_session.get("sensitivity_level", "Internal") if existing_session else "Internal",
+        enable_guardrails=existing_session.get("enable_guardrails", True) if existing_session else True,
         temperature=req.temperature,
         chunk_overlap=info.get("chunk_overlap", 200),
         custom_rules=info.get("manual_redactions", []),
-        messages=[]
+        messages=existing_messages
     )
 
     return {
@@ -621,6 +675,7 @@ async def load_session(req: LoadSessionRequest):
         "db_id": req.db_id,
         "files": info.get("files", []),
         "model": req.model,
+        "messages": existing_messages,
     }
 
 @app.post("/api/share/generate")
@@ -707,6 +762,15 @@ async def delete_storage_entry(body: dict):
 
     del meta[db_id]
     await asyncio.to_thread(_save_faiss_meta, meta)
+
+    # Evict cached RAG chains from memory
+    try:
+        keys_to_evict = [k for k in list(_rag_chains.cache.keys()) if db_id in str(k)]
+        for k in keys_to_evict:
+            _rag_chains.cache.pop(k, None)
+    except Exception:
+        pass
+
     return {"deleted": True, "db_id": db_id}
 
 
@@ -738,6 +802,242 @@ async def get_session_info(session_id: str):
         "is_shared": is_shared,
         "share_settings": share_settings
     }
+
+
+@app.post("/api/chat/stream")
+async def chat_stream(req: ChatRequest):
+    """
+    Stream LLM tokens in real-time via Server-Sent Events (SSE).
+    Dispatches citations before generation starts, followed by live tokens and final latency metadata.
+    """
+    actual_session_id = req.session_id
+    is_read_only = False
+    min_confidence = req.min_confidence or 0.0
+    
+    # Check if this is a direct share link token
+    share_link = db.get_share_link(req.session_id)
+    if share_link:
+        if share_link.get("sync"):
+            actual_session_id = share_link["parent_session_id"]
+        is_read_only = share_link.get("read_only", False)
+        if share_link.get("min_confidence"):
+            min_confidence = max(min_confidence, float(share_link.get("min_confidence", 0.0)))
+    else:
+        # Check if session_id is a registered client session
+        client_sess = db.get_client_session(req.session_id)
+        if client_sess:
+            sl = db.get_share_link(client_sess["share_id"])
+            if sl:
+                is_read_only = sl.get("read_only", False)
+                if sl.get("min_confidence"):
+                    min_confidence = max(min_confidence, float(sl.get("min_confidence", 0.0)))
+                if sl.get("sync"):
+                    actual_session_id = sl["parent_session_id"]
+        
+    session = db.get_session(actual_session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found. Please upload documents first.")
+
+    if is_read_only or session.get("read_only", False):
+        raise HTTPException(status_code=403, detail="This session is read-only. You cannot send messages.")
+
+    # Enforce host privacy controls
+    if share_link:
+        effective_sensitivity = share_link.get("sensitivity_level") or session.get("sensitivity_level", "Internal")
+    elif client_sess:
+        c_sl = db.get_share_link(client_sess["share_id"])
+        effective_sensitivity = (c_sl.get("sensitivity_level") if c_sl else None) or session.get("sensitivity_level", "Internal")
+    else:
+        effective_sensitivity = req.sensitivity_level
+        session["sensitivity_level"] = effective_sensitivity
+        session["enable_guardrails"] = req.enable_guardrails
+        if req.custom_rules:
+            session["custom_rules"] = req.custom_rules
+    req.sensitivity_level = effective_sensitivity
+
+    effective_model = req.model.strip() if req.model and req.model.strip() else session.get("model", "gemma3:1b")
+    requested_host = req.resolved_host()
+
+    # Input safety check
+    blocked = check_input_safety(req.question, req.sensitivity_level, req.enable_guardrails, custom_rules=req.custom_rules)
+    if blocked:
+        add_audit_log("safety_alert", f"Input question blocked by {req.sensitivity_level} policy.", {"question": req.question})
+        async def blocked_generator():
+            yield f"event: blocked\ndata: {json.dumps({'answer': blocked, 'blocked': True, 'source': 'input_guard', 'citations': [], 'latency_sec': 0.0})}\n\n"
+        return StreamingResponse(blocked_generator(), media_type="text/event-stream")
+
+    # Mapping for PII redaction
+    mapping = {}
+    is_redacted = session.get("redact_pii", False)
+    db_id = session.get("db_id")
+    if is_redacted and db_id:
+        mapping_path = FAISS_STORAGE / db_id / "mapping.json"
+        if mapping_path.exists():
+            try:
+                mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
+            except Exception:
+                pass
+
+    question = req.question
+    if is_redacted:
+        from guardrag.utils.redactor import redact_and_map
+        question, updated_map = redact_and_map(question, redact_names=True, existing_map=mapping)
+        if len(updated_map) > len(mapping):
+            mapping = updated_map
+            if db_id:
+                mapping_path = FAISS_STORAGE / db_id / "mapping.json"
+                try:
+                    mapping_path.write_text(json.dumps(mapping, indent=2, ensure_ascii=False), encoding="utf-8")
+                except Exception:
+                    pass
+        add_audit_log("redaction", "Redacted user query before LLM processing.")
+
+    # Retrieve vectorstore and context documents
+    from guardrag.rag.core import get_stored_vectorstore, _get_llm
+    vectorstore = await asyncio.to_thread(get_stored_vectorstore, session["db_id"], str(FAISS_STORAGE))
+
+    host_lower = requested_host.lower()
+    is_cloud = any(x in host_lower for x in ["api.openai.com", "api.groq.com", "openrouter.ai", "api.anthropic.com", "api.cohere.ai"]) or \
+               any(x in effective_model.lower() for x in ["gpt-", "claude-", "gemini-", "command-r", "meta-llama"])
+    k = 8 if is_cloud else 4
+
+    docs = await asyncio.to_thread(vectorstore.similarity_search, question, k)
+
+    # Compute citation scores
+    citations = []
+    try:
+        import math
+        from guardrag.rag.core import _get_embeddings
+        embeddings = _get_embeddings()
+        query_vector = embeddings.embed_query(question)
+        doc_contents = [doc.page_content for doc in docs]
+        if doc_contents:
+            doc_vectors = embeddings.embed_documents(doc_contents)
+            q_norm = math.sqrt(sum(x * x for x in query_vector)) or 1.0
+            for doc, doc_vector in zip(docs, doc_vectors):
+                d_norm = math.sqrt(sum(x * x for x in doc_vector)) or 1.0
+                dot_prod = sum(q * d for q, d in zip(query_vector, doc_vector))
+                score_val = max(0.0, min(1.0, round(float(dot_prod / (q_norm * d_norm)), 4)))
+                if min_confidence > 0.0 and score_val < min_confidence:
+                    continue
+
+                disp_content = rehydrate_text(doc.page_content, mapping) if (is_redacted and mapping) else doc.page_content
+                source_path = doc.metadata.get("source", "Unknown")
+                source_name = os.path.basename(source_path) if source_path else "Unknown"
+                citations.append({
+                    "source": source_name,
+                    "page": doc.metadata.get("page", 0) + 1 if "page" in doc.metadata else None,
+                    "content": disp_content,
+                    "score": score_val,
+                })
+    except Exception as e:
+        for doc in docs:
+            disp_content = rehydrate_text(doc.page_content, mapping) if (is_redacted and mapping) else doc.page_content
+            source_path = doc.metadata.get("source", "Unknown")
+            source_name = os.path.basename(source_path) if source_path else "Unknown"
+            citations.append({
+                "source": source_name,
+                "page": doc.metadata.get("page", 0) + 1 if "page" in doc.metadata else None,
+                "content": disp_content,
+                "score": 0.0,
+            })
+
+    system_prompt = req.system_prompt or session.get("system_prompt")
+    if not system_prompt:
+        system_prompt = (
+            "You are GuardRAG, an intelligent, multilingual, and creative agentic document assistant.\n"
+            "Your task is to answer the user's query using ONLY the provided document context below.\n"
+            "Strictly follow these rules:\n"
+            "1. Ground your answer solely in the provided context chunks. Do NOT assume, extrapolate, or bring in outside knowledge.\n"
+            "2. If the context does not contain the answer, state clearly and politely that the information is missing from the uploaded documents.\n"
+            "3. If different documents or chunks provide contradictory information, point out the discrepancy with their source names.\n"
+            "4. IMPORTANT: Always respond in the SAME language the user asks the question in, actively translating context if necessary.\n"
+            "5. Be creative in formatting your answer (use markdown, lists, tables, and emojis where appropriate) to make it highly readable and logically structured."
+        )
+
+    context_str = "\n\n".join([f"[Source Document: {os.path.basename(d.metadata.get('source', 'Unknown'))}]\n{d.page_content}" for d in docs])
+    
+    from langchain_core.messages import SystemMessage
+    lc_messages = [SystemMessage(content=f"{system_prompt}\n\nContext:\n{context_str}")]
+    for h_msg in session["messages"]:
+        if h_msg["role"] == "user":
+            lc_messages.append(HumanMessage(content=h_msg["content"]))
+        elif h_msg["role"] == "assistant":
+            lc_messages.append(AIMessage(content=h_msg["content"]))
+    lc_messages.append(HumanMessage(content=question))
+
+    llm = _get_llm(effective_model, requested_host, temperature=req.temperature)
+
+    async def sse_generator():
+        global _query_count, _total_latency
+        start_time = time.time()
+        
+        # 1. Send initial citations
+        yield f"event: citations\ndata: {json.dumps({'citations': citations})}\n\n"
+        
+        # 2. Stream tokens from LLM
+        accumulated_chunks = []
+        try:
+            async for chunk in llm.astream(lc_messages):
+                tok = chunk.content if hasattr(chunk, "content") else str(chunk)
+                if tok:
+                    accumulated_chunks.append(tok)
+                    yield f"event: token\ndata: {json.dumps({'token': tok})}\n\n"
+        except Exception as err:
+            try:
+                res = await asyncio.to_thread(llm.invoke, lc_messages)
+                tok = res.content if hasattr(res, "content") else str(res)
+                accumulated_chunks.append(tok)
+                yield f"event: token\ndata: {json.dumps({'token': tok})}\n\n"
+            except Exception as e2:
+                yield f"event: error\ndata: {json.dumps({'error': str(e2)})}\n\n"
+                return
+
+        raw_answer = "".join(accumulated_chunks)
+        latency_sec = time.time() - start_time
+        _query_count += 1
+        _total_latency += latency_sec
+
+        # Rehydrate placeholder tokens back to real names
+        rehydrated_answer = rehydrate_text(raw_answer, mapping) if (is_redacted and mapping) else raw_answer
+
+        # Output safety check
+        blocked_out = check_output_safety(rehydrated_answer, req.sensitivity_level, req.enable_guardrails, custom_rules=req.custom_rules)
+        if blocked_out:
+            final_answer = blocked_out
+            yield f"event: blocked_output\ndata: {json.dumps({'answer': final_answer, 'blocked': True})}\n\n"
+            session["messages"].append({"role": "user", "content": req.question})
+            session["messages"].append({
+                "role": "assistant",
+                "content": final_answer,
+                "blocked": True,
+                "citations": [],
+                "latency_sec": latency_sec
+            })
+            _update_db_session(session)
+            add_audit_log("safety_alert", f"LLM output blocked and redacted under {req.sensitivity_level} policy.")
+        else:
+            final_answer = rehydrated_answer
+            session["messages"].append({"role": "user", "content": req.question})
+            session["messages"].append({
+                "role": "assistant",
+                "content": final_answer,
+                "blocked": False,
+                "citations": citations,
+                "latency_sec": latency_sec
+            })
+            _update_db_session(session)
+            if client_sess:
+                db.touch_client_session(req.session_id)
+            add_audit_log("retrieval", f"Successfully completed streaming RAG query in {latency_sec:.3f}s", {
+                "latency_sec": latency_sec,
+                "citations_count": len(citations),
+                "question": req.question
+            })
+
+        yield f"event: end\ndata: {json.dumps({'answer': final_answer, 'citations': citations, 'latency_sec': latency_sec, 'done': True})}\n\n"
+
+    return StreamingResponse(sse_generator(), media_type="text/event-stream")
 
 
 @app.post("/api/chat")
@@ -881,25 +1181,34 @@ async def chat(req: ChatRequest):
     if blocked_out:
         answer = blocked_out
         session["messages"].append({"role": "user", "content": req.question})
-        session["messages"].append({"role": "assistant", "content": answer})
+        session["messages"].append({
+            "role": "assistant",
+            "content": answer,
+            "blocked": True,
+            "citations": [],
+            "latency_sec": latency_sec
+        })
         _update_db_session(session)
         add_audit_log("safety_alert", f"LLM output blocked and redacted under {req.sensitivity_level} policy.")
         return {"answer": answer, "blocked": True, "source": "output_guard", "citations": [], "latency_sec": latency_sec}
 
-    # Extract citations & calculate similarity scores
+    # Extract citations & calculate cosine similarity confidence scores
     citations = []
     if isinstance(result, dict) and "context" in result:
         context_docs = result["context"]
         try:
+            import math
             from guardrag.rag.core import _get_embeddings
             embeddings = _get_embeddings()
             query_vector = embeddings.embed_query(question)
             doc_contents = [doc.page_content for doc in context_docs]
             if doc_contents:
                 doc_vectors = embeddings.embed_documents(doc_contents)
+                q_norm = math.sqrt(sum(x * x for x in query_vector)) or 1.0
                 for doc, doc_vector in zip(context_docs, doc_vectors):
-                    score = sum(q * d for q, d in zip(query_vector, doc_vector))
-                    score_val = round(float(score), 4)
+                    d_norm = math.sqrt(sum(x * x for x in doc_vector)) or 1.0
+                    dot_prod = sum(q * d for q, d in zip(query_vector, doc_vector))
+                    score_val = max(0.0, min(1.0, round(float(dot_prod / (q_norm * d_norm)), 4)))
                     if min_confidence > 0.0 and score_val < min_confidence:
                         # Skip context chunk below min_confidence threshold
                         continue
@@ -927,7 +1236,13 @@ async def chat(req: ChatRequest):
                 })
 
     session["messages"].append({"role": "user", "content": req.question})
-    session["messages"].append({"role": "assistant", "content": rehydrated_answer})
+    session["messages"].append({
+        "role": "assistant",
+        "content": rehydrated_answer,
+        "blocked": False,
+        "citations": citations,
+        "latency_sec": latency_sec
+    })
     _update_db_session(session)
     if client_sess:
         db.touch_client_session(req.session_id)
@@ -1032,8 +1347,8 @@ async def test_vector_connectivity(config: dict):
         raise HTTPException(status_code=400, detail=f"Unsupported vector store type: {store_type}")
 
 @app.get("/api/audit/logs")
-async def get_audit_logs():
-    return {"logs": _audit_logs}
+async def get_audit_logs(limit: int = 200, offset: int = 0):
+    return {"logs": db.get_audit_logs(limit=limit, offset=offset)}
 
 
 import uuid

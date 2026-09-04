@@ -31,6 +31,10 @@ setup(
     },
     
     packages=find_packages(include=["guardrag", "guardrag.*"]),
+    include_package_data=True,
+    package_data={
+        "guardrag": ["api/frontend/**/*", "py.typed"],
+    },
     
     python_requires=">=3.9",
     

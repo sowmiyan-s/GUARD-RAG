@@ -208,6 +208,12 @@ ollamaEndpointInput.addEventListener('blur', () => {
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 async function apiFetch(path, opts = {}) {
+  const headers = opts.headers ? { ...opts.headers } : {};
+  const storedKey = localStorage.getItem('guardrag_api_key');
+  if (storedKey && !headers['Authorization'] && !headers['x-api-key']) {
+    headers['Authorization'] = `Bearer ${storedKey}`;
+  }
+  opts.headers = headers;
   const res = await fetch(API_BASE + path, opts);
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
@@ -1146,7 +1152,7 @@ async function loadStoragePool() {
     const collections = data.collections || [];
 
     if (collections.length === 0) {
-      storageEmpty.textContent = 'No indexed collections yet.';
+      storageEmpty.textContent = 'No chat history yet.';
       return;
     }
 
@@ -1164,14 +1170,14 @@ async function loadStoragePool() {
 
       card.innerHTML = `
         <div class="storage-card-header">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted); flex-shrink:0;" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
           </svg>
-          <span class="storage-card-name" title="${escapeHtml(names)}">${escapeHtml(truncate(names, 28))}</span>
+          <span class="storage-card-name" title="${escapeHtml(names)}">${escapeHtml(truncate(names, 36))}</span>
         </div>
-        <button class="storage-del-btn" data-db-id="${col.db_id}" title="Delete collection" aria-label="Delete">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <button class="storage-del-btn" data-db-id="${col.db_id}" title="Delete chat session" aria-label="Delete chat session">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       `;
 
@@ -1190,7 +1196,7 @@ async function loadStoragePool() {
       storagePool.appendChild(card);
     });
   } catch (e) {
-    storageEmpty.textContent = `Error loading library: ${e.message}`;
+    storageEmpty.textContent = `Error loading chat history: ${e.message}`;
   }
 }
 
@@ -1228,10 +1234,34 @@ async function loadStoredSession(col) {
     state.sessionId = data.session_id;
     state.currentDbId = col.db_id;
     state.activeDocName = col.files.length > 1 ? `${col.files[0]} (+${col.files.length - 1} more)` : col.files[0];
+    localStorage.setItem('ragbot_active_db_id', col.db_id);
+    localStorage.setItem('ragbot_active_session_id', data.session_id);
+    localStorage.setItem('ragbot_active_doc_name', state.activeDocName);
+
+    // Restore message history without clearing
+    chatMessages.innerHTML = '';
+    const messages = data.messages || [];
+    if (Array.isArray(messages) && messages.length > 0) {
+      messages.forEach(msg => {
+        if (!msg) return;
+        if (typeof msg === 'string') {
+          appendMessage('user', msg);
+        } else {
+          appendMessage(
+            msg.role || 'assistant',
+            msg.content || '',
+            msg.blocked || false,
+            msg.is_error || false,
+            msg.citations || [],
+            msg.latency_sec || 0
+          );
+        }
+      });
+    }
 
     // Update upload status text
     setUploadStatus(`Loaded: ${data.files.join(', ')}`, 'success');
-    toast(`Loaded "${data.files.join(', ')}" from library.`, 'success');
+    toast(`Loaded "${data.files.join(', ')}" from history.`, 'success');
     showChatReady();
     autoCollapseUpload();
     if (window.innerWidth <= 900) closeMobileSidebar();
@@ -1268,7 +1298,7 @@ async function deleteStoredSession(dbId, cardEl) {
 
 function checkStorageEmpty() {
   if (!storagePool.querySelector('.storage-card')) {
-    storageEmpty.textContent = 'No indexed collections yet.';
+    storageEmpty.textContent = 'No chat history yet.';
     storageEmpty.style.display = 'block';
   }
 }
@@ -1394,6 +1424,30 @@ async function processDocuments() {
     state.sessionId = data.session_id;
     state.currentDbId = data.db_id;
     state.activeDocName = state.selectedFiles.length > 1 ? `${state.selectedFiles[0].name} (+${state.selectedFiles.length - 1} more)` : state.selectedFiles[0].name;
+    localStorage.setItem('ragbot_active_db_id', data.db_id);
+    localStorage.setItem('ragbot_active_session_id', data.session_id);
+    localStorage.setItem('ragbot_active_doc_name', state.activeDocName);
+
+    chatMessages.innerHTML = '';
+    const messages = data.messages || [];
+    if (Array.isArray(messages) && messages.length > 0) {
+      messages.forEach(msg => {
+        if (!msg) return;
+        if (typeof msg === 'string') {
+          appendMessage('user', msg);
+        } else {
+          appendMessage(
+            msg.role || 'assistant',
+            msg.content || '',
+            msg.blocked || false,
+            msg.is_error || false,
+            msg.citations || [],
+            msg.latency_sec || 0
+          );
+        }
+      });
+    }
+
     setUploadStatus(`${data.files.length} document(s) indexed.`, 'success');
     toast('Documents ready — start chatting!', 'success');
     showChatReady();
@@ -1415,7 +1469,9 @@ async function processDocuments() {
 function showEmptyState() {
   state.activeTab = 'new-chat';
   const tabs = $('viewTabs');
-  if (tabs) tabs.style.display = 'none';
+  if (tabs) {
+    tabs.style.display = state.sessionId ? 'inline-flex' : 'none';
+  }
   
   emptyState.style.display = '';
   if (uploadSection) {
@@ -1432,7 +1488,7 @@ function showEmptyState() {
   chatInput.disabled = false;
   chatInput.placeholder = "Ask anything about your document or start typing...";
   btnSend.disabled = false;
-  chatMessages.innerHTML = '';
+  updateTabUI();
 }
 
 const MAGIC_PROMPTS = {
@@ -1533,7 +1589,14 @@ function updateTabUI() {
   }
 }
 
-// ─── CLEAR CONVERSATION ───────────────────────────────────────────────────────
+// ─── START NEW CHAT & CLEAR CONVERSATION ────────────────────────────────────
+function startNewChat() {
+  state.activeTab = 'new-chat';
+  storagePool.querySelectorAll('.storage-card').forEach(c => c.classList.remove('active'));
+  showEmptyState();
+  if (window.innerWidth <= 900) closeMobileSidebar();
+}
+
 async function clearConversation() {
   const confirmed = await showCustomConfirm(
     'Clear Conversation',
@@ -1557,13 +1620,16 @@ async function clearConversation() {
   state.selectedFiles = [];
   state.activeDocName = '';
   chatMessages.innerHTML = '';
+  localStorage.removeItem('ragbot_active_db_id');
+  localStorage.removeItem('ragbot_active_session_id');
+  localStorage.removeItem('ragbot_active_doc_name');
   renderFileList();
   showEmptyState();
   toast('Session terminated. Please select a new document.', 'info');
   if (window.innerWidth <= 900) closeMobileSidebar();
 }
 
-btnClear.addEventListener('click', clearConversation);
+btnClear.addEventListener('click', startNewChat);
 
 // ─── CHAT INPUT ────────────────────────────────────────────────────────────────
 chatInput.addEventListener('input', () => {
@@ -1576,6 +1642,66 @@ chatInput.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 btnSend.addEventListener('click', sendMessage);
+
+// ─── STREAMING ASSISTANT MESSAGE ──────────────────────────────────────────────
+function createStreamingAssistantMessage() {
+  const wrap = document.createElement('div');
+  wrap.className = 'chat-message assistant';
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar bot-av';
+  avatar.setAttribute('aria-hidden', 'true');
+  avatar.innerHTML = '<img src="static/logo.png" alt="GuardRAG Assistant" style="width:100%; height:100%; object-fit:contain;" />';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+
+  const content = document.createElement('div');
+  content.className = 'markdown-body-stream';
+  bubble.appendChild(content);
+
+  wrap.appendChild(avatar);
+  wrap.appendChild(bubble);
+  chatMessages.appendChild(wrap);
+  scrollToBottom();
+
+  return {
+    wrap,
+    bubble,
+    content,
+    update(text) {
+      content.innerHTML = marked.parse(text);
+      scrollToBottom();
+    },
+    finalize(finalText, blocked = false, citations = [], latencySec = 0) {
+      if (blocked) {
+        bubble.classList.add('blocked');
+        const label = document.createElement('div');
+        label.className = 'guard-label';
+        label.textContent = 'GUARDRAIL TRIGGERED';
+        bubble.insertBefore(label, content);
+      }
+      content.innerHTML = marked.parse(finalText || '');
+      if (citations && citations.length > 0) {
+        const inspectBtn = document.createElement('button');
+        inspectBtn.className = 'btn btn-secondary inspect-citations-btn';
+        inspectBtn.style.marginTop = '0.65rem';
+        inspectBtn.style.fontSize = '0.68rem';
+        inspectBtn.style.padding = '0.35rem 0.75rem';
+        inspectBtn.style.minHeight = 'unset';
+        inspectBtn.textContent = 'Inspect Citations';
+        inspectBtn.addEventListener('click', () => {
+          showCitationsInspector(citations, latencySec);
+        });
+        bubble.appendChild(inspectBtn);
+      }
+      scrollToBottom();
+    },
+    remove() {
+      wrap.remove();
+    }
+  };
+}
 
 // ─── SEND MESSAGE ─────────────────────────────────────────────────────────────
 async function sendMessage() {
@@ -1592,6 +1718,8 @@ async function sendMessage() {
   appendMessage('user', question);
   typingIndicator.style.display = 'flex';
   scrollToBottom();
+
+  let streamMsg = null;
 
   try {
     const activeProfile = state.isSharedSession
@@ -1611,24 +1739,97 @@ async function sendMessage() {
       ? (state.sensitivityLevel || 'Internal')
       : (sensitivitySelect?.value || 'Internal');
 
-    const data = await apiFetch('/api/chat', {
+    const headers = { 'Content-Type': 'application/json' };
+    const storedKey = localStorage.getItem('guardrag_api_key');
+    if (storedKey) {
+      headers['Authorization'] = `Bearer ${storedKey}`;
+    }
+
+    const payload = {
+      session_id: state.sessionId,
+      question,
+      model: modelToUse,
+      enable_guardrails: guardrailsToUse,
+      sensitivity_level: sensitivityToUse,
+      ollama_host: getOllamaEndpoint(),
+      system_prompt: activeProfile.goal || '',
+      custom_rules: rulesList
+    };
+
+    const response = await fetch(API_BASE + '/api/chat/stream', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        session_id: state.sessionId,
-        question,
-        model: modelToUse,
-        enable_guardrails: guardrailsToUse,
-        sensitivity_level: sensitivityToUse,
-        ollama_host: getOllamaEndpoint(),
-        system_prompt: activeProfile.goal || '',
-        custom_rules: rulesList
-      }),
+      headers,
+      body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(err.detail || response.statusText);
+    }
+
     typingIndicator.style.display = 'none';
-    appendMessage('assistant', data.answer, data.blocked, false, data.citations || [], data.latency_sec || 0);
+    streamMsg = createStreamingAssistantMessage();
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let accumulatedText = '';
+    let citations = [];
+    let isBlocked = false;
+    let latencySec = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const events = buffer.split('\n\n');
+      buffer = events.pop();
+
+      for (const evt of events) {
+        if (!evt.trim()) continue;
+        const lines = evt.split('\n');
+        let eventType = 'message';
+        let dataStr = '';
+        for (const line of lines) {
+          if (line.startsWith('event: ')) {
+            eventType = line.slice(7).trim();
+          } else if (line.startsWith('data: ')) {
+            dataStr = line.slice(6);
+          }
+        }
+        if (!dataStr) continue;
+        try {
+          const data = JSON.parse(dataStr);
+          if (eventType === 'citations') {
+            citations = data.citations || [];
+          } else if (eventType === 'token') {
+            accumulatedText += data.token || '';
+            streamMsg.update(accumulatedText);
+          } else if (eventType === 'blocked' || eventType === 'blocked_output') {
+            isBlocked = true;
+            accumulatedText = data.answer || '';
+            streamMsg.update(accumulatedText);
+          } else if (eventType === 'end') {
+            accumulatedText = data.answer || accumulatedText;
+            citations = data.citations || citations;
+            latencySec = data.latency_sec || latencySec;
+          } else if (eventType === 'error') {
+            throw new Error(data.error || 'Streaming error occurred');
+          }
+        } catch (jsonErr) {
+          console.warn('Failed to parse SSE chunk:', jsonErr, dataStr);
+        }
+      }
+    }
+
+    streamMsg.finalize(accumulatedText, isBlocked, citations, latencySec);
+
   } catch (e) {
     typingIndicator.style.display = 'none';
+    if (streamMsg) {
+      streamMsg.remove();
+    }
     const friendly = translateError(e);
     appendMessage('assistant', friendly, false, true);
     toast(e.message || 'Chat query failed', 'error', 6000);
@@ -2897,6 +3098,22 @@ async function checkSharedSession() {
 
   // Check if this page load is for a shared session
   await checkSharedSession();
+
+  // Restore active session and its chat history if available
+  if (!state.isSharedSession) {
+    const savedActiveDbId = localStorage.getItem('ragbot_active_db_id');
+    if (savedActiveDbId) {
+      try {
+        const data = await apiFetch('/api/storage');
+        const found = (data.collections || []).find(c => c.db_id === savedActiveDbId && c.available);
+        if (found) {
+          await loadStoredSession(found);
+        }
+      } catch (e) {
+        console.warn("Could not restore previous active session:", e);
+      }
+    }
+  }
 
   // 3. Poll health every 12 s
   setInterval(refreshHealth, 12_000);

@@ -5,12 +5,19 @@ Core RAG pipeline for document processing and retrieval.
 import hashlib
 import os
 import time
+import warnings
 from pathlib import Path
 from typing import Any
 
 from langchain_core.documents import Document
-from langchain_community.vectorstores import FAISS
 from langchain_huggingface import HuggingFaceEmbeddings
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", category=DeprecationWarning)
+    try:
+        from langchain_community.vectorstores import FAISS
+    except ImportError:
+        FAISS = None
 from langchain_ollama import ChatOllama
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -69,8 +76,17 @@ def _get_embeddings():
     return _embeddings
 
 
-def load_vector_settings() -> dict:
-    storage_path = Path(".guardrag_storage")
+def _get_default_storage_dir() -> Path:
+    try:
+        from guardrag.api.db import get_data_dir
+        return get_data_dir()
+    except Exception:
+        p = Path(".guardrag_storage")
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+def load_vector_settings(storage_dir: str = None) -> dict:
+    storage_path = Path(storage_dir) if storage_dir else _get_default_storage_dir()
     settings_file = storage_path / "vector_settings.json"
     if settings_file.exists():
         try:
@@ -194,6 +210,11 @@ def build_rag_chain(
         if not docs:
             raise ValueError("No documents were successfully loaded.")
         
+        # Sanitize against adversarial indirect prompt injections
+        from guardrag.utils.safety import sanitize_document_content
+        for doc in docs:
+            doc.page_content = sanitize_document_content(doc.page_content)
+
         print(f"Splitting {len(docs)} documents into chunks...")
         mapping = {}
         if redact_pii:

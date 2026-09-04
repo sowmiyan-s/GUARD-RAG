@@ -1,5 +1,5 @@
 """
-Gurag Chat - A privacy-first, fully offline AI document assistant
+GuardRAG - A privacy-first, fully offline AI document assistant
 powered by Guardrails, LangChain, Ollama, and HuggingFace embeddings.
 """
 

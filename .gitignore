@@ -22,18 +22,19 @@ ENV/
 .env.*
 !.env.example
 
-# ── FAISS Vector Storage ──────────────────────────────────────────────────────
+# ── FAISS Vector Storage & Databases ──────────────────────────────────────────
 .faiss_storage/
 .faiss_storage_cli/
 .guardrag_storage/
+*.db
+*.sqlite
+*.sqlite3
+guardrag/api/sessions.db
 
-# ── Temporary / Test outputs ──────────────────────────────────────────────────
-*.txt
-*.py
-!setup.py
-!conftest.py
-!test_*.py
+# ── Temporary / Scratch outputs ───────────────────────────────────────────────
 pip-delete-this-directory.txt
+*.tmp
+*.bak
 
 # ── Testing / Benchmarks ──────────────────────────────────────────────────────
 .pytest_cache/

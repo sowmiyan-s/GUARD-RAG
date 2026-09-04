@@ -8,11 +8,42 @@ from typing import Optional
 JAILBREAK_PATTERNS = [
     "ignore previous", "forget your instructions", "ignore all prior",
     "jailbreak", "dan mode", "pretend you are", "act as if you are",
-    "you are now", "disregard your", "override your",
+    "you are now", "disregard your", "override your", "bypass rules",
+    "developer mode", "god mode", "unrestricted mode",
 ]
+
+ADVERSARIAL_INJECTION_PATTERNS = [
+    r'\[\s*(?:system|admin|developer|instruction|override|prompt)\s*(?:note|override|prompt|directive)?\s*[:\-].*?\]',
+    r'<\s*(?:system|instruction|prompt|override)\s*>.*?<\s*/\s*(?:system|instruction|prompt|override)\s*>',
+    r'<<<\s*SYS\s*>>>.*?<<<\s*/\s*SYS\s*>>>',
+    r'(?i)\b(?:ignore|forget|disregard|override)\s+(?:all\s+)?(?:previous|prior|system|developer)\s+(?:instructions|prompts|rules|directives)\b',
+    r'(?i)\b(?:you\s+are\s+now|pretend\s+you\s+are|act\s+as\s+if\s+you\s+are)\s+(?:a|an)?\s*(?:dan|unrestricted|jailbroken|godmode|admin)\b',
+]
+
+def sanitize_document_content(text: str) -> str:
+    """
+    Sanitize raw document text to neutralize adversarial indirect prompt injections
+    before chunking and vectorstore embedding.
+    """
+    if not text:
+        return ""
+    import re
+    cleaned = text
+    for pattern in ADVERSARIAL_INJECTION_PATTERNS:
+        cleaned = re.sub(pattern, "[UNTRUSTED_DOC_INSTRUCTION_STRIPPED]", cleaned, flags=re.DOTALL)
+    return cleaned
 
 import json
 from pathlib import Path
+
+def _get_policies_dir() -> Path:
+    try:
+        from guardrag.api.db import get_data_dir
+        return get_data_dir()
+    except Exception:
+        p = Path(".guardrag_storage")
+        p.mkdir(parents=True, exist_ok=True)
+        return p
 
 DEFAULT_SENSITIVITY_PROFILES = {
     "Public": {
@@ -69,7 +100,7 @@ DEFAULT_SENSITIVITY_PROFILES = {
 }
 
 def load_policies() -> dict:
-    storage_path = Path(".guardrag_storage")
+    storage_path = _get_policies_dir()
     policies_path = storage_path / "policies.json"
     if policies_path.exists():
         try:
@@ -79,8 +110,7 @@ def load_policies() -> dict:
     return DEFAULT_SENSITIVITY_PROFILES
 
 def save_policies(policies: dict) -> None:
-    storage_path = Path(".guardrag_storage")
-    storage_path.mkdir(exist_ok=True)
+    storage_path = _get_policies_dir()
     policies_path = storage_path / "policies.json"
     policies_path.write_text(json.dumps(policies, indent=2, ensure_ascii=False), encoding="utf-8")
 
