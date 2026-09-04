@@ -2,106 +2,160 @@
 
 # 🛡️ GuardRAG Enterprise
 
-### Privacy-First, Fully Offline AI Document Intelligence
-**Secured by a 4-Tier Safety Guardrails Engine**
+### Privacy-First, 100% Offline AI Document Intelligence & Retrieval
+**Powered by Local LLMs, 4-Tier Safety Guardrails & Host-Controlled Multi-Device Sharing**
 
-[![PyPI version](https://img.shields.io/pypi/v/guard-rag?style=for-the-badge&color=0052CC)](https://pypi.org/project/guard-rag/)
-![Python](https://img.shields.io/badge/Python-3.9%2B-0052CC?style=for-the-badge&logo=python&logoColor=white)
+[![PyPI version](https://img.shields.io/pypi/v/guard-rag?style=for-the-badge&color=00b91e)](https://pypi.org/project/guard-rag/)
+![Python](https://img.shields.io/badge/Python-3.9%2B-00b91e?style=for-the-badge&logo=python&logoColor=white)
 ![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-black?style=for-the-badge&logo=ollama&logoColor=white)
 ![FAISS](https://img.shields.io/badge/FAISS-Vector%20Store-0064A4?style=for-the-badge&logo=meta&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-64%20Passing-00b91e?style=for-the-badge&logo=pytest&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-00b91e?style=for-the-badge)
 
 <br/>
 
-> **Empower your organization to interact with sensitive documents securely.**  
-> GuardRAG runs entirely on your local infrastructure. No data leaves your network, and every AI response is strictly grounded and cited.  
-> Protected by enterprise-grade data redaction, credential blocking, and anti-jailbreak safeguards.
+> **Interact with sensitive enterprise documents with complete privacy and zero data leakage.**  
+> GuardRAG runs 100% locally on your hardware. No prompts, documents, or embeddings ever leave your device or internal network.  
+> Every AI answer is strictly grounded in verifiable source citations and protected by multi-tier PII scrubbing, credential blocking, anti-jailbreak defenses, and customizable reasoning personas.
 
 </div>
 
 ---
 
-## 🌟 Executive Summary
+## 🌟 Key Features & Updates
 
-GuardRAG is engineered for professionals and organizations handling confidential data—Legal, Healthcare, Finance, and Enterprise IT. It provides a highly secure Retrieval-Augmented Generation (RAG) pipeline that lets you query internal documents without exposing sensitive information to public APIs or unauthorized internal LLM prompts.
+GuardRAG is tailored for privacy-sensitive industries—Legal, Healthcare, Finance, and Enterprise IT—where data compliance and zero external telemetry are mandatory.
 
 | **Capability** | **Description** |
 | :--- | :--- |
-| 🛡️ **Offline Security** | Operates 100% offline using local Ollama LLMs and ONNX-accelerated vector embeddings. |
-| 🔐 **Data Redaction** | Context-aware PII scrubbing automatically redacts SSNs, emails, and names prior to indexing. |
-| 📊 **Verifiable Citations** | The AI never hallucinates its sources. Every answer includes verifiable document citations. |
-| 🌐 **Modern Web Console** | Intuitive, responsive web UI for managing vector libraries, adjusting LLM models, and interacting with data. |
-| 🔌 **Cloud Extensibility** | Drop-in support for OpenAI, Anthropic, Cohere, Groq, and OpenRouter for hybrid deployments. |
+| 🛡️ **100% Offline Inference** | Operates entirely on local CPU/GPU using Ollama models (Gemma, LLaMA, DeepSeek, Mistral, Qwen, Phi) and FastEmbed embeddings. |
+| 🔒 **4-Tier Safety Guardrails** | Configurable security tiers (*Public*, *Internal*, *Confidential*, *Restricted*) providing real-time credential blocking, PII redaction, and compliance filtering. |
+| 🎭 **Reasoning & Custom Profiles** | Switch between *Balanced*, *Strict Privacy*, and *Fast Summarizer* reasoning presets, or create and persist **Custom Profiles** with tailored personas and blocked terms. |
+| 🌐 **Host-Controlled LAN Sharing** | Share document Q&A across your local network. Host machines retain exclusive admin authority—guests cannot alter security levels or delete collections. |
+| ⚡ **Silent Background Ollama** | Start, stop, and monitor Ollama health with zero popup command windows on Windows, macOS, or Linux. |
+| 🎨 **ChatGPT-Style Interface** | Full-width, responsive UI featuring dynamic document tracking, source citation cards, model selectors, and brand styling. |
+| 📊 **Verifiable Citations** | Hallucination-free document grounding. Every answer links back to exact page numbers, chunk excerpts, and similarity scores. |
+| 📁 **Broad Document Support** | Ingest and search `.pdf`, `.docx`, `.doc`, `.txt`, `.md`, `.csv`, `.json`, `.log`, and `.py` files. |
+| 🔌 **Python SDK & Headless CLI** | Full programmatic access via clean Python APIs and headless command-line interface for CI/CD and automated document workflows. |
 
 ---
 
-## 🏗️ Enterprise Architecture
+## 🏗️ Architecture & Security Pipeline
 
-GuardRAG’s architecture is built on a strict boundary between document processing and LLM interaction, ensuring that sensitive data is filtered before it reaches the language model.
+GuardRAG guarantees complete data isolation across ingestion, retrieval, and LLM generation:
 
 ```mermaid
 graph TD
-    User([User]) -->|Web UI / CLI| API(FastAPI Backend)
-    API -->|Raw Document| PII[PII Redactor & Filter]
-    PII -->|Scrubbed Text| Embed[FastEmbed ONNX]
-    Embed --> VectorDB[(FAISS / Qdrant)]
-    API -->|Query| SafetyInput[Input Guardrails]
-    SafetyInput --> Retriever[Semantic Retriever]
+    User([User / Web UI / CLI]) -->|Raw Document| Ingest[Document Parser & Cleaner]
+    Ingest -->|Text Chunks| PIIRedactor[PII & Credential Redactor]
+    PIIRedactor -->|Clean Chunks| Embedder[FastEmbed ONNX Vectorizer]
+    Embedder --> VectorDB[(Local Vector Store: FAISS / Qdrant)]
+    
+    User -->|Prompt Query| InputGuard[Input Safety Guardrail Engine]
+    InputGuard -->|Sanitized Query| Retriever[Semantic Context Retriever]
     Retriever --> VectorDB
-    VectorDB -->|Context| RAG[GuardRAG Chain]
-    RAG -->|Local / Cloud LLM| Response[Raw Answer]
-    Response --> SafetyOutput[Output Guardrails]
-    SafetyOutput -->|Safe Answer| User
+    VectorDB -->|Top-K Grounded Chunks| PromptEngine[Persona & Reasoning Prompt Engine]
+    PromptEngine -->|Context + Query| LocalLLM[Local LLM via Ollama / Cloud API]
+    LocalLLM -->|Raw Generation| OutputGuard[Output Safety & Redaction Filter]
+    OutputGuard -->|Verified & Grounded Answer| User
 ```
 
 ---
 
 ## 🛡️ 4-Tier Safety Guardrails
 
-Configure your security baseline on a per-session basis. The guardrail engine runs locally and does not depend on external moderation APIs.
+Configure your security baseline per-session or when generating shared LAN links:
 
-| Tier | Icon | Protection Level |
-| :--- | :---: | :--- |
-| **Public** | 🟢 | Base protection against prompt injections, jailbreaks, and DAN-mode attacks. |
-| **Internal** | 🔵 | *Public* + Blocks exposure of API keys, bearer tokens, passwords, and server credentials. |
-| **Confidential** | 🟡 | *Internal* + Scrubs SSNs, emails, phone numbers, and credit card numbers. |
-| **Restricted** | 🔴 | *Confidential* + Certified lock for Medical/Financial data, diagnoses, and salary info. |
+| Tier | Level | Protection & Masking Scope |
+| :---: | :--- | :--- |
+| 🟢 | **Public** *(Low)* | Baseline anti-jailbreak, prompt injection defense, and DAN-mode neutralization. Data is not masked. |
+| 🔵 | **Internal** *(Medium)* | *Public* + Blocks exposure of API keys, bearer tokens, passwords, database URIs, and corporate credentials. |
+| 🟡 | **Confidential** *(High)* | *Internal* + Automatically redacts Personally Identifiable Information (SSNs, credit cards, emails, phone numbers, person names). |
+| 🔴 | **Restricted** *(Strict)* | *Confidential* + Certified strict regulatory lock: masks medical records, diagnoses, HIPAA data, salaries, and financial transaction histories. |
+
+---
+
+## 🎭 Reasoning Profiles & Custom Personas
+
+Tailor how GuardRAG processes and responds to document queries:
+
+1. **Balanced (Default)**: General-purpose reasoning delivering helpful, concise, and grounded answers.
+2. **Strict Privacy**: Extra-cautious persona with aggressive redaction of sensitive contextual references.
+3. **Fast Summarizer**: Direct, high-level executive bullet summaries for rapid document review.
+4. **Custom Profile Builder**:
+   - Define custom system persona instructions.
+   - Configure chunk sizes (e.g. 500 – 4000 chars) and overlap ratios.
+   - Specify custom blocked keywords and topics.
+   - Settings persist automatically across sessions via local storage.
+
+---
+
+## 🌐 Secure Multi-Device LAN Sharing
+
+Host GuardRAG on your workstation or local server and collaborate across your team without exposing data to the public internet:
+
+- **Host Authority Mode**: Only the host machine can alter security policies, switch reasoning profiles, or ingest/delete document indexes.
+- **Isolated Guest Experience**: Guests access a streamlined interface with contextual suggested queries tailored to the active document.
+- **Granular Share Policies**: Choose a privacy level (*Public*, *Internal*, *Confidential*, *Restricted*) specific to the shared session.
+- **Local Network Broadcast**: Displays local IP access URLs (`http://192.168.x.x:8000`) for frictionless LAN connectivity.
 
 ---
 
 ## 📥 Installation
 
-Install the production-ready package directly from PyPI.
+### 1. Install via pip
 
 ```bash
 pip install guard-rag
 ```
 
-**System Requirements:**
-1. **Python 3.9+**
-2. **Ollama**: Required for offline LLM support. Download from [ollama.com](https://ollama.com).
-3. **Windows Users**: Must install the [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+Or install with full development dependencies from source:
+
+```bash
+git clone https://github.com/sowmiyan-s/GUARD-RAG.git
+cd GUARD-RAG
+pip install -e ".[all]"
+```
+
+### 2. Prerequisites
+
+- **Python 3.9+**
+- **Ollama**: For running local LLMs (e.g. `gemma3:1b`, `llama3.1`, `deepseek-r1`, `mistral`). Download from [ollama.com](https://ollama.com).
+- **Windows Users**: Ensure the [Microsoft Visual C++ Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe) is installed.
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Web Console (Recommended)
+### 1. Launch the Web Interface
 
-Launch the integrated Web UI. GuardRAG will automatically start a local server and open your default browser.
+Start the GuardRAG server and open the web dashboard:
 
 ```bash
 guard-rag
 ```
 
-*The web console supports LAN sharing. Just navigate to the `ACCESS (LAN)` URL displayed in your terminal from any device on your network.*
+Or run via Python module:
+
+```bash
+python -m guardrag.cli.main
+```
+
+The server automatically displays local and LAN access URLs:
+```text
+============================================================
+  🛡️  GuardRAG Server Running
+  Local URL:  http://localhost:8000
+  LAN URL:    http://192.168.1.100:8000
+============================================================
+```
 
 ### 2. Command Line Interface (CLI)
 
-For headless server environments or automated pipelines, use the CLI directly:
+Run ad-hoc queries in headless environments, CI/CD scripts, or terminal workflows:
 
 ```bash
-# Query a confidential contract using a local LLaMA model
+# Query a confidential contract with a local LLM
 guard-rag --pdf path/to/contract.pdf --model llama3.1 --sensitivity Confidential
 ```
 
@@ -109,54 +163,81 @@ guard-rag --pdf path/to/contract.pdf --model llama3.1 --sensitivity Confidential
 
 | Flag | Description | Default |
 | :--- | :--- | :--- |
-| `--pdf <file>` | Path to the target document (PDF, TXT, DOCX) | **Required** |
-| `--model <name>` | LLM name (e.g., `gemma3:1b`, `llama3.1`) | `gemma3:1b` |
-| `--ollama-host <url>` | LLM Endpoint (Local or Cloud API) | `http://localhost:11434` |
-| `--sensitivity <lvl>`| Set guardrail tier (`Public`, `Internal`, `Confidential`, `Restricted`) | `Internal` |
-| `--chunk-size <int>` | Text segment token limit | `1000` |
+| `--pdf <path>` | Path to document file (PDF, TXT, DOCX, MD, CSV, JSON, LOG, PY) | *Optional* |
+| `--model <name>` | Ollama LLM model name | `gemma3:1b` |
+| `--ollama-host <url>` | Local or remote Ollama server endpoint | `http://localhost:11434` |
+| `--sensitivity <level>` | Safety guardrail tier (`Public`, `Internal`, `Confidential`, `Restricted`) | `Internal` |
+| `--chunk-size <int>` | Text chunk character size | `1000` |
+| `--chunk-overlap <int>` | Text chunk overlap characters | `200` |
+| `--no-guardrails` | Disable safety guardrail inspection | `False` |
 
 ---
 
 ## 🐍 Python SDK Integration
 
-GuardRAG can be integrated seamlessly into your existing Python pipelines.
+Integrate GuardRAG into your custom Python services, agents, and data pipelines:
 
 ```python
 from guardrag import build_rag_chain, load_stored_rag_chain
-from guardrag.utils.safety import check_input_safety
+from guardrag.utils.safety import check_input_safety, check_output_safety
 
-# 1. Initialize an offline RAG pipeline with PII Redaction
+# 1. Build and index document with PII and credential protection
 db_id, chain = build_rag_chain(
-    file_paths=["financial_q3.pdf"],
+    file_paths=["quarterly_financial_report.pdf"],
     model="llama3.1",
-    sensitivity="Restricted",
+    sensitivity="Confidential",
     redact_pii=True,
+    chunk_size=1000,
+    chunk_overlap=200,
 )
 
-# 2. Query the Knowledge Base safely
+# 2. Query knowledge base safely
 response = chain.invoke({
-    "input": "Summarize the Q3 earnings.",
+    "input": "Summarize the EBITDA performance and major risk factors.",
     "chat_history": []
 })
 
-print(response["answer"])
+print("AI Answer:\n", response["answer"])
 
-# 3. Access Citations
-for citation in response.get("context", []):
-    print(f"Cited Source: {citation.metadata['source']}")
+# 3. Inspect grounded source citations
+print("\n--- Verifiable Citations ---")
+for doc in response.get("context", []):
+    print(f"File: {doc.metadata.get('source')} | Page: {doc.metadata.get('page', 1)}")
 ```
 
 ---
 
-## 🤝 Support & Enterprise Licensing
+## 📁 Supported Document Formats
 
-GuardRAG is an open-source project under the MIT License. 
-For enterprise deployment assistance, custom cloud integrations, or feature requests, please open an issue or reach out to the maintainers.
+GuardRAG parses, chunks, and indexes a wide range of document types:
+
+- **Documents**: `.pdf`, `.docx`, `.doc`, `.txt`, `.md`
+- **Structured Data & Logs**: `.csv`, `.json`, `.log`
+- **Source Code**: `.py`
+
+---
+
+## 🧪 Testing & Validation
+
+GuardRAG includes an automated test suite covering safety guardrails, PII redactions, multi-device isolation, background process handling, and API endpoints:
+
+```bash
+pytest tests/
+```
+
+---
+
+## 🤝 Contributing & License
+
+Contributions are welcome! Please feel free to submit pull requests or file issues.
+
+GuardRAG is open-source software licensed under the **[MIT License](LICENSE)**.
 
 <div align="center">
 
 Built with ❤️ by **[Sowmiyan S](https://github.com/sowmiyan-s)**
 
-[GitHub Repository](https://github.com/sowmiyan-s/GUARD-RAG) · [Issue Tracker](https://github.com/sowmiyan-s/GUARD-RAG/issues)
+[GitHub Repository](https://github.com/sowmiyan-s/GUARD-RAG) · [Bug Reports & Feature Requests](https://github.com/sowmiyan-s/GUARD-RAG/issues)
 
 </div>
+

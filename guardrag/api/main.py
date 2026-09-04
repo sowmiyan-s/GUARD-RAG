@@ -71,7 +71,7 @@ load_dotenv()
 # Override at any time by setting OLLAMA_HOST in .env or your PaaS settings.
 SERVER_OLLAMA_HOST: str = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -88,6 +88,7 @@ from guardrag.utils.ollama import (
     get_ollama_version,
     is_ollama_running,
     start_ollama_server,
+    stop_ollama_server,
 )
 from guardrag.utils.redactor import redact_text, rehydrate_text
 from guardrag.utils.safety import (
@@ -212,6 +213,7 @@ class ChatRequest(BaseModel):
     custom_rules: Optional[list[str]] = []
     system_prompt: Optional[str] = ""
     temperature: float = 0.0
+    min_confidence: float = 0.0
 
     def resolved_host(self) -> str:
         return (self.ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
@@ -219,9 +221,12 @@ class ChatRequest(BaseModel):
 
 class ShareGenerateRequest(BaseModel):
     session_id: str
-    show_history: bool = False
+    name: Optional[str] = "Share Link"
+    show_history: bool = True
     read_only: bool = False
-    sync: bool = False
+    sync: bool = True
+    min_confidence: float = 0.0
+    sensitivity_level: Optional[str] = "Internal"
 
 class ClearRequest(BaseModel):
     session_id: str
@@ -297,7 +302,7 @@ async def health(ollama_host: str = ""):
 @app.post("/api/ollama/start")
 async def ollama_start():
     """Attempt to start a locally-installed Ollama process."""
-    if await asyncio.to_thread(is_ollama_running, SERVER_OLLAMA_HOST):
+    if await asyncio.to_thread(is_ollama_running, SERVER_OLLAMA_HOST, 0.5):
         return {"started": True, "message": "Ollama is already running."}
     ok = await asyncio.to_thread(start_ollama_server)
     if ok:
@@ -305,6 +310,21 @@ async def ollama_start():
     raise HTTPException(
         status_code=503,
         detail="Failed to start Ollama. Verify it is installed and the OLLAMA_HOST is correct.",
+    )
+
+
+@app.post("/api/ollama/stop")
+async def ollama_stop():
+    """Attempt to stop the local Ollama process."""
+    ok = await asyncio.to_thread(stop_ollama_server)
+    if ok:
+        return {"stopped": True, "message": "Ollama stopped successfully."}
+    is_running = await asyncio.to_thread(is_ollama_running, SERVER_OLLAMA_HOST, 1.0)
+    if not is_running:
+        return {"stopped": True, "message": "Ollama stopped successfully."}
+    raise HTTPException(
+        status_code=500,
+        detail="Failed to stop Ollama process.",
     )
 
 
@@ -606,16 +626,43 @@ async def load_session(req: LoadSessionRequest):
 @app.post("/api/share/generate")
 async def generate_share_link(req: ShareGenerateRequest):
     parent = db.get_session(req.session_id)
+    target_session_id = req.session_id
+    if not parent:
+        sl = db.get_share_link(req.session_id)
+        if sl:
+            target_session_id = sl["parent_session_id"]
+            parent = db.get_session(target_session_id)
     if not parent:
         raise HTTPException(status_code=404, detail="Session not found.")
     
     import secrets
     share_id = secrets.token_hex(8)
-    
-    # Always create a pointer to the parent session to ensure real-time syncing
-    db.create_share_link(share_id, req.session_id, True, req.read_only, True)
-        
+    db.create_share_link(
+        share_id=share_id,
+        parent_session_id=target_session_id,
+        show_history=req.show_history,
+        read_only=req.read_only,
+        sync=req.sync,
+        name=req.name or "Share Link",
+        min_confidence=req.min_confidence,
+        sensitivity_level=req.sensitivity_level or "Internal"
+    )
     return {"share_id": share_id}
+
+@app.get("/api/share/list/{session_id}")
+async def list_share_links_endpoint(session_id: str):
+    links = db.list_share_links(session_id)
+    return {"links": links}
+
+@app.delete("/api/share/revoke/{share_id}")
+async def revoke_share_link_endpoint(share_id: str):
+    db.delete_share_link(share_id)
+    return {"success": True, "share_id": share_id}
+
+@app.get("/api/share/client-chats/{session_id}")
+async def list_client_chats_endpoint(session_id: str):
+    clients = db.list_client_sessions(session_id)
+    return {"clients": clients}
 
 @app.get("/api/sessions/{session_id}/messages")
 async def get_session_messages(session_id: str):
@@ -641,36 +688,6 @@ async def get_network_info():
     except Exception:
         ip = "127.0.0.1"
     return {"local_ip": ip, "port": 8000}
-
-import subprocess
-import urllib.request
-ngrok_process = None
-
-@app.post("/api/share/ngrok")
-async def start_ngrok():
-    global ngrok_process
-    if ngrok_process is None or ngrok_process.poll() is not None:
-        try:
-            ngrok_process = subprocess.Popen(
-                ["ngrok", "http", "8000"], 
-                stdout=subprocess.DEVNULL, 
-                stderr=subprocess.DEVNULL
-            )
-            await asyncio.sleep(2)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to start ngrok. Is it installed? {str(e)}")
-            
-    try:
-        req = urllib.request.Request("http://127.0.0.1:4040/api/tunnels")
-        with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode())
-            tunnels = data.get("tunnels", [])
-            if tunnels:
-                return {"url": tunnels[0]["public_url"]}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Could not get ngrok URL. Make sure ngrok is running.")
-        
-    raise HTTPException(status_code=500, detail="Ngrok started but no tunnels found.")
 
 @app.post("/api/storage/delete")
 async def delete_storage_entry(body: dict):
@@ -727,12 +744,27 @@ async def get_session_info(session_id: str):
 async def chat(req: ChatRequest):
     actual_session_id = req.session_id
     is_read_only = False
+    min_confidence = req.min_confidence or 0.0
     
+    # Check if this is a direct share link token
     share_link = db.get_share_link(req.session_id)
     if share_link:
         if share_link.get("sync"):
             actual_session_id = share_link["parent_session_id"]
         is_read_only = share_link.get("read_only", False)
+        if share_link.get("min_confidence"):
+            min_confidence = max(min_confidence, float(share_link.get("min_confidence", 0.0)))
+    else:
+        # Check if session_id is a registered client session
+        client_sess = db.get_client_session(req.session_id)
+        if client_sess:
+            sl = db.get_share_link(client_sess["share_id"])
+            if sl:
+                is_read_only = sl.get("read_only", False)
+                if sl.get("min_confidence"):
+                    min_confidence = max(min_confidence, float(sl.get("min_confidence", 0.0)))
+                if sl.get("sync"):
+                    actual_session_id = sl["parent_session_id"]
         
     session = db.get_session(actual_session_id)
     if not session:
@@ -741,32 +773,44 @@ async def chat(req: ChatRequest):
     if is_read_only or session.get("read_only", False):
         raise HTTPException(status_code=403, detail="This session is read-only. You cannot send messages.")
 
-    session["sensitivity_level"] = req.sensitivity_level
-    session["enable_guardrails"] = req.enable_guardrails
-    if req.custom_rules:
-        session["custom_rules"] = req.custom_rules
+    # Enforce host privacy controls: guests cannot change host privacy/guardrail levels
+    if share_link:
+        effective_sensitivity = share_link.get("sensitivity_level") or session.get("sensitivity_level", "Internal")
+    elif client_sess:
+        c_sl = db.get_share_link(client_sess["share_id"])
+        effective_sensitivity = (c_sl.get("sensitivity_level") if c_sl else None) or session.get("sensitivity_level", "Internal")
+    else:
+        effective_sensitivity = req.sensitivity_level
+        session["sensitivity_level"] = effective_sensitivity
+        session["enable_guardrails"] = req.enable_guardrails
+        if req.custom_rules:
+            session["custom_rules"] = req.custom_rules
+    req.sensitivity_level = effective_sensitivity
+
+    # Fallback to session model or default if client sent empty string
+    effective_model = req.model.strip() if req.model and req.model.strip() else session.get("model", "gemma3:1b")
 
     # Load rag_chain from LRU cache or rehydrate
     rag_chain = _rag_chains.get(actual_session_id)
     requested_host = req.resolved_host()
     
     if (not rag_chain or
-        req.model != session.get("model") or 
+        effective_model != session.get("model") or 
         requested_host != session.get("ollama_host", SERVER_OLLAMA_HOST) or 
         req.system_prompt != session.get("system_prompt", "")):
         try:
             rag_chain = await asyncio.to_thread(
-                load_stored_rag_chain, session["db_id"], req.model, requested_host, system_prompt=req.system_prompt
+                load_stored_rag_chain, session["db_id"], effective_model, requested_host, system_prompt=req.system_prompt
             )
             _rag_chains.put(actual_session_id, rag_chain)
-            session["model"] = req.model
+            session["model"] = effective_model
             session["ollama_host"] = requested_host
             session["system_prompt"] = req.system_prompt
             _update_db_session(session)
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to load or dynamically switch RAG chain to model '{req.model}': {str(e)}"
+                detail=f"Failed to load or dynamically switch RAG chain to model '{effective_model}': {str(e)}"
             ) from e
 
     # Input safety on the original question
@@ -836,7 +880,7 @@ async def chat(req: ChatRequest):
     blocked_out = check_output_safety(rehydrated_answer, req.sensitivity_level, req.enable_guardrails, custom_rules=req.custom_rules)
     if blocked_out:
         answer = blocked_out
-        session["messages"].append({"role": "user", "content": question})
+        session["messages"].append({"role": "user", "content": req.question})
         session["messages"].append({"role": "assistant", "content": answer})
         _update_db_session(session)
         add_audit_log("safety_alert", f"LLM output blocked and redacted under {req.sensitivity_level} policy.")
@@ -855,6 +899,11 @@ async def chat(req: ChatRequest):
                 doc_vectors = embeddings.embed_documents(doc_contents)
                 for doc, doc_vector in zip(context_docs, doc_vectors):
                     score = sum(q * d for q, d in zip(query_vector, doc_vector))
+                    score_val = round(float(score), 4)
+                    if min_confidence > 0.0 and score_val < min_confidence:
+                        # Skip context chunk below min_confidence threshold
+                        continue
+
                     disp_content = rehydrate_text(doc.page_content, mapping) if (is_redacted and mapping) else doc.page_content
                     source_path = doc.metadata.get("source", "Unknown")
                     source_name = os.path.basename(source_path) if source_path else "Unknown"
@@ -862,7 +911,7 @@ async def chat(req: ChatRequest):
                         "source": source_name,
                         "page": doc.metadata.get("page", 0) + 1 if "page" in doc.metadata else None,
                         "content": disp_content,
-                        "score": round(float(score), 4),
+                        "score": score_val,
                     })
         except Exception as e:
             print(f"Error computing citation scores: {e}")
@@ -877,9 +926,11 @@ async def chat(req: ChatRequest):
                     "score": 0.0,
                 })
 
-    session["messages"].append({"role": "user", "content": question})
-    session["messages"].append({"role": "assistant", "content": answer})
+    session["messages"].append({"role": "user", "content": req.question})
+    session["messages"].append({"role": "assistant", "content": rehydrated_answer})
     _update_db_session(session)
+    if client_sess:
+        db.touch_client_session(req.session_id)
 
     add_audit_log("retrieval", f"Successfully completed RAG query in {latency_sec:.3f}s", {
         "latency_sec": latency_sec,
@@ -985,8 +1036,121 @@ async def get_audit_logs():
     return {"logs": _audit_logs}
 
 
+import uuid
+
+@app.get("/api/share/resolve/{share_id}")
+async def resolve_share_link(
+    share_id: str,
+    request: Request,
+    client_id: Optional[str] = Query(None)
+):
+    link = db.get_share_link(share_id)
+    if not link:
+        raise HTTPException(status_code=404, detail="Share link invalid or expired.")
+    
+    parent_session = db.get_session(link["parent_session_id"])
+    if not parent_session:
+        raise HTTPException(status_code=404, detail="Original session no longer exists.")
+
+    # Determine client IP and User-Agent
+    client_ip = "Unknown"
+    if request.client and request.client.host:
+        client_ip = request.client.host
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+        
+    user_agent = request.headers.get("user-agent", "Unknown")
+    messages = parent_session["messages"] if link["show_history"] else []
+
+    shared_sensitivity = link.get("sensitivity_level") or parent_session.get("sensitivity_level", "Internal")
+
+    if link["sync"]:
+        client_session_id = client_id if (client_id and client_id.startswith("client_sync_")) else f"client_sync_{uuid.uuid4().hex[:8]}"
+        db.register_client_session(client_session_id, share_id, link["parent_session_id"], client_ip, user_agent)
+        return {
+            "session_id": link["parent_session_id"],
+            "client_session_id": client_session_id,
+            "share_id": share_id,
+            "parent_session_id": link["parent_session_id"],
+            "db_id": parent_session["db_id"],
+            "files": parent_session["files"],
+            "model": parent_session["model"],
+            "read_only": link["read_only"],
+            "show_history": link["show_history"],
+            "sync": True,
+            "min_confidence": link["min_confidence"],
+            "name": link["name"],
+            "sensitivity_level": shared_sensitivity,
+            "messages": parent_session["messages"]
+        }
+    else:
+        # Isolated thread per client device
+        existing_session = None
+        if client_id:
+            client_record = db.get_client_session(client_id)
+            if client_record and client_record.get("share_id") == share_id:
+                existing_session = db.get_session(client_id)
+
+        if existing_session:
+            client_session_id = client_id
+            db.register_client_session(client_session_id, share_id, link["parent_session_id"], client_ip, user_agent)
+            return {
+                "session_id": client_session_id,
+                "client_session_id": client_session_id,
+                "share_id": share_id,
+                "parent_session_id": link["parent_session_id"],
+                "db_id": parent_session["db_id"],
+                "files": parent_session["files"],
+                "model": parent_session["model"],
+                "read_only": link["read_only"],
+                "show_history": link["show_history"],
+                "sync": False,
+                "min_confidence": link["min_confidence"],
+                "name": link["name"],
+                "sensitivity_level": shared_sensitivity,
+                "messages": existing_session.get("messages", [])
+            }
+
+        # Create new dedicated client session
+        client_session_id = f"client_{uuid.uuid4().hex[:12]}"
+        db.save_session(
+            session_id=client_session_id,
+            db_id=parent_session["db_id"],
+            model=parent_session["model"],
+            files=parent_session["files"],
+            chunk_size=parent_session["chunk_size"],
+            redact_pii=parent_session["redact_pii"],
+            system_prompt=parent_session["system_prompt"],
+            sensitivity_level=shared_sensitivity,
+            enable_guardrails=parent_session["enable_guardrails"],
+            temperature=parent_session["temperature"],
+            chunk_overlap=parent_session["chunk_overlap"],
+            custom_rules=parent_session["custom_rules"],
+            messages=messages,
+            read_only=link["read_only"]
+        )
+        db.register_client_session(client_session_id, share_id, link["parent_session_id"], client_ip, user_agent)
+        return {
+            "session_id": client_session_id,
+            "client_session_id": client_session_id,
+            "share_id": share_id,
+            "parent_session_id": link["parent_session_id"],
+            "db_id": parent_session["db_id"],
+            "files": parent_session["files"],
+            "model": parent_session["model"],
+            "read_only": link["read_only"],
+            "show_history": link["show_history"],
+            "sync": False,
+            "min_confidence": link["min_confidence"],
+            "name": link["name"],
+            "sensitivity_level": shared_sensitivity,
+            "messages": messages
+        }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Static file serving (frontend)
+# Static file serving (frontend) — must be registered AFTER all API endpoints
 # ─────────────────────────────────────────────────────────────────────────────
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
@@ -1001,62 +1165,3 @@ if FRONTEND_DIR.exists():
         if requested.exists() and requested.is_file():
             return FileResponse(str(requested))
         return FileResponse(str(FRONTEND_DIR / "index.html"))
-
-import uuid
-
-@app.post("/api/share/generate")
-async def generate_share_link(req: ShareGenerateRequest):
-    session = db.get_session(req.session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found.")
-    
-    share_id = str(uuid.uuid4())[:12]
-    db.create_share_link(
-        share_id=share_id,
-        parent_session_id=req.session_id,
-        show_history=req.show_history,
-        read_only=req.read_only,
-        sync=req.sync
-    )
-    return {"share_id": share_id}
-
-@app.get("/api/share/resolve/{share_id}")
-async def resolve_share_link(share_id: str):
-    link = db.get_share_link(share_id)
-    if not link:
-        raise HTTPException(status_code=404, detail="Share link invalid or expired.")
-    
-    parent_session = db.get_session(link["parent_session_id"])
-    if not parent_session:
-        raise HTTPException(status_code=404, detail="Original session no longer exists.")
-
-    if link["sync"]:
-        # They share the exact same session (we don't modify the parent's read_only status)
-        return {
-            "session_id": link["parent_session_id"],
-            "read_only": link["read_only"]  # Frontend must enforce this if sync is true
-        }
-    else:
-        # Fork the session
-        new_session_id = str(uuid.uuid4())[:16]
-        messages = parent_session["messages"] if link["show_history"] else []
-        db.save_session(
-            session_id=new_session_id,
-            db_id=parent_session["db_id"],
-            model=parent_session["model"],
-            files=parent_session["files"],
-            chunk_size=parent_session["chunk_size"],
-            redact_pii=parent_session["redact_pii"],
-            system_prompt=parent_session["system_prompt"],
-            sensitivity_level=parent_session["sensitivity_level"],
-            enable_guardrails=parent_session["enable_guardrails"],
-            temperature=parent_session["temperature"],
-            chunk_overlap=parent_session["chunk_overlap"],
-            custom_rules=parent_session["custom_rules"],
-            messages=messages,
-            read_only=link["read_only"]
-        )
-        return {
-            "session_id": new_session_id,
-            "read_only": link["read_only"]
-        }

@@ -46,9 +46,22 @@ pip install -e .[all]
 
 ## Usage
 
-### Command Line Interface
+### 1. Web Application (Default)
 
-Once installed, you can use GuardRAG from the command line with the `guardrag` command:
+Launch the full interactive web application with automatic browser opening:
+
+```bash
+guard-rag
+```
+
+Or run directly via python module:
+```bash
+python -m guardrag.cli.main
+```
+
+### 2. Command Line Interface (CLI)
+
+Run ad-hoc queries in terminal or headless environments:
 
 ```bash
 guard-rag --pdf /path/to/document.pdf
@@ -56,30 +69,33 @@ guard-rag --pdf /path/to/document.pdf
 
 #### Available Options
 
-```
+```bash
 guard-rag --help
 ```
 
-- `--pdf PATH` (required): Path to the document to query (PDF, TXT, or DOCX)
-- `--model MODEL` (default: gemma3:1b): Ollama model name (e.g., llama2, mistral, neural-chat)
+- `--pdf PATH` (optional): Path to document file (PDF, TXT, DOCX, MD, CSV, JSON, LOG, PY). If omitted, launches web UI.
+- `--model MODEL` (default: gemma3:1b): Ollama model name (e.g., llama3.1, mistral, deepseek-r1)
 - `--ollama-host URL` (default: http://localhost:11434): Ollama server URL
 - `--chunk-size INT` (default: 1000): Document chunk size for processing
 - `--chunk-overlap INT` (default: 200): Overlap between chunks
 - `--no-guardrails`: Disable safety features
 - `--sensitivity LEVEL` (default: Internal): Data sensitivity level
-  - `Public`: Basic jailbreak protection only
-  - `Internal`: Blocks credentials and API keys
-  - `Confidential`: Adds PII protection (SSN, email, etc.)
-  - `Restricted`: Maximum protection for sensitive data
+  - `Public`: Basic jailbreak and prompt injection protection
+  - `Internal`: Blocks credentials, API keys, passwords, database URLs
+  - `Confidential`: Adds PII protection (SSN, credit card, email, phone, name)
+  - `Restricted`: Maximum protection for HIPAA/medical and financial data
 
 #### Example Commands
 
 ```bash
-# Basic usage
+# Launch Web Dashboard
+guard-rag
+
+# Basic CLI query
 guard-rag --pdf document.pdf
 
 # With custom model
-guard-rag --pdf document.pdf --model llama2
+guard-rag --pdf document.pdf --model llama3.1
 
 # With remote Ollama instance
 guard-rag --pdf document.pdf --ollama-host http://remote-server:11434
