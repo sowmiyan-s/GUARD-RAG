@@ -14,13 +14,24 @@ authors = [
 keywords = [
     "privacy",
     "offline",
+    "offline-rag",
+    "rag",
+    "retrieval-augmented-generation",
+    "local-llm",
+    "ollama",
+    "faiss",
+    "qdrant",
+    "fastembed",
     "security-guardrails",
     "document-qa",
     "private-gpt",
     "enterprise",
     "pii-redaction",
-    "local-llm",
-    "privacy-first"
+    "privacy-first",
+    "air-gapped",
+    "prompt-injection-defense",
+    "langchain",
+    "fastapi"
 ]
 requires-python = ">=3.9"
 dependencies = [

@@ -61,9 +61,9 @@ setup(
     ],
     
     keywords=[
-        "rag", "retrieval-augmented-generation", "langchain", "ollama",
-        "faiss", "embeddings", "chatbot", "llm", "privacy", "offline",
-        "security-guardrails", "document-qa", "private-gpt", "enterprise", 
-        "pii-redaction", "local-llm", "privacy-first"
+        "rag", "retrieval-augmented-generation", "offline-rag", "langchain", "ollama",
+        "faiss", "qdrant", "fastembed", "embeddings", "chatbot", "llm", "privacy", "offline",
+        "air-gapped", "security-guardrails", "document-qa", "private-gpt", "enterprise", 
+        "pii-redaction", "prompt-injection-defense", "local-llm", "privacy-first", "fastapi"
     ],
 )
