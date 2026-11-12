@@ -96,15 +96,15 @@ guard-rag --port 8001
 
 ## 📖 Learning Resources
 
-- **[Full Documentation](./README.md)** — Complete reference guide
-- **[API Reference](./README.md#-python-sdk-integration)** — Python SDK documentation
-- **[CLI Guide](./README.md#-command-line-interface-cli)** — Command-line options
-- **[Architecture](./README.md#-architecture--security-pipeline)** — System design overview
-- **[Safety Guardrails](./README.md#-4-tier-safety-guardrails)** — Security details
+- **[Full Documentation](../README.md)** — Complete reference guide
+- **[API Reference](API_REFERENCE.md)** — Python SDK and REST API documentation
+- **[Architecture](ARCHITECTURE.md)** — System design and security pipeline overview
+- **[Installation Guide](INSTALL.md)** — Hardware setup and installation instructions
+- **[Quick Reference](QUICK_REFERENCE.md)** — CLI cheat sheet
 
 ## 🚀 Ready for Production?
 
-Check out the [Deployment Guide](./DEPLOYMENT.md) for:
+Check out the [Deployment Guide](DEPLOYMENT.md) for:
 - Docker production setup
 - LAN sharing configuration
 - Performance tuning

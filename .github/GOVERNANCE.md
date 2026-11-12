@@ -141,7 +141,7 @@ All interactions must follow our [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## 📋 Roadmap Governance
 
-The [Roadmap](./ROADMAP.md) is:
+The [Roadmap](../docs/ROADMAP.md) is:
 - Community-informed
 - Publicly accessible
 - Updated quarterly

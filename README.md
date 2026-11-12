@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner.png" alt="GuardRAG Enterprise Banner - Privacy-First Offline RAG" width="100%" />
+<img src="https://raw.githubusercontent.com/sowmiyan-s/GUARD-RAG/main/assets/banner.png" alt="GuardRAG Enterprise Banner - Privacy-First Offline RAG" width="100%" />
 
 # 🛡️ GuardRAG
 
@@ -13,9 +13,9 @@
 [![Ollama Ready](https://img.shields.io/badge/Ollama-Local%20LLM%20Ready-black?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai)
 [![Vector Engines](https://img.shields.io/badge/Vector%20Store-FAISS%20%7C%20Qdrant-0064A4?style=for-the-badge&logo=meta&logoColor=white)](https://github.com/facebookresearch/faiss)
 [![Offline Certified](https://img.shields.io/badge/Deployment-100%25%20Offline%20%26%20Air--Gapped-success?style=for-the-badge&logo=shield&logoColor=white)](#-why-guardrag)
-[![License: MIT](https://img.shields.io/badge/License-MIT-00b91e?style=for-the-badge)](./LICENSE)
-[![Tests Passing](https://img.shields.io/badge/Tests-73%20Passing-00b91e?style=for-the-badge&logo=pytest&logoColor=white)](./tests)
-[![Docker Ready](https://img.shields.io/badge/Docker-Multi--Stage%20Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](./Dockerfile)
+[![License: MIT](https://img.shields.io/badge/License-MIT-00b91e?style=for-the-badge)](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/LICENSE)
+[![Tests Passing](https://img.shields.io/badge/Tests-73%20Passing-00b91e?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/sowmiyan-s/GUARD-RAG/tree/main/tests)
+[![Docker Ready](https://img.shields.io/badge/Docker-Multi--Stage%20Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/Dockerfile)
 
 <br/>
 
@@ -25,7 +25,7 @@
 
 ---
 
-### 📚 [Quickstart](#-quickstart-in-60-seconds) • [Architecture](ARCHITECTURE.md) • [Tech Stack](TECH_STACK.md) • [API & SDK Reference](docs/API_REFERENCE.md) • [FAQ](FAQ.md) • [Deployment](DEPLOYMENT.md) • [Contributing](CONTRIBUTING.md)
+### 📚 [Quickstart](#-quickstart-in-60-seconds) • [Architecture](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/ARCHITECTURE.md) • [Tech Stack](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/TECH_STACK.md) • [API & SDK Reference](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/API_REFERENCE.md) • [FAQ](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/FAQ.md) • [Deployment](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/DEPLOYMENT.md) • [Contributing](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/.github/CONTRIBUTING.md)
 
 </div>
 
@@ -150,7 +150,7 @@ graph TD
     end
 ```
 
-> 📖 **Deep Dive**: For full subsystem architecture, security boundaries, and sequence diagrams, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
+> 📖 **Deep Dive**: For full subsystem architecture, security boundaries, and sequence diagrams, see **[ARCHITECTURE.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/ARCHITECTURE.md)**.
 
 ---
 
@@ -222,7 +222,7 @@ docker-compose up -d
 open http://localhost:8000
 ```
 
-> 📖 **Deployment Guide**: See **[DEPLOYMENT.md](DEPLOYMENT.md)** for production Docker, Kubernetes, and reverse-proxy instructions.
+> 📖 **Deployment Guide**: See **[DEPLOYMENT.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/DEPLOYMENT.md)** for production Docker, Kubernetes, and reverse-proxy instructions.
 
 ---
 
@@ -339,7 +339,7 @@ result = chain.invoke({
 print(result["answer"])
 ```
 
-> 📖 **Full SDK Documentation**: Check **[docs/API_REFERENCE.md](docs/API_REFERENCE.md)** for complete class, method, and REST API definitions.
+> 📖 **Full SDK Documentation**: Check **[docs/API_REFERENCE.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/API_REFERENCE.md)** for complete class, method, and REST API definitions.
 
 ---
 
@@ -412,14 +412,15 @@ GuardRAG includes format-specific parsers that preserve page indexes and tabular
 
 | Document | Purpose |
 | :--- | :--- |
-| 🏛️ **[ARCHITECTURE.md](ARCHITECTURE.md)** | Deep technical system design, threat models, ingestion pipelines, and sequence diagrams |
-| 🛠️ **[TECH_STACK.md](TECH_STACK.md)** | Complete technology inventory, dependencies, and architectural decision rationales |
-| 🔌 **[API Reference](docs/API_REFERENCE.md)** | Exhaustive REST API specification, SSE streaming payloads, and Python SDK guide |
-| ❓ **[FAQ.md](FAQ.md)** | Frequently asked questions on privacy, air-gapped setups, hardware, and LAN sharing |
-| 🚀 **[DEPLOYMENT.md](DEPLOYMENT.md)** | Production deployment with Docker, Docker Compose, systemd, and reverse proxies |
-| 🔒 **[SECURITY.md](SECURITY.md)** | Security reporting policy, vulnerability disclosure, and threat mitigation |
-| 🤝 **[CONTRIBUTING.md](CONTRIBUTING.md)** | Development environment setup, coding guidelines, and PR checklist |
-| 🗺️ **[ROADMAP.md](ROADMAP.md)** | Future feature timeline, upcoming vector connectors, and releases |
+| 🚀 **[GETTING_STARTED.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/GETTING_STARTED.md)** | Step-by-step onboarding, first query walkthrough, and usage modes |
+| 🏛️ **[ARCHITECTURE.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/ARCHITECTURE.md)** | Deep technical system design, threat models, ingestion pipelines, and sequence diagrams |
+| 🛠️ **[TECH_STACK.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/TECH_STACK.md)** | Complete technology inventory, dependencies, and architectural decision rationales |
+| 🔌 **[API Reference](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/API_REFERENCE.md)** | Exhaustive REST API specification, SSE streaming payloads, and Python SDK guide |
+| ❓ **[FAQ.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/FAQ.md)** | Frequently asked questions on privacy, air-gapped setups, hardware, and LAN sharing |
+| 🚀 **[DEPLOYMENT.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/DEPLOYMENT.md)** | Production deployment with Docker, Docker Compose, systemd, and reverse proxies |
+| 🔒 **[SECURITY.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/.github/SECURITY.md)** | Security reporting policy, vulnerability disclosure, and threat mitigation |
+| 🤝 **[CONTRIBUTING.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/.github/CONTRIBUTING.md)** | Development environment setup, coding guidelines, and PR checklist |
+| 🗺️ **[ROADMAP.md](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/ROADMAP.md)** | Future feature timeline, upcoming vector connectors, and releases |
 
 ---
 
@@ -449,15 +450,15 @@ Current Test Status: **73 Passing Tests (100% Core Coverage)** ✓
 
 We welcome contributions of all kinds! Whether you want to add support for new document formats, integrate vector databases, enhance UI aesthetics, or optimize embedding performance:
 
-1. Read our **[Contributing Guide](CONTRIBUTING.md)**.
-2. Check out our **[Code of Conduct](CODE_OF_CONDUCT.md)**.
+1. Read our **[Contributing Guide](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/.github/CONTRIBUTING.md)**.
+2. Check out our **[Code of Conduct](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/.github/CODE_OF_CONDUCT.md)**.
 3. Open an issue or submit a pull request!
 
 ---
 
 ## 📄 License & Author
 
-GuardRAG is open-source software licensed under the **[MIT License](LICENSE)**.
+GuardRAG is open-source software licensed under the **[MIT License](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/LICENSE)**.
 
 Designed and maintained with ❤️ by **[Sowmiyan S](https://github.com/sowmiyan-s)**.
 

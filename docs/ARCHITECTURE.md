@@ -447,6 +447,6 @@ sequenceDiagram
 
 <div align="center">
 
-**[Return to Readme](README.md)** • **[Tech Stack Specification](TECH_STACK.md)** • **[API Reference](docs/API_REFERENCE.md)** • **[Security Policy](SECURITY.md)**
+**[Return to Readme](../README.md)** • **[Tech Stack Specification](TECH_STACK.md)** • **[API Reference](API_REFERENCE.md)** • **[Security Policy](../.github/SECURITY.md)**
 
 </div>

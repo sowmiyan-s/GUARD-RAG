@@ -208,6 +208,6 @@ Looking for inspiration? Here are high-impact areas we welcome contributions for
 
 <div align="center">
 
-**[Return to Readme](README.md)** • **[System Architecture](ARCHITECTURE.md)** • **[Tech Stack](TECH_STACK.md)** • **[Governance](GOVERNANCE.md)**
+**[Return to Readme](../README.md)** • **[System Architecture](../docs/ARCHITECTURE.md)** • **[Tech Stack](../docs/TECH_STACK.md)** • **[Governance](GOVERNANCE.md)**
 
 </div>

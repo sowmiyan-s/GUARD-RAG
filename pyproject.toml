@@ -116,4 +116,5 @@ line-ending = "auto"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-v -p no:langsmith"

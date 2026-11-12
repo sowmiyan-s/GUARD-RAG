@@ -525,6 +525,6 @@ guard-rag --pdf contracts/NDA.pdf --query "Summarize confidentiality term" --mod
 
 <div align="center">
 
-**[Return to Readme](../README.md)** • **[System Architecture](../ARCHITECTURE.md)** • **[Tech Stack](../TECH_STACK.md)** • **[FAQ Guide](../FAQ.md)**
+**[Return to Readme](../README.md)** • **[System Architecture](ARCHITECTURE.md)** • **[Tech Stack](TECH_STACK.md)** • **[FAQ Guide](FAQ.md)**
 
 </div>

@@ -196,6 +196,6 @@ Prior to taking your device into an air-gapped facility:
 
 <div align="center">
 
-**[Return to Readme](README.md)** • **[System Architecture](ARCHITECTURE.md)** • **[API Reference](docs/API_REFERENCE.md)** • **[Deployment Guide](DEPLOYMENT.md)**
+**[Return to Readme](../README.md)** • **[System Architecture](ARCHITECTURE.md)** • **[API Reference](API_REFERENCE.md)** • **[Deployment Guide](DEPLOYMENT.md)**
 
 </div>

@@ -192,8 +192,8 @@ Hashtags: #AI #Privacy #Enterprise
 We're building the privacy-first RAG tool.
 
 ## Quick Links
-- [Getting Started](./GETTING_STARTED.md)
-- [Full Docs](./README.md)
+- [Getting Started](../GETTING_STARTED.md)
+- [Full Docs](../../README.md)
 - [Discussions](./discussions)
 - [Issues](./issues)
 

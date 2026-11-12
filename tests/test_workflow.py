@@ -314,7 +314,8 @@ class TestCLIArgParsing(unittest.TestCase):
 # ─────────────────────────────────────────────────────────────────────────────
 class TestRAGCoreMocked(unittest.TestCase):
 
-    def test_load_stored_raises_for_missing_db(self):
+    @patch("guardrag.rag.core._get_embeddings")
+    def test_load_stored_raises_for_missing_db(self, mock_get_embeddings):
         from guardrag.rag.core import load_stored_rag_chain
         with self.assertRaises(FileNotFoundError):
             load_stored_rag_chain(
