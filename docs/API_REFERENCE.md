@@ -358,7 +358,7 @@ Checks backend API responsiveness, storage availability, and Ollama connection s
   ```json
   {
     "status": "healthy",
-    "version": "1.3.1",
+    "version": "1.3.2",
     "ollama_running": true,
     "installed_models": ["llama3.1:latest", "gemma3:1b:latest", "deepseek-r1:latest"]
   }
