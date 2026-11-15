@@ -33,7 +33,7 @@
 
 - [📖 Overview & Why GuardRAG?](#-overview)
 - [⚖️ Feature Comparison Matrix (vs NotebookLM & Cloud AI)](#️-feature-comparison-matrix)
-- [🌟 What's New in v1.3.2](#-whats-new-in-v132)
+- [🌟 What's New in v1.3.3](#-whats-new-in-v133)
 - [🎧 NotebookLM-Style Offline Audio Overview](#-notebooklm-style-offline-audio-overview)
 - [🔍 Hybrid Retrieval Engine (BM25 + Dense RRF)](#-hybrid-retrieval-engine-bm25--dense-rrf)
 - [⚡ Quickstart in 60 Seconds](#-quickstart-in-60-seconds)
@@ -84,15 +84,14 @@
 
 ---
 
-## 🌟 What's New in v1.3.2
+## 🌟 What's New in v1.3.3
 
-- 🎧 **Offline Audio Overview**: Listen to AI-generated document briefings using the client's native speech synthesis engine.
-- 🔍 **Hybrid Retrieval Engine**: Pure-Python Okapi BM25 index fused with dense vector embeddings via Reciprocal Rank Fusion (RRF).
-- 📊 **Extended Document Loaders**: Ingest `.xlsx`, `.xls` (Excel), `.pptx` (PowerPoint), and `.html` / `.htm` (Web dumps).
-- 🛡️ **Streaming Lookahead Buffer**: Defuses real-time SSE token leakage with a 32-character pre-inspection window.
-- 💳 **Luhn Checksum Validation**: Eliminates false-positive redaction of non-card 16-digit serial numbers and identifiers.
-- 🖥️ **Universal CLI & One-Line Commands**: Run `guardrag run`, `guardrag --web`, `guardrag document.pdf`, or `guardrag path/to/folder`. Both `guardrag` and `guard-rag` CLI binaries are supported.
-- 📦 **100% Passing Test Suite**: 83 passing unit tests verifying hybrid retrieval, extended loaders, directory indexing, and safety guardrails.
+- 🚀 **Auto Ollama Detection & Launch**: Automatically discovers local Ollama installations and silently launches the background server daemon on startup.
+- 🛡️ **Pre-Upload Guard & Visual Guidance**: Proactively prevents unindexed queries, replacing cryptic 500 errors with animated dropzone guidance.
+- 🧹 **Pristine Canvas Reset**: Full session lifecycle reset (`resetToFreshState`) guaranteeing clean resets when deleting history or starting fresh chats.
+- 💭 **Live Reasoning Blocks**: Real-time thinking spinner and collapsible `<think>...</think>` thought-process sections for DeepSeek-R1 and reasoning models.
+- 🎨 **Unified Premium UI**: Sleek dark zinc aesthetics, floating themed notifications, and one-click code copy snippets.
+- 📦 **100% Passing Test Suite**: 84 passing unit tests verifying hybrid retrieval, extended loaders, directory indexing, and safety guardrails.
 
 ---
 

@@ -109,7 +109,7 @@ try:
     import guardrag as _guardrag_pkg
     _API_VERSION = _guardrag_pkg.__version__
 except Exception:
-    _API_VERSION = "1.3.2"
+    _API_VERSION = "1.3.3"
 
 app = FastAPI(
     title="Guardrails Local RAG Bot",

@@ -5,6 +5,18 @@ All notable changes to GuardRAG will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2026-11-15
+
+### Added
+- **Automatic Local Ollama Detection & Auto-Launch**: Automatically detects local Ollama binaries (`ollama.exe`) on system paths and starts the background server daemon if offline.
+- **Pulsing Status Indicators**: Live visual indicator for Ollama daemon startup with transition to online status.
+- **Unified Clean Canvas Reset (`resetToFreshState`)**: Comprehensive state reset that clears uploaded document status, active document badges, and cached storage on chat deletion or new chat.
+
+### Fixed
+- **Pre-Upload Chat Error Prevention**: Intercepted queries sent before document indexing, replacing 500 Internal Server Errors with helpful 400 Bad Request feedback and drop zone pulsing animations.
+- **Stale Document Status Retention**: Fixed residual `Loaded: <filename>` status lingering on the canvas after conversation clearance or collection deletion.
+- **Reasoning Stream Parser**: Enhanced streaming assistant bubble with animated thinking state and collapsible deep-thought blocks (`<think>...</think>`).
+
 ## [1.3.2] - 2026-11-15
 
 ### Added
