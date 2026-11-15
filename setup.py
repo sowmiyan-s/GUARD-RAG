@@ -43,6 +43,7 @@ setup(
     entry_points={
         "console_scripts": [
             "guard-rag=guardrag.cli.main:main",
+            "guardrag=guardrag.cli.main:main",
         ],
     },
     

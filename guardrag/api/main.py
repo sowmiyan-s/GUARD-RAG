@@ -88,6 +88,7 @@ from guardrag.rag.core import (
 from guardrag.utils.ollama import (
     get_installed_models,
     get_ollama_version,
+    is_ollama_installed,
     is_ollama_running,
     start_ollama_server,
     stop_ollama_server,
@@ -123,6 +124,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def on_app_startup():
+    """On application startup, verify local Ollama status and auto-launch if installed."""
+    try:
+        is_running = await asyncio.to_thread(is_ollama_running, SERVER_OLLAMA_HOST, 0.5)
+        if not is_running:
+            installed = await asyncio.to_thread(is_ollama_installed)
+            if installed:
+                print("Local Ollama installation detected. Auto-launching Ollama server in background...")
+                asyncio.create_task(asyncio.to_thread(start_ollama_server))
+    except Exception as e:
+        print(f"Ollama auto-startup notice: {e}")
 
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 FAISS_STORAGE = db.get_data_dir()
@@ -208,7 +222,7 @@ class LRUChainCache:
         if len(self.cache) > self.capacity:
             self.cache.popitem(last=False)
             
-_rag_chains = LRUChainCache(capacity=5)
+_rag_chains = LRUChainCache(capacity=int(os.environ.get("GUARDRAG_CACHE_CAPACITY", 30)))
 
 def _update_db_session(session: dict):
     db.save_session(
@@ -332,10 +346,17 @@ async def health(ollama_host: str = ""):
     """Check Ollama health. Uses SERVER_OLLAMA_HOST when no host is supplied."""
     host = (ollama_host or SERVER_OLLAMA_HOST).rstrip("/")
     running = await asyncio.to_thread(is_ollama_running, host)
+    installed = await asyncio.to_thread(is_ollama_installed)
+
+    # If Ollama is installed locally, not running, and host is localhost/127.0.0.1, auto-trigger start
+    if not running and installed and ("127.0.0.1" in host or "localhost" in host):
+        asyncio.create_task(asyncio.to_thread(start_ollama_server))
+
     models = await asyncio.to_thread(get_installed_models, host) if running else []
     version = await asyncio.to_thread(get_ollama_version, host) if running else "unknown"
     return {
         "ollama_running": running,
+        "ollama_installed": installed,
         "ollama_host": host,
         "ollama_version": version,
         "models": models,
@@ -378,6 +399,30 @@ async def ollama_stop():
 class SuggestQuestionsRequest(BaseModel):
     session_id: str
 
+def _clean_single_question(item) -> str:
+    import re
+    if isinstance(item, dict):
+        val = item.get("question") or item.get("text") or item.get("prompt") or (list(item.values())[0] if item else "")
+        return str(val).strip()
+    s = str(item).strip()
+    # Check if s is stringified dict or list representation e.g. "{'question': '...'}"
+    if (s.startswith("{") and s.endswith("}")) or (s.startswith("['") or s.startswith('["')):
+        import ast
+        try:
+            parsed = ast.literal_eval(s)
+            if isinstance(parsed, dict):
+                return _clean_single_question(parsed)
+            elif isinstance(parsed, (list, tuple)) and parsed:
+                return _clean_single_question(parsed[0])
+        except Exception:
+            pass
+        m = re.search(r"['\"](?:question|text|prompt)['\"]\s*:\s*['\"]([^'\"]+)['\"]", s, re.IGNORECASE)
+        if m:
+            return m.group(1).strip()
+    # Strip leading numbering, "Q1:", or markdown bullet points
+    s = re.sub(r'^(?:Q\d+[:.]|\d+[\.\)]|[\-\*•])\s*', '', s).strip()
+    return s.strip('"\'')
+
 def parse_questions_from_response(text: str) -> list[str]:
     import re
     text = text.strip()
@@ -388,7 +433,11 @@ def parse_questions_from_response(text: str) -> list[str]:
         try:
             questions = json.loads(text[start:end+1])
             if isinstance(questions, list):
-                cleaned = [str(q).strip() for q in questions if str(q).strip()]
+                cleaned = []
+                for q in questions:
+                    cq = _clean_single_question(q)
+                    if cq and len(cq) > 5:
+                        cleaned.append(cq)
                 if cleaned:
                     return cleaned[:3]
         except Exception:
@@ -399,8 +448,7 @@ def parse_questions_from_response(text: str) -> list[str]:
     questions = []
     for line in lines:
         line = line.strip()
-        cleaned = re.sub(r'^(\d+[\.\)]|[\-\*•])\s*', '', line).strip()
-        cleaned = cleaned.strip('"\'')
+        cleaned = _clean_single_question(line)
         if cleaned and len(cleaned) > 10 and cleaned.endswith('?'):
             questions.append(cleaned)
             if len(questions) >= 3:
@@ -408,7 +456,7 @@ def parse_questions_from_response(text: str) -> list[str]:
                 
     if len(questions) < 3:
         for line in lines:
-            line = line.strip().strip('"\'')
+            line = _clean_single_question(line)
             if line and line.endswith('?') and line not in questions:
                 questions.append(line)
                 if len(questions) >= 3:
@@ -732,6 +780,38 @@ async def get_session_messages(session_id: str):
         
     return {"messages": session.get("messages", [])}
 
+@app.delete("/api/sessions/{session_id}")
+async def delete_session_endpoint(session_id: str):
+    """Delete an entire session, clearing its stored messages and state."""
+    actual_session_id = session_id
+    share_link = db.get_share_link(session_id)
+    if share_link:
+        actual_session_id = share_link["parent_session_id"]
+        
+    db.delete_session(actual_session_id)
+    return {"deleted": True, "session_id": actual_session_id}
+
+@app.delete("/api/sessions/{session_id}/messages/{message_index}")
+async def delete_session_message_endpoint(session_id: str, message_index: int):
+    """Delete an individual chat message by index from session history."""
+    actual_session_id = session_id
+    share_link = db.get_share_link(session_id)
+    if share_link:
+        actual_session_id = share_link["parent_session_id"]
+        
+    session = db.get_session(actual_session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found.")
+        
+    messages = session.get("messages", [])
+    if message_index < 0 or message_index >= len(messages):
+        raise HTTPException(status_code=400, detail="Invalid message index.")
+        
+    removed = messages.pop(message_index)
+    session["messages"] = messages
+    _update_db_session(session)
+    return {"deleted": True, "remaining_count": len(messages), "removed": removed}
+
 import socket
 @app.get("/api/share/network-info")
 async def get_network_info():
@@ -834,9 +914,9 @@ async def chat_stream(req: ChatRequest):
                 if sl.get("sync"):
                     actual_session_id = sl["parent_session_id"]
         
-    session = db.get_session(actual_session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found. Please upload documents first.")
+    session = db.get_session(actual_session_id) if actual_session_id else None
+    if not session or not session.get("db_id"):
+        raise HTTPException(status_code=400, detail="No active document found. Please upload or select a document first.")
 
     if is_read_only or session.get("read_only", False):
         raise HTTPException(status_code=403, detail="This session is read-only. You cannot send messages.")
@@ -894,7 +974,13 @@ async def chat_stream(req: ChatRequest):
 
     # Retrieve vectorstore and context documents
     from guardrag.rag.core import get_stored_vectorstore, _get_llm
-    vectorstore = await asyncio.to_thread(get_stored_vectorstore, session["db_id"], str(FAISS_STORAGE))
+    try:
+        vectorstore = await asyncio.to_thread(get_stored_vectorstore, session["db_id"], str(FAISS_STORAGE))
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Document knowledge base not found on disk: {str(e)}. Please upload or re-index the document."
+        )
 
     host_lower = requested_host.lower()
     is_cloud = any(x in host_lower for x in ["api.openai.com", "api.groq.com", "openrouter.ai", "api.anthropic.com", "api.cohere.ai"]) or \
@@ -975,23 +1061,61 @@ async def chat_stream(req: ChatRequest):
         # 1. Send initial citations
         yield f"event: citations\ndata: {json.dumps({'citations': citations})}\n\n"
         
-        # 2. Stream tokens from LLM
+        # 2. Stream tokens from LLM with real-time sliding guardrail verification
         accumulated_chunks = []
+        emitted_length = 0
+        LOOKAHEAD_CHARS = 32
+        is_stream_blocked = False
+
+        async def _check_and_emit(force_flush: bool = False):
+            nonlocal emitted_length, is_stream_blocked
+            current_raw = "".join(accumulated_chunks)
+            current_rehydrated = rehydrate_text(current_raw, mapping) if (is_redacted and mapping) else current_raw
+            
+            # Check if any sensitive pattern is detected in the generated output
+            violation = check_output_safety(
+                current_rehydrated,
+                req.sensitivity_level,
+                req.enable_guardrails,
+                custom_rules=req.custom_rules
+            )
+            if violation:
+                is_stream_blocked = True
+                return violation
+                
+            # If safe so far, emit newly confirmed safe characters up to lookahead boundary
+            safe_boundary = len(current_rehydrated) if force_flush else max(0, len(current_rehydrated) - LOOKAHEAD_CHARS)
+            if safe_boundary > emitted_length:
+                token_to_emit = current_rehydrated[emitted_length:safe_boundary]
+                emitted_length = safe_boundary
+                return token_to_emit
+            return None
+
         try:
             async for chunk in llm.astream(lc_messages):
                 tok = chunk.content if hasattr(chunk, "content") else str(chunk)
                 if tok:
                     accumulated_chunks.append(tok)
-                    yield f"event: token\ndata: {json.dumps({'token': tok})}\n\n"
+                    res = await _check_and_emit(force_flush=False)
+                    if is_stream_blocked:
+                        # Output guardrail triggered mid-stream! Immediately abort.
+                        break
+                    elif res:
+                        yield f"event: token\ndata: {json.dumps({'token': res})}\n\n"
         except Exception as err:
             try:
                 res = await asyncio.to_thread(llm.invoke, lc_messages)
                 tok = res.content if hasattr(res, "content") else str(res)
                 accumulated_chunks.append(tok)
-                yield f"event: token\ndata: {json.dumps({'token': tok})}\n\n"
             except Exception as e2:
                 yield f"event: error\ndata: {json.dumps({'error': str(e2)})}\n\n"
                 return
+
+        # Flush any remaining tokens or handle blocked output
+        if not is_stream_blocked:
+            final_res = await _check_and_emit(force_flush=True)
+            if not is_stream_blocked and final_res:
+                yield f"event: token\ndata: {json.dumps({'token': final_res})}\n\n"
 
         raw_answer = "".join(accumulated_chunks)
         latency_sec = time.time() - start_time
@@ -1003,8 +1127,8 @@ async def chat_stream(req: ChatRequest):
 
         # Output safety check
         blocked_out = check_output_safety(rehydrated_answer, req.sensitivity_level, req.enable_guardrails, custom_rules=req.custom_rules)
-        if blocked_out:
-            final_answer = blocked_out
+        if is_stream_blocked or blocked_out:
+            final_answer = blocked_out or "[REDACTED — Output blocked by active data sensitivity policy.]"
             yield f"event: blocked_output\ndata: {json.dumps({'answer': final_answer, 'blocked': True})}\n\n"
             session["messages"].append({"role": "user", "content": req.question})
             session["messages"].append({
@@ -1066,9 +1190,9 @@ async def chat(req: ChatRequest):
                 if sl.get("sync"):
                     actual_session_id = sl["parent_session_id"]
         
-    session = db.get_session(actual_session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found. Please upload documents first.")
+    session = db.get_session(actual_session_id) if actual_session_id else None
+    if not session or not session.get("db_id"):
+        raise HTTPException(status_code=400, detail="No active document found. Please upload or select a document first.")
 
     if is_read_only or session.get("read_only", False):
         raise HTTPException(status_code=403, detail="This session is read-only. You cannot send messages.")

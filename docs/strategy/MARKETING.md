@@ -247,17 +247,56 @@ For legal, healthcare, finance teams."
 
 **Story Template:**
 ```
-Title: "GuardRAG – Privacy-first, offline AI document assistant"
+Title: Show HN: GuardRAG – 100% Offline, Air-Gapped NotebookLM Alternative with Hybrid Search & PII Redaction
 
 Text:
-After seeing concerns about data privacy with cloud-based AI,
-we built GuardRAG - a fully offline RAG chatbot that runs
-completely locally using Ollama and FAISS.
+Hi HN! We built GuardRAG (https://github.com/sowmiyan-s/GUARD-RAG), an open-source, air-gapped document intelligence tool designed for teams who cannot send confidential PDFs, spreadsheets, or slides to external cloud APIs.
 
-Key features:
-- 100% offline inference (CPU/GPU)
-- 4-tier security guardrails with PII redaction
-- Source-grounded answers with citations
+While tools like NotebookLM and ChatGPT offer great document analysis, enterprise legal, healthcare, and finance teams are bound by strict compliance (HIPAA, GDPR, NDA) preventing third-party LLM data egress.
+
+What GuardRAG does:
+• 100% Offline & Air-Gapped: Runs locally via Ollama (Gemma, Llama, Mistral, Qwen) with zero external network requests.
+• Hybrid Retrieval (BM25 + Dense RRF): Combines pure-Python Okapi BM25 keyword matching with dense vector embeddings using Reciprocal Rank Fusion, ensuring exact keyword precision (invoice IDs, code identifiers, law citations) along with semantic context.
+• Multi-Format Ingestion: Native loaders for PDF, Excel (.xlsx, .xls), PowerPoint (.pptx), Word (.docx), HTML, Markdown, and TXT.
+• 4-Tier Security Guardrails: Real-time regex and ISO/IEC 7812 Luhn validation against credit cards, SSNs, API tokens, passwords, and medical data with lookahead streaming buffer protection.
+• NotebookLM-Style Offline Audio Overview: Uses the native browser Web Speech API for offline document summaries and voice briefings without third-party speech APIs.
+• LAN Sharing & Collaboration: Host locally and share read-only or active sessions across your internal team network with auto-generated QR codes.
+
+Quick Start:
+$ pip install guard-rag
+$ guardrag run
+
+Code: https://github.com/sowmiyan-s/GUARD-RAG
+PyPI: https://pypi.org/project/guard-rag/
+
+We'd love to hear your feedback on the hybrid search accuracy, offline TTS experience, and regex safety filters!
+```
+
+### 8. Reddit Strategy (r/LocalLLaMA & r/SelfHosted)
+
+**Post Template for r/LocalLLaMA:**
+```
+Title: GuardRAG v1.3.2: 100% Offline, Air-gapped NotebookLM alternative with Hybrid BM25+Dense Search & PII Redaction
+
+Hey r/LocalLLaMA!
+
+Many of us love NotebookLM's workflow, but handling sensitive contracts, proprietary codebase notes, or personal financial sheets on cloud servers is often a non-starter.
+
+We just released GuardRAG v1.3.2:
+• Runs 100% locally with Ollama (any model: llama3.2, mistral, gemma, deepseek-r1).
+• Zero external CDN calls: Even fonts, stylesheets, and speech synthesis are strictly offline.
+• Hybrid Search (Okapi BM25 + Vector RRF): Solves the classic vector limitation where dense search misses exact error codes, SKU numbers, or law clauses.
+• Ingestion: PDFs, Word documents, Excel spreadsheets, PowerPoint presentations, and HTML web dumps.
+• Real-Time Lookahead Safety: Filters out leaked credentials and PII with pre-buffered token sliding windows.
+• Offline Audio Overview: Built-in voice summaries using the browser's native speech synthesis engine.
+
+Install:
+pip install guard-rag
+guardrag run
+
+Repo: https://github.com/sowmiyan-s/GUARD-RAG
+Feedback and PRs are very welcome!
+```
 - Multi-device LAN sharing (host-controlled)
 - Deploy with Docker Compose
 

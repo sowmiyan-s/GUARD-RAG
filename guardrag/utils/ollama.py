@@ -121,6 +121,26 @@ def get_ollama_version(host: str = "http://localhost:11434") -> str:
         return "unknown"
 
 
+def is_ollama_installed() -> bool:
+    """Check if Ollama executable is found on the local system."""
+    import shutil
+    if shutil.which("ollama"):
+        return True
+    if os.name == "nt":
+        for p in [
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama.exe"),
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama app.exe"),
+            os.path.expandvars(r"%ProgramFiles%\Ollama\ollama.exe"),
+        ]:
+            if os.path.exists(p):
+                return True
+    else:
+        for p in ["/usr/local/bin/ollama", "/usr/bin/ollama"]:
+            if os.path.exists(p):
+                return True
+    return False
+
+
 def start_ollama_server() -> bool:
     """
     Attempt to start a locally-installed Ollama process silently in the background.
@@ -132,22 +152,24 @@ def start_ollama_server() -> bool:
         return True
 
     import shutil
-    ollama_path = None
+    cmd = None
     if os.name == "nt":
-        # Check standard Windows app paths
-        app_exe = os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama app.exe")
+        # Check standard Windows app paths - prefer CLI serve for headless daemon
         cli_exe = os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama.exe")
         prog_exe = os.path.expandvars(r"%ProgramFiles%\Ollama\ollama.exe")
-        
-        if os.path.exists(app_exe):
-            cmd = [app_exe]
-        elif os.path.exists(cli_exe):
+        app_exe = os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama app.exe")
+        which_p = shutil.which("ollama")
+
+        if os.path.exists(cli_exe):
             cmd = [cli_exe, "serve"]
+        elif which_p:
+            cmd = [which_p, "serve"]
         elif os.path.exists(prog_exe):
             cmd = [prog_exe, "serve"]
+        elif os.path.exists(app_exe):
+            cmd = [app_exe]
         else:
-            which_p = shutil.which("ollama")
-            cmd = [which_p or "ollama", "serve"]
+            cmd = ["ollama", "serve"]
     else:
         which_p = shutil.which("ollama")
         cmd = [which_p or "ollama", "serve"]
@@ -170,12 +192,12 @@ def start_ollama_server() -> bool:
             close_fds=True if os.name != "nt" else False,
             **kwargs,
         )
-        # Wait up to 3 seconds for Ollama to bind the port
-        for _ in range(6):
+        # Wait up to 5 seconds for Ollama to bind the port
+        for _ in range(10):
             if is_ollama_running(timeout=0.5):
                 return True
             time.sleep(0.5)
-        return True
+        return False
     except Exception:
         return False
 

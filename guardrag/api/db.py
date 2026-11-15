@@ -23,6 +23,7 @@ def init_db():
     with _get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("PRAGMA journal_mode=WAL;")
+        cursor.execute("PRAGMA synchronous=NORMAL;")
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS audit_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

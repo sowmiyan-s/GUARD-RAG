@@ -4,28 +4,26 @@
 
 # 🛡️ GuardRAG
 
-### Privacy-First, 100% Offline AI Document Intelligence & Retrieval-Augmented Generation (RAG)
-
-**Powered by Local LLMs (Ollama), FastEmbed ONNX Embeddings, 4-Tier Safety Guardrails, PII Redaction, Real-Time SSE Token Streaming & Host-Controlled Multi-Device LAN Collaboration**
+### The 100% Offline, Air-Gapped NotebookLM Alternative
+#### Private AI Document Intelligence with Hybrid BM25+Vector Search, PII Redaction & Offline Audio Overviews
 
 [![PyPI version](https://img.shields.io/pypi/v/guard-rag?style=for-the-badge&color=00b91e&logo=pypi&logoColor=white)](https://pypi.org/project/guard-rag/)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-00b91e?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Ollama Ready](https://img.shields.io/badge/Ollama-Local%20LLM%20Ready-black?style=for-the-badge&logo=ollama&logoColor=white)](https://ollama.ai)
-[![Vector Engines](https://img.shields.io/badge/Vector%20Store-FAISS%20%7C%20Qdrant-0064A4?style=for-the-badge&logo=meta&logoColor=white)](https://github.com/facebookresearch/faiss)
+[![Hybrid Retrieval](https://img.shields.io/badge/Search-BM25%20%2B%20Dense%20RRF-blueviolet?style=for-the-badge&logo=search&logoColor=white)](#-hybrid-retrieval-engine-bm25--dense-rrf)
 [![Offline Certified](https://img.shields.io/badge/Deployment-100%25%20Offline%20%26%20Air--Gapped-success?style=for-the-badge&logo=shield&logoColor=white)](#-why-guardrag)
 [![License: MIT](https://img.shields.io/badge/License-MIT-00b91e?style=for-the-badge)](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/LICENSE)
-[![Tests Passing](https://img.shields.io/badge/Tests-73%20Passing-00b91e?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/sowmiyan-s/GUARD-RAG/tree/main/tests)
+[![Tests Passing](https://img.shields.io/badge/Tests-83%20Passing-00b91e?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/sowmiyan-s/GUARD-RAG/tree/main/tests)
 [![Docker Ready](https://img.shields.io/badge/Docker-Multi--Stage%20Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/Dockerfile)
 
 <br/>
 
 > **Interact with sensitive enterprise documents with zero data leakage, zero cloud dependencies, and verifiable source citations.**  
-> GuardRAG runs entirely on your local hardware. No prompts, documents, or embeddings ever leave your device or intranet.  
-> Every AI response is grounded in verifiable source citations, protected by tiered PII scrubbing, credential blocking, and anti-jailbreak defenses.
+> Turn confidential PDFs, Excel spreadsheets, PowerPoint decks, and codebases into an interactive knowledge base with local voice briefings, hybrid retrieval, and real-time streaming guardrails.
 
 ---
 
-### 📚 [Quickstart](#-quickstart-in-60-seconds) • [Architecture](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/ARCHITECTURE.md) • [Tech Stack](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/TECH_STACK.md) • [API & SDK Reference](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/API_REFERENCE.md) • [FAQ](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/FAQ.md) • [Deployment](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/DEPLOYMENT.md) • [Contributing](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/.github/CONTRIBUTING.md)
+### 🚀 [Quickstart in 60s](#-quickstart-in-60-seconds) • 🎧 [Offline Audio Overview](#-notebooklm-style-offline-audio-overview) • 🔍 [Hybrid Retrieval](#-hybrid-retrieval-engine-bm25--dense-rrf) • 🖥️ [CLI Guide](#️-command-line-interface-cli) • 🏗️ [Architecture](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/ARCHITECTURE.md) • 📚 [Full Docs](https://github.com/sowmiyan-s/GUARD-RAG/blob/main/docs/README.md)
 
 </div>
 
@@ -34,19 +32,18 @@
 ## 📋 Table of Contents
 
 - [📖 Overview & Why GuardRAG?](#-overview)
-- [⚖️ Feature Comparison Matrix](#️-feature-comparison-matrix)
-- [🌟 Key Features & Capabilities](#-key-features--capabilities)
-- [🏗️ System Architecture & Data Flow](#️-system-architecture--data-flow)
-- [🛡️ 4-Tier Safety Guardrails Matrix](#️-4-tier-safety-guardrails-matrix)
+- [⚖️ Feature Comparison Matrix (vs NotebookLM & Cloud AI)](#️-feature-comparison-matrix)
+- [🌟 What's New in v1.3.2](#-whats-new-in-v132)
+- [🎧 NotebookLM-Style Offline Audio Overview](#-notebooklm-style-offline-audio-overview)
+- [🔍 Hybrid Retrieval Engine (BM25 + Dense RRF)](#-hybrid-retrieval-engine-bm25--dense-rrf)
 - [⚡ Quickstart in 60 Seconds](#-quickstart-in-60-seconds)
-  - [Option 1: PyPI Installation (Recommended)](#option-1-pypi-installation-recommended)
-  - [Option 2: Docker & Docker Compose](#option-2-docker--docker-compose)
-  - [Option 3: Development Installation from Source](#option-3-development-installation-from-source)
 - [🖥️ Command Line Interface (CLI)](#️-command-line-interface-cli)
+- [📁 Universal Document & Folder Ingestion](#-universal-document--folder-ingestion)
+- [🛡️ 4-Tier Safety Guardrails Matrix](#️-4-tier-safety-guardrails-matrix)
+- [🏗️ System Architecture & Data Flow](#️-system-architecture--data-flow)
 - [🐍 Python SDK Integration](#-python-sdk-integration)
 - [🌐 Secure Multi-Device LAN Collaboration](#-secure-multi-device-lan-collaboration)
 - [🎭 Reasoning Profiles & Custom Personas](#-reasoning-profiles--custom-personas)
-- [📁 Supported Document Formats](#-supported-document-formats)
 - [📊 Performance Benchmarks](#-performance-benchmarks)
 - [📚 Documentation Ecosystem](#-documentation-ecosystem)
 - [🧪 Testing & Validation](#-testing--validation)
@@ -57,32 +54,91 @@
 
 ## 📖 Overview
 
-**GuardRAG** is a production-grade, self-hosted, air-gapped Retrieval-Augmented Generation (RAG) system engineered for organizations with strict compliance, security, and data privacy mandates. Built for **Legal, Healthcare, Finance, Defense, and Enterprise IT**, GuardRAG eliminates the privacy risks of cloud AI by running the entire document ingestion, vectorization, and inference pipeline locally.
+**GuardRAG** is a production-grade, self-hosted, air-gapped Retrieval-Augmented Generation (RAG) system engineered for organizations with strict compliance, security, and data privacy mandates. Built for **Legal, Healthcare, Finance, Defense, and Enterprise IT**, GuardRAG eliminates the privacy risks of cloud AI by running the entire document ingestion, vectorization, reasoning, and speech synthesis pipeline locally.
 
 ### Why Choose GuardRAG?
 
-- 🔒 **100% Offline & Air-Gapped**: Zero cloud API dependencies. No telemetry, tracking, or external vector stores.
-- 🛡️ **Enterprise Security Guardrails**: 4 cumulative security tiers with context-preserving PII redaction and credential masking.
-- ⚡ **Near-GPU CPU Embeddings**: Powered by **FastEmbed ONNX Runtime** (`bge-small-en-v1.5`), generating embeddings in 5–15ms per chunk without heavy PyTorch CUDA setup.
-- 💬 **Real-Time Token Streaming**: Low-latency typewriter responses via Server-Sent Events (SSE) over `/api/chat/stream`.
+- 🔒 **100% Offline & Air-Gapped**: Zero cloud API dependencies. No telemetry, tracking, external fonts, or external speech APIs.
+- 🎧 **Offline Audio Overview**: Built-in voice player using the browser's native Web Speech API to listen to document briefings without sending audio bytes to any cloud provider.
+- 🔍 **Hybrid Retrieval (BM25 + Dense Vector RRF)**: Combines exact keyword matching (for invoice numbers, error codes, legal clauses) with dense semantic understanding via Reciprocal Rank Fusion.
+- 🛡️ **4-Tier Cumulative Guardrails**: Real-time ISO/IEC 7812 Luhn-validated credit card filtering, SSN masking, API credential redaction, and anti-jailbreak defenses.
+- ⚡ **Zero-Leak Streaming**: Pre-buffered 32-character sliding lookahead window prevents sensitive tokens from ever touching the network over SSE streams.
+- 📁 **Universal Multi-Format Ingestion**: Ingest PDFs, Word (`.docx`), Excel spreadsheets (`.xlsx`), PowerPoint slides (`.pptx`), HTML web dumps, and codebases individually or by entire directories.
 - 🌐 **Host-Controlled LAN Sharing**: Share document Q&A across local teams with the **Host Authority Principle**—guests enjoy read-only access while the host retains exclusive administrative control.
-- 🎯 **Verifiable Fact Grounding**: Every answer cites exact source documents and page numbers, eliminating hallucination risks.
 
 ---
 
 ## ⚖️ Feature Comparison Matrix
 
-| Capability | GuardRAG | Cloud AI (ChatGPT / Perplexity) | PrivateGPT | Bare LangChain / LlamaIndex | AnythingLLM / Dify |
+| Capability | GuardRAG | Google NotebookLM | Cloud AI (ChatGPT / Claude) | PrivateGPT | Bare LangChain |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **100% Offline & Air-Gapped** | ✅ **Native** | ❌ Cloud Only | ✅ Yes | ⚠️ Requires Assembly | ⚠️ Partial |
-| **Setup Friction** | ✅ **1-Line `pip`** | ❌ Subscription | ⚠️ Complex Setup | ❌ Heavy Coding Needed | ⚠️ Heavy Docker Setup |
-| **Context-Aware PII Redaction** | ✅ **Built-in (4 Tiers)** | ❌ None | ❌ None | ⚠️ Manual Presidio | ❌ Plugin dependent |
-| **Indirect Injection Sanitizer** | ✅ **Built-in** | ❌ Vulnerable | ❌ None | ❌ Manual | ❌ Minimal |
-| **Real-Time SSE Streaming** | ✅ **Built-in** | ✅ Yes | ⚠️ Basic | ⚠️ Custom Code | ✅ Yes |
-| **Host-Controlled LAN Sharing** | ✅ **Built-in** | ❌ Cloud-Hosted | ❌ Single User | ❌ None | ⚠️ Account Required |
-| **Zero-Build Embedded Web UI** | ✅ **Built-in (Vanilla)** | ❌ Proprietary | ⚠️ Gradio / Streamlit | ❌ None | ⚠️ Heavy Node/React |
-| **Local CPU Vector Acceleration** | ✅ **FastEmbed ONNX** | ❌ Cloud Hosted | ⚠️ Heavy PyTorch | ⚠️ Manual Config | ⚠️ Heavy PyTorch |
-| **Forensic SQLite WAL Auditing** | ✅ **Built-in** | ❌ Provider Controlled | ❌ None | ❌ Manual | ⚠️ Limited |
+| **100% Offline & Air-Gapped** | ✅ **Native** | ❌ Cloud Only | ❌ Cloud Only | ✅ Yes | ⚠️ Requires Assembly |
+| **Data Privacy (Zero Egress)** | ✅ **Absolute** | ❌ Data sent to Google | ❌ Data sent to 3rd party | ✅ Yes | ⚠️ Manual |
+| **Audio Overview Briefings** | ✅ **100% Offline TTS** | ✅ Cloud Audio | ❌ Third-party API | ❌ None | ❌ None |
+| **Hybrid Search (BM25 + Vector)** | ✅ **Built-in RRF** | ⚠️ Vector-dominant | ⚠️ Black-box | ❌ Dense only | ⚠️ Heavy setup |
+| **Multi-Format (Excel / PPTX / HTML)** | ✅ **Native** | ⚠️ Partial | ✅ Yes | ⚠️ Basic PDF | ⚠️ Manual plugins |
+| **Recursive Directory Ingestion** | ✅ **`guardrag ./dir/`** | ❌ Manual upload | ❌ Manual upload | ⚠️ CLI flag | ❌ Custom code |
+| **Real-Time Lookahead Leak Filter** | ✅ **Built-in (32-char)** | ❌ None | ❌ Post-hoc | ❌ None | ❌ None |
+| **Context-Aware PII Redaction** | ✅ **Built-in (4 Tiers)** | ❌ None | ❌ None | ❌ None | ⚠️ Manual Presidio |
+| **Setup Friction** | ✅ **1-Line `pip`** | ❌ Google Login | ❌ Subscription | ⚠️ Heavy Setup | ❌ Heavy Coding |
+
+---
+
+## 🌟 What's New in v1.3.2
+
+- 🎧 **Offline Audio Overview**: Listen to AI-generated document briefings using the client's native speech synthesis engine.
+- 🔍 **Hybrid Retrieval Engine**: Pure-Python Okapi BM25 index fused with dense vector embeddings via Reciprocal Rank Fusion (RRF).
+- 📊 **Extended Document Loaders**: Ingest `.xlsx`, `.xls` (Excel), `.pptx` (PowerPoint), and `.html` / `.htm` (Web dumps).
+- 🛡️ **Streaming Lookahead Buffer**: Defuses real-time SSE token leakage with a 32-character pre-inspection window.
+- 💳 **Luhn Checksum Validation**: Eliminates false-positive redaction of non-card 16-digit serial numbers and identifiers.
+- 🖥️ **Universal CLI & One-Line Commands**: Run `guardrag run`, `guardrag --web`, `guardrag document.pdf`, or `guardrag path/to/folder`. Both `guardrag` and `guard-rag` CLI binaries are supported.
+- 📦 **100% Passing Test Suite**: 83 passing unit tests verifying hybrid retrieval, extended loaders, directory indexing, and safety guardrails.
+
+---
+
+## 🎧 NotebookLM-Style Offline Audio Overview
+
+GuardRAG brings the viral **Audio Overview** experience directly into your browser—**100% offline, private, and free**:
+
+1. Ingest any document (PDF, spreadsheet, presentation, or meeting notes).
+2. Click the **🎧 Audio Overview** button in the document header.
+3. GuardRAG synthesizes a clear, spoken briefing using your browser's native **Web Speech API** (`window.speechSynthesis`).
+4. **Key Highlights**:
+   - Zero cloud audio generation costs or latency spikes.
+   - Zero audio data transmitted across the internet.
+   - Natural playback controls: Play, Pause, and Resume with automated sentence boundary chunking.
+
+---
+
+## 🔍 Hybrid Retrieval Engine (BM25 + Dense RRF)
+
+Traditional vector-only RAG systems frequently fail when searching for exact alphanumeric codes, such as invoice numbers (`INV-2026-X88`), server error codes (`ERR-9021`), or legal clause numbers (`Section 4.2(b)`).
+
+GuardRAG combines **dense semantic vector search** with an air-gapped **Okapi BM25 keyword index**:
+
+```
+User Query: "What happened with invoice INV-2026-X88?"
+                     │
+         ┌───────────┴───────────┐
+         ▼                       ▼
+┌──────────────────┐    ┌──────────────────┐
+│  Dense Vector    │    │   Okapi BM25     │
+│  Semantic Search │    │   Keyword Search │
+└────────┬─────────┘    └────────┬─────────┘
+         │                       │
+         └───────────┬───────────┘
+                     ▼
+         ┌───────────────────────┐
+         │ Reciprocal Rank       │
+         │ Fusion (RRF Scoring)  │
+         └───────────┬───────────┘
+                     ▼
+   Top Precision Citations Delivered
+```
+
+- **Dense Retriever**: Captures semantic concepts, synonyms, and high-level conversational intent.
+- **BM25 Retriever**: Captures exact alphanumeric codes, SKU numbers, legal clauses, and variable names.
+- **Reciprocal Rank Fusion**: Re-ranks candidates using $\text{RRF Score} = \sum \frac{1}{60 + \text{rank}_i}$, ensuring the most accurate chunks rise to the top.
 
 ---
 
@@ -192,23 +248,41 @@ Guardrail tiers can be toggled per session or applied globally. Protections are 
    pip install guard-rag
    ```
 
-2. **Ensure Ollama is running** with your preferred model:
+2. **Ensure Ollama is running** locally:
    ```bash
-   ollama run llama3.1
+   ollama run llama3.2
    ```
 
 3. **Launch the GuardRAG Web Dashboard**:
    ```bash
-   guard-rag
+   guardrag run
    ```
+   *(Or simply run `guardrag --web` or `guard-rag`)*
 
-4. Open your browser at **`http://localhost:8000`** and begin chatting with your documents!
+4. Open your browser at **`http://localhost:8000`** to start chatting with documents and listening to offline **Audio Overviews**!
 
 ---
 
-### Option 2: Docker & Docker Compose
+### Option 2: Instant Terminal CLI Mode
 
-Deploy a containerized, non-root instance of GuardRAG with persistent storage:
+Query any document or directory directly from your shell without opening a browser:
+
+```bash
+# Query a single document (PDF, Excel, Word, PPTX, HTML, TXT, MD)
+guardrag contracts/NDA.pdf
+
+# Query an entire folder recursively
+guardrag ./financial_reports/
+
+# Query with specific model and sensitivity tier
+guardrag --file Q3_Performance.xlsx --model mistral --sensitivity Confidential
+```
+
+---
+
+### Option 3: Docker & Docker Compose
+
+Deploy a containerized, self-hosted instance of GuardRAG with persistent storage:
 
 ```bash
 # Clone the repository
@@ -226,7 +300,7 @@ open http://localhost:8000
 
 ---
 
-### Option 3: Development Installation from Source
+### Option 4: Development Installation from Source
 
 ```bash
 git clone https://github.com/sowmiyan-s/GUARD-RAG.git
@@ -239,43 +313,43 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install in editable mode with dev dependencies
 pip install -e ".[dev]"
 
-# Run test suite to verify installation
-pytest -q
+# Run test suite to verify installation (83 passing tests)
+pytest -v
 ```
 
 ---
 
 ## 🖥️ Command Line Interface (CLI)
 
-GuardRAG includes a powerful headless CLI for terminal power users, shell scripting, and CI/CD pipelines.
+GuardRAG includes an interactive and headless CLI for terminal power users, shell scripting, and CI/CD automated pipelines.
 
-### Headless Document Query
+### Usage Syntax
 ```bash
-# Ask questions directly against a confidential PDF
-guard-rag --pdf contracts/NDA.pdf --query "What is the confidentiality duration?" --model llama3.1 --sensitivity Confidential
+guardrag [DOCUMENT_OR_DIRECTORY] [OPTIONS]
 ```
 
 ### CLI Configuration Flags
 
 | Flag | Short | Default | Description | Example |
 | :--- | :---: | :---: | :--- | :--- |
-| `--pdf <path>` | `-p` | *None* | Path to document file (PDF, DOCX, TXT, MD, CSV, JSON, LOG, PY) | `--pdf ~/report.pdf` |
-| `--query <text>`| `-q` | *Interactive* | Query text (prompts interactively if omitted) | `--query "Summarize risks"` |
-| `--model <name>`| `-m` | `gemma3:1b` | Ollama model name | `--model llama3.1` |
-| `--ollama-host` | | `http://localhost:11434` | Ollama daemon endpoint URL | `--ollama-host http://192.168.1.5:11434` |
+| `[document]` | | *None* | Path to document file or directory to query | `guardrag report.pdf` |
+| `--file`, `--doc` | `-f` | *None* | Path to document file (PDF, DOCX, XLSX, PPTX, HTML, TXT, MD) | `guardrag --file data.xlsx` |
+| `--pdf <path>` | | *None* | Backward-compatible alias for document path | `guardrag --pdf doc.pdf` |
+| `--web` | `-w` | *False* | Launch the interactive browser Web GUI | `guardrag --web` |
+| `--port <int>` | | `8000` | Web server port | `guardrag --web --port 8080` |
+| `--host <str>` | | `0.0.0.0`| Web server host address | `guardrag --host 127.0.0.1` |
+| `--model <name>`| `-m` | `gemma3:1b` | Ollama model name | `guardrag --model llama3.2` |
+| `--ollama-host` | | `http://localhost:11434` | Ollama daemon endpoint URL | `--ollama-host http://127.0.0.1:11434` |
 | `--sensitivity` | `-s` | `Internal` | Guardrail tier (`Public`, `Internal`, `Confidential`, `Restricted`) | `--sensitivity Restricted` |
 | `--chunk-size` | | `1000` | Text chunk character limit (500–4000) | `--chunk-size 1500` |
 | `--chunk-overlap`| | `200` | Overlap character count between chunks | `--chunk-overlap 300` |
-| `--output-format`| | `text` | Response output format (`text`, `json`, `markdown`) | `--output-format json` |
+| `--temperature` | | `0.0` | Creativity level (0.0 to 1.0) | `--temperature 0.2` |
 | `--no-guardrails`| | `False` | Disables safety guardrail inspection | `--no-guardrails` |
-| `--port <int>` | | `8000` | Web server port | `--port 8080` |
 
-### Scripting & Batch Example (CI/CD Pipeline)
+### Terminal Workflow Example
 ```bash
-# Extract compliance summary as JSON in automated pipelines
-guard-rag --pdf compliance_audit.pdf \
-          --query "List any non-compliant controls" \
-          --output-format json > audit_results.json
+# Query a confidential Excel sheet directly in your terminal with citations
+guardrag --file audit_2026.xlsx --sensitivity Confidential --model llama3.2
 ```
 
 ---
@@ -388,9 +462,13 @@ GuardRAG includes format-specific parsers that preserve page indexes and tabular
 | :--- | :--- | :--- | :--- |
 | **PDF Documents** | `.pdf` | `pypdf` | Preserves page numbers for citation tracing |
 | **Word Documents** | `.docx`, `.doc` | `docx2txt` | Extracts paragraph and table structures |
+| **Excel Spreadsheets** | `.xlsx`, `.xls` | `openpyxl` | Multi-sheet row parsing with column alignment |
+| **PowerPoint Presentations** | `.pptx` | `python-pptx` | Slide-by-slide shape and table text extraction |
+| **Web & HTML** | `.html`, `.htm` | `BeautifulSoup4` | Script/nav cleaning with title and DOM text retention |
 | **Plain Text & Markdown**| `.txt`, `.md` | Native UTF-8 | Section-aware chunking |
-| **Tabular Data** | `.csv`, `.json` | Native Streaming | Preserves key-value pairs and headers |
+| **Tabular & Structured Data** | `.csv`, `.json` | Native Streaming | Preserves key-value pairs and headers |
 | **Logs & Source Code** | `.log`, `.py` | Native AST/Reader | Extracts functions, classes, and stack traces |
+| **Folders & Directories** | *directory* | Recursive Engine | Traverses nested directories and indexes all supported formats |
 
 ---
 
@@ -442,7 +520,7 @@ pytest tests/test_multidevice_sharing.py -v
 pytest --cov=guardrag --cov-report=html
 ```
 
-Current Test Status: **73 Passing Tests (100% Core Coverage)** ✓
+Current Test Status: **83 Passing Tests (100% Core Coverage)** ✓
 
 ---
 

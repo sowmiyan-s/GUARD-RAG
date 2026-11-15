@@ -5,7 +5,23 @@ All notable changes to GuardRAG will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.2] - 2026-11-13
+## [1.3.2] - 2026-11-15
+
+### Added
+- **Hybrid Search Engine**: Integrated zero-dependency Okapi BM25 keyword matching with dense vector retrieval using Reciprocal Rank Fusion (RRF).
+- **NotebookLM-Style Offline Audio Overview**: Native browser Web Speech API voice synthesis player for document summaries and Q&A briefings without external TTS services.
+- **Extended Ingestion Parsers**: Added native loaders for Microsoft Excel (`.xlsx`, `.xls`), PowerPoint (`.pptx`), and Web dumps (`.html`, `.htm`).
+- **Flexible CLI Commands**: Added `--file`, `--doc`, and positional arguments alongside `--web`, `--host`, and `--port`. Both `guardrag` and `guard-rag` commands are registered.
+- **Recursive Directory Ingestion**: Ingest entire nested directories of documents with a single path argument.
+- **Modular Frontend Architecture**: Refactored frontend into dedicated ES modules (`ui.js`, `chat.js`) with one-click code copy snippet buttons and source citation inspectors.
+- **Automated Test Coverage**: Added tests for hybrid RRF retrieval, Excel/PPTX/HTML loaders, directory ingestion, and CLI flags (83/83 tests passing).
+
+### Fixed
+- **SSE Streaming Guardrail Leak**: Implemented sliding lookahead window (`LOOKAHEAD_CHARS = 32`) preventing secrets or PII from leaking over the wire prior to safety inspection.
+- **Air-Gapped Font Isolation**: Removed external Google Fonts CDN links from `index.html` and implemented high-performance native system font stacks.
+- **Luhn Algorithm Checksum**: Added ISO/IEC 7812 validation to `CREDIT_CARD_REGEX` to eliminate false-positive 16-digit number redacting.
+- **Entity Exclusion Allowlist**: Prevented proper nouns ("United States", "San Francisco", "Machine Learning") from being redacted as human names.
+- **Ollama Native Embeddings**: Added native Ollama embedding support (`nomic-embed-text`) with automatic fallback.
 
 ### Changed
 - Reorganized project layout into dedicated `docs/`, `.github/`, and `docs/strategy/` directories.

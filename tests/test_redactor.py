@@ -53,5 +53,18 @@ class TestPIIRedactor(unittest.TestCase):
         self.assertIn("Dr. Alice", redacted)
         self.assertIn("[EMAIL_REDACTED]", redacted)
 
+    def test_proper_nouns_not_redacted(self):
+        text = "The team in San Francisco deployed Machine Learning models across the United States."
+        redacted = redact_text(text, redact_names=True)
+        self.assertIn("San Francisco", redacted)
+        self.assertIn("Machine Learning", redacted)
+        self.assertIn("United States", redacted)
+
+    def test_invalid_credit_card_not_redacted(self):
+        text = "Order tracking code: 2026111500001235 and barcode 9780134685991."
+        redacted = redact_text(text)
+        self.assertIn("2026111500001235", redacted)
+        self.assertNotIn("[CREDIT_CARD_REDACTED]", redacted)
+
 if __name__ == "__main__":
     unittest.main()

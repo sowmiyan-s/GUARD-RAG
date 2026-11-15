@@ -225,7 +225,22 @@ async function apiFetch(path, opts = {}) {
 function toast(msg, type = 'info', duration = 3400) {
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
-  el.textContent = msg;
+
+  let iconSvg = '';
+  if (type === 'success') {
+    iconSvg = '<svg class="toast-icon success" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>';
+  } else if (type === 'error') {
+    iconSvg = '<svg class="toast-icon error" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
+  } else if (type === 'warn') {
+    iconSvg = '<svg class="toast-icon warn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+  } else {
+    iconSvg = '<svg class="toast-icon info" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+  }
+
+  el.innerHTML = `
+    <span class="toast-icon-wrap">${iconSvg}</span>
+    <span class="toast-msg">${escapeHtml(msg)}</span>
+  `;
   toastContainer.appendChild(el);
   setTimeout(() => {
     el.style.animation = 'toastOut 0.22s ease forwards';
@@ -449,6 +464,8 @@ if (railStartOllama) {
 }
 
 if (railClearBtn) { railClearBtn.addEventListener('click', clearConversation); }
+const btnClearChatHeader = $('btnClearChatHeader');
+if (btnClearChatHeader) { btnClearChatHeader.addEventListener('click', clearConversation); }
 
 function syncRailStatus() {
   if (!railStatusDot) return;
@@ -517,10 +534,11 @@ async function checkOllamaDirectly(endpoint) {
     const data = await apiFetch(`/api/health?ollama_host=${encodeURIComponent(endpoint)}`);
     return {
       running: data.ollama_running,
+      installed: data.ollama_installed || false,
       models: data.models || [],
     };
   } catch {
-    return { running: false, models: [] };
+    return { running: false, installed: false, models: [] };
   }
 }
 
@@ -528,7 +546,7 @@ async function refreshHealth() {
   const endpoint = getOllamaEndpoint();
   const isLocal = endpoint.includes('localhost') || endpoint.includes('127.0.0.1');
 
-  const { running, models } = await checkOllamaDirectly(endpoint);
+  const { running, installed, models } = await checkOllamaDirectly(endpoint);
 
   // Update state
   const changed = state.ollamaRunning !== running;
@@ -541,6 +559,7 @@ async function refreshHealth() {
   const modalModel = $('modalModelSelect');
 
   if (running) {
+    if (statusDot) statusDot.classList.remove('pulsing');
     if (btnStartOllama) btnStartOllama.style.display = 'none';
     if (railStartOllama) railStartOllama.style.display = 'none';
     if (startOllamaHint) startOllamaHint.style.display = 'none';
@@ -550,7 +569,7 @@ async function refreshHealth() {
 
     // Update header widget
     if (connectionBadge) {
-      connectionBadge.textContent = isLocal ? 'OLLAMA: ONLINE' : 'OLLAMA: REMOTE';
+      connectionBadge.textContent = isLocal ? 'Ollama: Online' : 'Ollama: Remote';
       connectionBadge.style.color = 'var(--text-primary)';
     }
     if (statusDot) statusDot.style.background = 'var(--accent)';
@@ -595,7 +614,39 @@ async function refreshHealth() {
     }
 
     if (changed) toast('Ollama connection established.', 'success');
+  } else if (installed && isLocal) {
+    // Local Ollama is installed and currently auto-starting!
+    if (btnStartOllama) btnStartOllama.style.display = 'none';
+    if (railStartOllama) railStartOllama.style.display = 'none';
+
+    if (startOllamaHint) {
+      startOllamaHint.style.display = 'block';
+      startOllamaHint.textContent = 'Local Ollama installation detected. Starting server...';
+    }
+
+    if (connectionBadge) {
+      connectionBadge.textContent = 'Ollama: Starting...';
+      connectionBadge.style.color = 'var(--text-muted)';
+    }
+    if (statusDot) {
+      statusDot.style.background = '#f59e0b';
+      statusDot.classList.add('pulsing');
+    }
+    if (toggleBtn) {
+      toggleBtn.textContent = 'Starting...';
+      toggleBtn.style.color = '#f59e0b';
+      toggleBtn.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+    }
+
+    modelSelect.innerHTML = '<option value="" disabled selected>Ollama Starting...</option>';
+    if (modalModel) modalModel.innerHTML = '<option value="" disabled selected>Ollama Starting...</option>';
+    if (topLbl) topLbl.textContent = 'Starting...';
+    state.selectedModel = '';
+
+    // Rapid poll while starting up
+    setTimeout(refreshHealth, 2500);
   } else {
+    if (statusDot) statusDot.classList.remove('pulsing');
     if (btnStartOllama) btnStartOllama.style.display = 'flex';
     if (railStartOllama) railStartOllama.style.display = 'flex';
 
@@ -608,7 +659,7 @@ async function refreshHealth() {
 
     // Update header widget
     if (connectionBadge) {
-      connectionBadge.textContent = 'OLLAMA: OFFLINE';
+      connectionBadge.textContent = 'Ollama: Offline';
       connectionBadge.style.color = 'var(--text-muted)';
     }
     if (statusDot) statusDot.style.background = 'var(--danger)';
@@ -1039,10 +1090,37 @@ const btnSecModalCancel = $('btnSecModalCancel');
 const btnSecModalSave = $('btnSecModalSave');
 const btnSecModalDone = $('btnSecModalDone');
 
+const tabSecBasic = $('tabSecBasic');
+const tabSecAdvanced = $('tabSecAdvanced');
+const secViewBasic = $('secViewBasic');
+const secViewAdvanced = $('secViewAdvanced');
+
+if (tabSecBasic && tabSecAdvanced) {
+  tabSecBasic.addEventListener('click', () => {
+    tabSecBasic.classList.add('active');
+    tabSecAdvanced.classList.remove('active');
+    if (secViewBasic) secViewBasic.style.display = 'flex';
+    if (secViewAdvanced) secViewAdvanced.style.display = 'none';
+  });
+
+  tabSecAdvanced.addEventListener('click', () => {
+    tabSecAdvanced.classList.add('active');
+    tabSecBasic.classList.remove('active');
+    if (secViewBasic) secViewBasic.style.display = 'none';
+    if (secViewAdvanced) secViewAdvanced.style.display = 'flex';
+  });
+}
+
 function updateModalCardsAndUI() {
   const currentSens = state.pendingSensitivity || (sensitivitySelect ? sensitivitySelect.value : 'Internal');
-  
-  // Highlight active level card
+  const currentProf = state.pendingProfile || state.currentProfile || 'balanced';
+
+  // Highlight active basic preset cards
+  document.querySelectorAll('.sec-basic-card').forEach(card => {
+    card.classList.toggle('active', card.dataset.preset === currentProf);
+  });
+
+  // Highlight active level card in advanced view
   document.querySelectorAll('.sec-level-card').forEach(card => {
     card.classList.toggle('active', card.dataset.level === currentSens);
   });
@@ -1067,6 +1145,15 @@ function openSecurityModal() {
   }
   state.pendingProfile = state.currentProfile || 'balanced';
   state.pendingSensitivity = sensitivitySelect ? sensitivitySelect.value : 'Internal';
+  
+  // Default to Basic Presets view for clean experience
+  if (tabSecBasic && tabSecAdvanced) {
+    tabSecBasic.classList.add('active');
+    tabSecAdvanced.classList.remove('active');
+    if (secViewBasic) secViewBasic.style.display = 'flex';
+    if (secViewAdvanced) secViewAdvanced.style.display = 'none';
+  }
+
   if (secModal) {
     secModal.style.display = 'flex';
     updateModalCardsAndUI();
@@ -1121,7 +1208,19 @@ if (secModal) {
   });
 }
 
-// Wire the 4 level cards inside the modal
+// Wire the Basic Preset cards (Single-click clean selection)
+document.querySelectorAll('.sec-basic-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const preset = card.dataset.preset;
+    if (preset && PROFILES[preset]) {
+      state.pendingProfile = preset;
+      state.pendingSensitivity = PROFILES[preset].sensitivity;
+      updateModalCardsAndUI();
+    }
+  });
+});
+
+// Wire the Advanced 4 level cards inside the modal
 document.querySelectorAll('.sec-level-card').forEach(card => {
   card.addEventListener('click', () => {
     const level = card.dataset.level;
@@ -1134,7 +1233,7 @@ document.querySelectorAll('.sec-level-card').forEach(card => {
           break;
         }
       }
-      state.pendingProfile = matched || null;
+      state.pendingProfile = matched || 'balanced';
       updateModalCardsAndUI();
     }
   });
@@ -1288,9 +1387,18 @@ async function deleteStoredSession(dbId, cardEl) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ db_id: dbId }),
     });
+    const wasActive = (state.currentDbId === dbId) || 
+                      (state.sessionId && state.sessionId === dbId) || 
+                      cardEl.classList.contains('active') ||
+                      (localStorage.getItem('ragbot_active_db_id') === dbId);
+
     cardEl.style.animation = 'toastOut 0.2s ease forwards';
     setTimeout(() => { cardEl.remove(); checkStorageEmpty(); }, 220);
-    toast('Collection deleted.', 'info');
+
+    if (wasActive) {
+      resetToFreshState();
+    }
+    toast('Collection deleted from history.', 'info');
   } catch (e) {
     toast(`Delete failed: ${e.message}`, 'error');
   }
@@ -1374,17 +1482,78 @@ dropZone.addEventListener('drop', e => {
 fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
 
 btnReset.addEventListener('click', () => {
-  state.selectedFiles = [];
-  state.sessionId = null;
-  state.currentDbId = null;
-  // step2Card is always enabled now, no need to toggle disabled class
-  renderFileList();
-  setUploadStatus('');
-  setUploadPanelOpen(true);
-  showEmptyState();
+  resetToFreshState();
 });
 
-// ─── UPLOAD / PROCESS ─────────────────────────────────────────────────────────
+// ─── UPLOAD / PROCESS & INGESTION PROGRESS CONTROLLER ────────────────────────
+let ingestionInterval = null;
+let ingestionStartTime = 0;
+
+function startIngestionProgressAnimation() {
+  const card = $('ingestionProgressCard');
+  const stageText = $('ingestionStageText');
+  const timer = $('ingestionTimer');
+  const fill = $('ingestionFill');
+  const stepLabel = $('ingestionStepLabel');
+  const percent = $('ingestionPercent');
+  
+  if (card) card.style.display = 'flex';
+  ingestionStartTime = Date.now();
+  
+  const stages = [
+    { sec: 0, pct: 15, label: 'Stage 1 of 4: Content Parsing', text: 'Reading file stream & parsing document layout...' },
+    { sec: 2, pct: 38, label: 'Stage 2 of 4: Sanitization & PII', text: 'Filtering prompt injections & masking sensitive PII tokens...' },
+    { sec: 5, pct: 64, label: 'Stage 3 of 4: Vector & BM25 Embedding', text: 'Computing semantic embeddings & Okapi BM25 keyword index...' },
+    { sec: 9, pct: 86, label: 'Stage 4 of 4: Local Vector Persist', text: 'Persisting local vector database & assembling hybrid RAG chain...' },
+    { sec: 14, pct: 94, label: 'Stage 4 of 4: Finalizing Chain', text: 'Calibrating retriever weights & warming local response cache...' }
+  ];
+
+  function update() {
+    const elapsedSec = Math.floor((Date.now() - ingestionStartTime) / 1000);
+    const mins = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+    const secs = String(elapsedSec % 60).padStart(2, '0');
+    if (timer) timer.textContent = `${mins}:${secs}`;
+
+    let currentStage = stages[0];
+    for (const s of stages) {
+      if (elapsedSec >= s.sec) currentStage = s;
+    }
+    if (stageText) stageText.textContent = currentStage.text;
+    if (stepLabel) stepLabel.textContent = currentStage.label;
+    if (fill) fill.style.width = `${currentStage.pct}%`;
+    if (percent) percent.textContent = `${currentStage.pct}%`;
+  }
+
+  update();
+  clearInterval(ingestionInterval);
+  ingestionInterval = setInterval(update, 500);
+}
+
+function stopIngestionProgressAnimation(isSuccess = true, count = 1) {
+  clearInterval(ingestionInterval);
+  const card = $('ingestionProgressCard');
+  const stageText = $('ingestionStageText');
+  const fill = $('ingestionFill');
+  const percent = $('ingestionPercent');
+  const stepLabel = $('ingestionStepLabel');
+  
+  if (!card) return;
+  
+  if (isSuccess) {
+    if (fill) fill.style.width = '100%';
+    if (percent) percent.textContent = '100%';
+    if (stepLabel) stepLabel.textContent = 'Completed';
+    if (stageText) {
+      stageText.innerHTML = `<span style="color:var(--accent); font-weight:700;">✓</span> Successfully embedded ${count} document(s) into local store`;
+    }
+    setTimeout(() => {
+      if (card) card.style.display = 'none';
+    }, 2800);
+  } else {
+    card.style.display = 'none';
+  }
+}
+
 function setUploadStatus(msg, type = '') {
   uploadStatus.innerHTML = msg;
   uploadStatus.className = `upload-status ${type}`.trim();
@@ -1402,7 +1571,10 @@ async function processDocuments() {
   state.isProcessing = true;
   btnProcess.disabled = true;
   btnReset.disabled = true;
-  setUploadStatus('Embedding documents — please wait…', 'loading');
+  btnProcess.innerHTML = '<span class="ingestion-spinner" style="width:12px;height:12px;border-width:1.5px;border-top-color:#000;display:inline-block;vertical-align:middle;margin-right:5px;"></span> Processing...';
+  
+  setUploadStatus('<span style="display:inline-flex; align-items:center; gap:0.4rem; color:var(--accent); font-weight:600;"><span class="ingestion-spinner" style="width:12px;height:12px;"></span> Ingesting documents...</span>', 'loading');
+  startIngestionProgressAnimation();
 
   const activeProfile = PROFILES[state.currentProfile] || PROFILES.balanced;
   const form = new FormData();
@@ -1448,13 +1620,15 @@ async function processDocuments() {
       });
     }
 
-    setUploadStatus(`${data.files.length} document(s) indexed.`, 'success');
+    stopIngestionProgressAnimation(true, data.files.length);
+    setUploadStatus(`✓ ${data.files.length} document(s) indexed.`, 'success');
     toast('Documents ready — start chatting!', 'success');
     showChatReady();
     autoCollapseUpload();
     await loadStoragePool();
   } catch (e) {
     console.error("Error in processDocuments:", e);
+    stopIngestionProgressAnimation(false);
     const friendly = translateError(e);
     setUploadStatus(friendly, 'error');
     toast(e.message || 'Processing failed', 'error', 6000);
@@ -1462,6 +1636,7 @@ async function processDocuments() {
     state.isProcessing = false;
     btnProcess.disabled = false;
     btnReset.disabled = false;
+    btnProcess.textContent = 'Process Documents';
   }
 }
 
@@ -1470,7 +1645,7 @@ function showEmptyState() {
   state.activeTab = 'new-chat';
   const tabs = $('viewTabs');
   if (tabs) {
-    tabs.style.display = state.sessionId ? 'inline-flex' : 'none';
+    tabs.style.display = 'none';
   }
   
   emptyState.style.display = '';
@@ -1486,7 +1661,7 @@ function showEmptyState() {
   inputBarWrapper.style.display = 'block';
   magicPromptsWrapper.style.display = 'none';
   chatInput.disabled = false;
-  chatInput.placeholder = "Ask anything about your document or start typing...";
+  chatInput.placeholder = "Upload a document above to begin chatting...";
   btnSend.disabled = false;
   updateTabUI();
 }
@@ -1533,7 +1708,7 @@ function renderMagicPrompts() {
 function showChatReady() {
   state.activeTab = 'chat';
   const tabs = $('viewTabs');
-  if (tabs && !state.isSharedSession) tabs.style.display = 'inline-flex';
+  if (tabs) tabs.style.display = 'none';
   updateTabUI();
   
   if (!state.isSharedSession) {
@@ -1558,6 +1733,9 @@ function updateTabUI() {
     chatMessages.style.display = 'flex';
     activeDocBanner.style.display = 'flex';
     inputBarWrapper.style.display = 'block';
+    if (chatInput) {
+      chatInput.placeholder = state.activeDocName ? `Ask anything about ${state.activeDocName}...` : 'Ask anything about your document...';
+    }
     
     // Collapse upload section when chatting
     if (uploadSection) uploadSection.classList.add('collapsed');
@@ -1574,6 +1752,15 @@ function updateTabUI() {
     inputBarWrapper.style.display = 'block';
     chatInput.disabled = false;
     btnSend.disabled = false;
+    if (chatInput) {
+      chatInput.placeholder = 'Upload a document above to begin chatting...';
+    }
+    
+    // Clear upload status label when no document is active
+    if (!state.activeDocName && !state.currentDbId) {
+      setUploadStatus('');
+      if (activeDocName) activeDocName.textContent = '';
+    }
     
     // Ensure upload section and drop zone are fully visible for New Chat
     if (uploadSection) {
@@ -1589,18 +1776,88 @@ function updateTabUI() {
   }
 }
 
-// ─── START NEW CHAT & CLEAR CONVERSATION ────────────────────────────────────
-function startNewChat() {
+// ─── COMPLETE FRESH RESET CONTROLLER ─────────────────────────────────────────
+function resetToFreshState() {
+  // 1. Reset state
   state.activeTab = 'new-chat';
-  storagePool.querySelectorAll('.storage-card').forEach(c => c.classList.remove('active'));
+  state.sessionId = null;
+  state.currentDbId = null;
+  state.activeDocName = '';
+  state.selectedFiles = [];
+  state.isChatting = false;
+
+  // 2. Clear persisted active session from localStorage
+  localStorage.removeItem('ragbot_active_db_id');
+  localStorage.removeItem('ragbot_active_session_id');
+  localStorage.removeItem('ragbot_active_doc_name');
+
+  // 3. Reset document upload inputs & status label
+  if (fileInput) fileInput.value = '';
+  setUploadStatus('');
+  renderFileList();
+  if (btnProcess) btnProcess.disabled = true;
+  if (btnReset) btnReset.style.display = 'none';
+  if (uploadFileCount) uploadFileCount.style.display = 'none';
+
+  // 4. Hide ingestion progress bar
+  const progressCard = $('ingestionProgressCard');
+  if (progressCard) progressCard.style.display = 'none';
+  if (window._ingestionInterval) {
+    clearInterval(window._ingestionInterval);
+    window._ingestionInterval = null;
+  }
+
+  // 5. Clear messages & headers
+  if (chatMessages) chatMessages.innerHTML = '';
+  if (magicPromptsWrapper) {
+    magicPromptsWrapper.style.display = 'none';
+    magicPromptsWrapper.innerHTML = '';
+  }
+  if (readyBanner) readyBanner.style.display = 'none';
+  if (activeDocBanner) activeDocBanner.style.display = 'none';
+  if (activeDocName) activeDocName.textContent = '';
+  if (typingIndicator) typingIndicator.style.display = 'none';
+
+  // 6. Reset chat input box
+  if (chatInput) {
+    chatInput.value = '';
+    chatInput.style.height = 'auto';
+    chatInput.disabled = false;
+    chatInput.placeholder = 'Upload a document above to begin chatting...';
+  }
+  if (btnSend) btnSend.disabled = false;
+
+  // 7. Stop any playing speech synthesis audio
+  if (window.speechSynthesis && window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+  }
+  if (currentlyPlayingBtn) {
+    currentlyPlayingBtn.classList.remove('playing');
+    currentlyPlayingBtn = null;
+  }
+  if (window.GuardChat && window.GuardChat.AudioOverview) {
+    try { window.GuardChat.AudioOverview.stop(); } catch { /* ignore */ }
+  }
+
+  // 8. Deselect cards in storage pool
+  if (storagePool) {
+    storagePool.querySelectorAll('.storage-card').forEach(c => c.classList.remove('active'));
+  }
+
+  // 9. Show clean empty hero canvas
   showEmptyState();
+}
+
+function startNewChat() {
+  resetToFreshState();
+  toast('Started a new fresh chat session.', 'info', 2200);
   if (window.innerWidth <= 900) closeMobileSidebar();
 }
 
 async function clearConversation() {
   const confirmed = await showCustomConfirm(
     'Clear Conversation',
-    'Are you sure you want to clear the conversation history? This will reset the active session.',
+    'Are you sure you want to clear this conversation and reset to a new page?',
     true
   );
   if (!confirmed) return;
@@ -1614,18 +1871,9 @@ async function clearConversation() {
       });
     } catch { /* best-effort */ }
   }
-  // FULL RESET
-  state.sessionId = null;
-  state.currentDbId = null;
-  state.selectedFiles = [];
-  state.activeDocName = '';
-  chatMessages.innerHTML = '';
-  localStorage.removeItem('ragbot_active_db_id');
-  localStorage.removeItem('ragbot_active_session_id');
-  localStorage.removeItem('ragbot_active_doc_name');
-  renderFileList();
-  showEmptyState();
-  toast('Session terminated. Please select a new document.', 'info');
+
+  resetToFreshState();
+  toast('Session cleared. Started a fresh page.', 'info');
   if (window.innerWidth <= 900) closeMobileSidebar();
 }
 
@@ -1644,6 +1892,223 @@ chatInput.addEventListener('keydown', e => {
 btnSend.addEventListener('click', sendMessage);
 
 // ─── STREAMING ASSISTANT MESSAGE ──────────────────────────────────────────────
+// ─── AUDIO PLAYBACK & MESSAGE ACTIONS CONTROLLER ─────────────────────────────
+let currentlyPlayingBtn = null;
+
+function toggleAudioPlayback(text, btn) {
+  if (!window.speechSynthesis) {
+    toast('Text-to-speech is not supported in this browser.', 'error');
+    return;
+  }
+
+  // If already speaking this message, stop
+  if (window.speechSynthesis.speaking && currentlyPlayingBtn === btn) {
+    window.speechSynthesis.cancel();
+    resetAudioBtn(btn);
+    currentlyPlayingBtn = null;
+    return;
+  }
+
+  // Cancel any active utterance
+  if (window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+    if (currentlyPlayingBtn) resetAudioBtn(currentlyPlayingBtn);
+  }
+
+  // Strip markdown formatting for pleasant, natural narration
+  const cleanText = text
+    .replace(/```[\s\S]*?```/g, 'Code block omitted.')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/[#*_~>-]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\|[^\n]+\|/g, '')
+    .trim();
+
+  if (!cleanText) return;
+
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+
+  utterance.onstart = () => {
+    currentlyPlayingBtn = btn;
+    btn.classList.add('active-audio');
+    btn.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="4" height="16" x="6" y="4"></rect><rect width="4" height="16" x="14" y="4"></rect></svg>
+      <span>Pause</span>
+    `;
+  };
+
+  utterance.onend = () => {
+    resetAudioBtn(btn);
+    currentlyPlayingBtn = null;
+  };
+
+  utterance.onerror = () => {
+    resetAudioBtn(btn);
+    currentlyPlayingBtn = null;
+  };
+
+  window.speechSynthesis.speak(utterance);
+}
+
+function resetAudioBtn(btn) {
+  if (!btn) return;
+  btn.classList.remove('active-audio');
+  btn.innerHTML = `
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+    <span>Listen</span>
+  `;
+}
+
+function copyMessageText(text, btn) {
+  if (!navigator.clipboard) {
+    toast('Clipboard access unavailable.', 'error');
+    return;
+  }
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      <span style="color:var(--accent);">Copied</span>
+    `;
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = origHtml;
+    }, 2000);
+  }).catch(e => {
+    console.error("Clipboard copy failed:", e);
+    toast("Failed to copy message", "error");
+  });
+}
+
+async function deleteChatMessage(msgWrap, text, role) {
+  const allMessages = Array.from(chatMessages.querySelectorAll('.chat-message'));
+  const msgIndex = allMessages.indexOf(msgWrap);
+
+  msgWrap.style.transition = 'all 0.18s ease';
+  msgWrap.style.opacity = '0';
+  msgWrap.style.transform = 'translateX(8px)';
+
+  setTimeout(() => {
+    msgWrap.remove();
+    if (!chatMessages.querySelector('.chat-message') && !state.activeDocName) {
+      showEmptyState();
+    }
+  }, 180);
+
+  if (state.sessionId && msgIndex >= 0) {
+    try {
+      await apiFetch(`/api/sessions/${state.sessionId}/messages/${msgIndex}`, {
+        method: 'DELETE'
+      });
+      toast("Message deleted from history", "info", 1800);
+    } catch (e) {
+      console.warn("Could not delete message on backend:", e);
+    }
+  }
+}
+
+function attachMessageActions(wrap, parentContainer, role, text, citations = [], latencySec = 0) {
+  const actionsBar = document.createElement('div');
+  actionsBar.className = 'msg-actions-bar';
+
+  // Copy button
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'msg-action-btn copy-btn';
+  copyBtn.type = 'button';
+  copyBtn.title = 'Copy message';
+  if (role === 'user') {
+    copyBtn.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+    `;
+  } else {
+    copyBtn.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+      <span>Copy</span>
+    `;
+  }
+  copyBtn.addEventListener('click', () => copyMessageText(text, copyBtn));
+  actionsBar.appendChild(copyBtn);
+
+  // Audio Playback button (for assistant responses)
+  if (role === 'assistant') {
+    const audioBtn = document.createElement('button');
+    audioBtn.className = 'msg-action-btn audio-btn';
+    audioBtn.type = 'button';
+    audioBtn.title = 'Play audio narration (TTS)';
+    audioBtn.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      <span>Listen</span>
+    `;
+    audioBtn.addEventListener('click', () => toggleAudioPlayback(text, audioBtn));
+    actionsBar.appendChild(audioBtn);
+  }
+
+  // Citations button (if assistant and citations available)
+  if (role === 'assistant' && citations && citations.length > 0) {
+    const inspectBtn = document.createElement('button');
+    inspectBtn.className = 'msg-action-btn citations-btn';
+    inspectBtn.type = 'button';
+    inspectBtn.title = 'Inspect source citations';
+    inspectBtn.innerHTML = `
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+      <span>${citations.length} Citations</span>
+    `;
+    inspectBtn.addEventListener('click', () => showCitationsInspector(citations, latencySec));
+    actionsBar.appendChild(inspectBtn);
+  }
+
+  // Delete message button
+  const delBtn = document.createElement('button');
+  delBtn.className = 'msg-action-btn delete-btn';
+  delBtn.type = 'button';
+  delBtn.title = 'Delete message';
+  delBtn.innerHTML = `
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+  `;
+  delBtn.addEventListener('click', () => deleteChatMessage(wrap, text, role));
+  actionsBar.appendChild(delBtn);
+
+  parentContainer.appendChild(actionsBar);
+}
+
+function renderStreamTextWithReasoning(text) {
+  if (!text) return '';
+  // Check for <think>...</think> reasoning blocks (e.g. DeepSeek-R1 / Qwen reasoning)
+  if (text.includes('<think>')) {
+    if (text.includes('</think>')) {
+      const parts = text.split('</think>');
+      const thought = parts[0].replace('<think>', '').trim();
+      const answer = parts.slice(1).join('</think>').trim();
+      return `
+        <details class="thought-process-card" open>
+          <summary class="thought-process-summary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a8 8 0 0 0-8 8c0 3 2 5.5 4 7v3a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-3c2-1.5 4-4 4-7a8 8 0 0 0-8-8z"/><path d="M9 22h6"/></svg>
+            <span>Reasoning Thought Process</span>
+          </summary>
+          <div class="thought-process-content">${marked.parse(thought)}</div>
+        </details>
+        ${marked.parse(answer || '')}
+      `;
+    } else {
+      // Still streaming inside <think>
+      const thought = text.replace('<think>', '').trim();
+      return `
+        <div class="thought-process-card live">
+          <div class="thought-process-summary live">
+            <div class="thinking-spinner-mini"></div>
+            <span>Thinking through document context...</span>
+          </div>
+          <div class="thought-process-content">${marked.parse(thought || 'Analyzing query against knowledge base...')}</div>
+        </div>
+      `;
+    }
+  }
+  return marked.parse(text);
+}
+
 function createStreamingAssistantMessage() {
   const wrap = document.createElement('div');
   wrap.className = 'chat-message assistant';
@@ -1651,26 +2116,54 @@ function createStreamingAssistantMessage() {
   const avatar = document.createElement('div');
   avatar.className = 'msg-avatar bot-av';
   avatar.setAttribute('aria-hidden', 'true');
-  avatar.innerHTML = '<img src="static/logo.png" alt="GuardRAG Assistant" style="width:100%; height:100%; object-fit:contain;" />';
+  avatar.innerHTML = '<img src="static/duck_avatar.png" alt="GuardRAG" style="width:100%; height:100%; border-radius:inherit; object-fit:contain;" />';
+
+  const col = document.createElement('div');
+  col.className = 'msg-col';
 
   const bubble = document.createElement('div');
   bubble.className = 'msg-bubble';
 
   const content = document.createElement('div');
   content.className = 'markdown-body-stream';
+  content.innerHTML = `
+    <div class="thinking-state">
+      <div class="thinking-dots-anim">
+        <span class="t-dot"></span>
+        <span class="t-dot"></span>
+        <span class="t-dot"></span>
+      </div>
+      <span class="thinking-label">Thinking...</span>
+    </div>
+  `;
   bubble.appendChild(content);
 
+  col.appendChild(bubble);
   wrap.appendChild(avatar);
-  wrap.appendChild(bubble);
+  wrap.appendChild(col);
   chatMessages.appendChild(wrap);
   scrollToBottom();
 
   return {
     wrap,
+    col,
     bubble,
     content,
     update(text) {
-      content.innerHTML = marked.parse(text);
+      if (!text || !text.trim()) {
+        content.innerHTML = `
+          <div class="thinking-state">
+            <div class="thinking-dots-anim">
+              <span class="t-dot"></span>
+              <span class="t-dot"></span>
+              <span class="t-dot"></span>
+            </div>
+            <span class="thinking-label">Thinking...</span>
+          </div>
+        `;
+      } else {
+        content.innerHTML = renderStreamTextWithReasoning(text);
+      }
       scrollToBottom();
     },
     finalize(finalText, blocked = false, citations = [], latencySec = 0) {
@@ -1681,20 +2174,12 @@ function createStreamingAssistantMessage() {
         label.textContent = 'GUARDRAIL TRIGGERED';
         bubble.insertBefore(label, content);
       }
-      content.innerHTML = marked.parse(finalText || '');
-      if (citations && citations.length > 0) {
-        const inspectBtn = document.createElement('button');
-        inspectBtn.className = 'btn btn-secondary inspect-citations-btn';
-        inspectBtn.style.marginTop = '0.65rem';
-        inspectBtn.style.fontSize = '0.68rem';
-        inspectBtn.style.padding = '0.35rem 0.75rem';
-        inspectBtn.style.minHeight = 'unset';
-        inspectBtn.textContent = 'Inspect Citations';
-        inspectBtn.addEventListener('click', () => {
-          showCitationsInspector(citations, latencySec);
-        });
-        bubble.appendChild(inspectBtn);
+      content.innerHTML = renderStreamTextWithReasoning(finalText || '');
+      if (window.GuardChat && window.GuardChat.attachCodeBlockCopyButtons) {
+        window.GuardChat.attachCodeBlockCopyButtons(content);
       }
+      // Attach message actions bar below bubble
+      attachMessageActions(wrap, col, 'assistant', finalText || '', citations, latencySec);
       scrollToBottom();
     },
     remove() {
@@ -1706,7 +2191,18 @@ function createStreamingAssistantMessage() {
 // ─── SEND MESSAGE ─────────────────────────────────────────────────────────────
 async function sendMessage() {
   const question = chatInput.value.trim();
-  if (!question || state.isChatting || !state.sessionId) return;
+  if (!question || state.isChatting) return;
+
+  const hasActiveDoc = Boolean(state.sessionId && (state.activeDocName || state.currentDbId));
+  if (!hasActiveDoc) {
+    toast('Please upload or select a document first before chatting.', 'warn', 4000);
+    if (dropZone) {
+      dropZone.classList.add('drop-zone-highlight');
+      dropZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => dropZone.classList.remove('drop-zone-highlight'), 2200);
+    }
+    return;
+  }
 
   state.isChatting = true;
   chatInput.value = '';
@@ -1716,10 +2212,10 @@ async function sendMessage() {
   readyBanner.style.display = 'none';
 
   appendMessage('user', question);
-  typingIndicator.style.display = 'flex';
   scrollToBottom();
 
-  let streamMsg = null;
+  // Instantly show assistant thinking animation
+  let streamMsg = createStreamingAssistantMessage();
 
   try {
     const activeProfile = state.isSharedSession
@@ -1766,9 +2262,6 @@ async function sendMessage() {
       const err = await response.json().catch(() => ({ detail: response.statusText }));
       throw new Error(err.detail || response.statusText);
     }
-
-    typingIndicator.style.display = 'none';
-    streamMsg = createStreamingAssistantMessage();
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -1850,10 +2343,13 @@ function appendMessage(role, text, blocked = false, isError = false, citations =
   avatar.className = `msg-avatar ${role === 'user' ? 'user-av' : 'bot-av'}`;
   avatar.setAttribute('aria-hidden', 'true');
   if (role === 'user') {
-    avatar.textContent = 'U';
+    avatar.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
   } else {
-    avatar.innerHTML = '<img src="static/logo.png" alt="Duck Assistant" style="width:100%; height:100%; object-fit:contain;" />';
+    avatar.innerHTML = '<img src="static/duck_avatar.png" alt="GuardRAG" style="width:100%; height:100%; border-radius:inherit; object-fit:contain;" />';
   }
+
+  const col = document.createElement('div');
+  col.className = 'msg-col';
 
   const bubble = document.createElement('div');
   bubble.className = `msg-bubble${blocked || isError ? ' blocked' : ''}`;
@@ -1870,23 +2366,17 @@ function appendMessage(role, text, blocked = false, isError = false, citations =
     ? marked.parse(text)
     : escapeHtml(text);
   bubble.appendChild(content);
-
-  if (role === 'assistant' && citations && citations.length > 0) {
-    const inspectBtn = document.createElement('button');
-    inspectBtn.className = 'btn btn-secondary inspect-citations-btn';
-    inspectBtn.style.marginTop = '0.65rem';
-    inspectBtn.style.fontSize = '0.68rem';
-    inspectBtn.style.padding = '0.35rem 0.75rem';
-    inspectBtn.style.minHeight = 'unset';
-    inspectBtn.textContent = 'Inspect Citations';
-    inspectBtn.addEventListener('click', () => {
-      showCitationsInspector(citations, latencySec);
-    });
-    bubble.appendChild(inspectBtn);
+  if (role === 'assistant' && window.GuardChat && window.GuardChat.attachCodeBlockCopyButtons) {
+    window.GuardChat.attachCodeBlockCopyButtons(content);
   }
 
+  col.appendChild(bubble);
+
+  // Attach message actions bar (Copy, Audio playback, Delete) below bubble
+  attachMessageActions(wrap, col, role, text, citations, latencySec);
+
   wrap.appendChild(avatar);
-  wrap.appendChild(bubble);
+  wrap.appendChild(col);
   chatMessages.appendChild(wrap);
   scrollToBottom();
 }
@@ -1987,7 +2477,24 @@ async function fetchDocSuggestions() {
       return;
     }
     
-    questions.forEach(q => {
+    questions.forEach(item => {
+      let q = '';
+      if (typeof item === 'object' && item !== null) {
+        q = item.question || item.text || item.prompt || Object.values(item)[0] || '';
+      } else if (typeof item === 'string') {
+        q = item.trim();
+        if (q.startsWith('{') && q.includes(':')) {
+          const m = q.match(/['"](?:question|text|prompt)['"]\s*:\s*['"]([^'"]+)['"]/i);
+          if (m && m[1]) {
+            q = m[1];
+          } else {
+            q = q.replace(/^\{.*?:\s*['"]?/, '').replace(/['"]?\s*\}$/, '');
+          }
+        }
+      }
+      q = String(q || '').trim().replace(/^['"]+|['"]+$/g, '');
+      if (!q) return;
+
       const btn = document.createElement('button');
       btn.className = 'magic-prompt-btn';
       btn.type = 'button';
@@ -2397,8 +2904,13 @@ function showCustomProfileModal() {
 // ─── SHARE & HOST ACCESS CONTROL CENTER ────────────────────────────────────────
 async function shareSession() {
   if (!state.sessionId) {
-    toast('No active session to share.', 'warn');
-    return;
+    const savedId = localStorage.getItem('ragbot_active_session_id');
+    if (savedId) {
+      state.sessionId = savedId;
+    } else {
+      toast('Please upload or load a document first before sharing with local devices.', 'info');
+      return;
+    }
   }
   
   const modal = $('shareModal');
@@ -2425,7 +2937,7 @@ function switchShareTab(tabName) {
   [tabCreate, tabActive, tabClientChats].forEach(t => {
     if (t) {
       t.classList.remove('active');
-      t.style.borderBottomColor = 'transparent';
+      t.style.background = 'transparent';
       t.style.color = 'var(--text-muted)';
     }
   });
@@ -2435,14 +2947,26 @@ function switchShareTab(tabName) {
   paneClientChats.style.display = 'none';
 
   if (tabName === 'create') {
-    if (tabCreate) { tabCreate.classList.add('active'); tabCreate.style.borderBottomColor = 'var(--accent)'; tabCreate.style.color = 'var(--text-primary)'; }
+    if (tabCreate) { 
+      tabCreate.classList.add('active'); 
+      tabCreate.style.background = 'var(--accent)'; 
+      tabCreate.style.color = '#000'; 
+    }
     paneCreate.style.display = 'block';
   } else if (tabName === 'active') {
-    if (tabActive) { tabActive.classList.add('active'); tabActive.style.borderBottomColor = 'var(--accent)'; tabActive.style.color = 'var(--text-primary)'; }
+    if (tabActive) { 
+      tabActive.classList.add('active'); 
+      tabActive.style.background = 'var(--accent)'; 
+      tabActive.style.color = '#000'; 
+    }
     paneActive.style.display = 'block';
     loadActiveShareLinks();
   } else if (tabName === 'clientChats') {
-    if (tabClientChats) { tabClientChats.classList.add('active'); tabClientChats.style.borderBottomColor = 'var(--accent)'; tabClientChats.style.color = 'var(--text-primary)'; }
+    if (tabClientChats) { 
+      tabClientChats.classList.add('active'); 
+      tabClientChats.style.background = 'var(--accent)'; 
+      tabClientChats.style.color = '#000'; 
+    }
     paneClientChats.style.display = 'block';
     loadClientChats();
     if (window._clientChatsRefreshTimer) clearInterval(window._clientChatsRefreshTimer);
@@ -2983,6 +3507,89 @@ async function checkSharedSession() {
     btnShareSession.addEventListener('click', shareSession);
   }
 
+  const btnHeaderShare = $('btnHeaderShare');
+  if (btnHeaderShare) {
+    btnHeaderShare.addEventListener('click', shareSession);
+  }
+
+  // Quick Action Starter Cards Handler (ChatGPT style)
+  document.querySelectorAll('.quick-starter-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      const action = card.getAttribute('data-action');
+      const prompt = card.getAttribute('data-prompt');
+
+      if (action === 'audio-overview') {
+        const audioBtn = $('btnAudioOverview');
+        if (audioBtn && state.sessionId) {
+          audioBtn.click();
+        } else {
+          toast('Please upload or select a document first to listen to an audio overview.', 'info');
+          if (fileInput) fileInput.click();
+        }
+        return;
+      }
+
+      if (prompt) {
+        if (!state.sessionId) {
+          toast('Please upload or select a document first to run this prompt.', 'info');
+          if (fileInput) fileInput.click();
+          return;
+        }
+        if (chatInput) {
+          chatInput.value = prompt;
+          sendMessage();
+        }
+      }
+    });
+  });
+
+  const btnAudioOverview = $('btnAudioOverview');
+  const audioOverviewBtnText = $('audioOverviewBtnText');
+  if (btnAudioOverview && window.GuardChat && window.GuardChat.AudioOverview) {
+    const audio = window.GuardChat.AudioOverview;
+
+    audio.onStateChange(({ isSpeaking, isPaused }) => {
+      if (!audioOverviewBtnText) return;
+      if (isSpeaking && !isPaused) {
+        audioOverviewBtnText.textContent = 'Pause Audio';
+        btnAudioOverview.classList.add('btn-primary');
+        btnAudioOverview.classList.remove('btn-secondary');
+      } else if (isSpeaking && isPaused) {
+        audioOverviewBtnText.textContent = 'Resume Audio';
+      } else {
+        audioOverviewBtnText.textContent = 'Audio Overview';
+        btnAudioOverview.classList.remove('btn-primary');
+        btnAudioOverview.classList.add('btn-secondary');
+      }
+    });
+
+    btnAudioOverview.addEventListener('click', () => {
+      const stateAudio = audio.getState();
+      if (stateAudio.isSpeaking) {
+        if (stateAudio.isPaused) {
+          audio.resume();
+        } else {
+          audio.pause();
+        }
+        return;
+      }
+
+      let textToRead = '';
+      const assistantBubbles = document.querySelectorAll('.chat-message.assistant .msg-bubble');
+      if (assistantBubbles.length > 0) {
+        const lastBubble = assistantBubbles[assistantBubbles.length - 1];
+        textToRead = lastBubble.innerText || '';
+      } else if (state.rawPreviewText) {
+        textToRead = `Audio Overview for document ${state.activeDocName || 'indexed document'}. ${state.rawPreviewText.slice(0, 1500)}`;
+      } else {
+        textToRead = `This is GuardRAG Audio Overview. You have indexed ${state.activeDocName || 'your documents'}. Ask any question or request a summary in the chat.`;
+      }
+
+      toast('Playing offline audio overview...', 'info', 2000);
+      audio.speak(textToRead);
+    });
+  }
+
   if (btnSaveCustomProfile) {
     btnSaveCustomProfile.addEventListener('click', async () => {
       const data = await showCustomProfileModal();
@@ -3108,10 +3715,18 @@ async function checkSharedSession() {
         const found = (data.collections || []).find(c => c.db_id === savedActiveDbId && c.available);
         if (found) {
           await loadStoredSession(found);
+        } else {
+          localStorage.removeItem('ragbot_active_db_id');
+          localStorage.removeItem('ragbot_active_session_id');
+          localStorage.removeItem('ragbot_active_doc_name');
+          resetToFreshState();
         }
       } catch (e) {
         console.warn("Could not restore previous active session:", e);
+        resetToFreshState();
       }
+    } else {
+      resetToFreshState();
     }
   }
 

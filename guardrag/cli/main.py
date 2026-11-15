@@ -13,6 +13,11 @@ import asyncio
 import anyio.to_thread
 from pathlib import Path
 
+# Ensure package root is in sys.path when invoked directly as a script
+_PKG_ROOT = str(Path(__file__).resolve().parent.parent.parent)
+if _PKG_ROOT not in sys.path:
+    sys.path.insert(0, _PKG_ROOT)
+
 from dotenv import load_dotenv
 from rich.align import Align
 from rich.box import ROUNDED
@@ -145,7 +150,7 @@ def display_welcome_banner():
     """Proxy for unified banner in CLI mode."""
     display_banner(mode="CLI")
 
-def run_web_ui():
+def run_web_ui(host: str = "0.0.0.0", port: int = 8000):
     """Launch the internal FastAPI web application."""
     import threading
     import time
@@ -157,12 +162,12 @@ def run_web_ui():
     
     def open_browser():
         time.sleep(1.5)
-        webbrowser.open("http://127.0.0.1:8000")
+        webbrowser.open(f"http://127.0.0.1:{port}")
         
     threading.Thread(target=open_browser, daemon=True).start()
     # Reduced log level to hide unwanted server dump info
     from guardrag.api.main import app
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    uvicorn.run(app, host=host, port=port, log_level="info")
     sys.exit(0)
 
 
@@ -191,7 +196,7 @@ def display_session_info(pdf_name, model, sensitivity, guardrails):
 
 def main():
     """Main CLI entry point."""
-    if len(sys.argv) == 1:
+    if len(sys.argv) == 1 or (len(sys.argv) == 2 and sys.argv[1].lower() in ["run", "web", "--web", "-w"]):
         run_web_ui()
         
     parser = argparse.ArgumentParser(
@@ -200,10 +205,40 @@ def main():
         epilog="Developer: Sowmiyan S | GitHub: https://github.com/sowmiyan-s | License: MIT"
     )
     parser.add_argument(
+        "document",
+        nargs="?",
+        default=None,
+        help="Optional path to document file or directory to query"
+    )
+    parser.add_argument(
         "--pdf",
         type=str,
-        required=True,
-        help="Path to the PDF file to query"
+        default=None,
+        help="Path to the document/PDF file or directory to query"
+    )
+    parser.add_argument(
+        "--file", "--doc", "-f",
+        dest="file",
+        type=str,
+        default=None,
+        help="Path to document file or directory to query (PDF, DOCX, XLSX, PPTX, HTML, TXT, MD)"
+    )
+    parser.add_argument(
+        "--web", "-w",
+        action="store_true",
+        help="Launch the browser Web GUI"
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Host address for web server (default: 0.0.0.0)"
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port for web server (default: 8000)"
     )
     parser.add_argument(
         "--model",
@@ -249,11 +284,19 @@ def main():
     )
     
     args = parser.parse_args()
-    
-    # Validate PDF path
-    pdf_path = Path(args.pdf)
-    if not pdf_path.exists():
-        console.print(Panel(f"[bold red]Error:[/bold red] The file '{args.pdf}' does not exist.", border_style="red"))
+
+    if args.web:
+        run_web_ui(host=args.host, port=args.port)
+        return
+
+    doc_target = args.file or args.pdf or args.document
+    if not doc_target:
+        run_web_ui(host=args.host, port=args.port)
+        return
+
+    doc_path = Path(doc_target)
+    if not doc_path.exists():
+        console.print(Panel(f"[bold red]Error:[/bold red] The path '{doc_target}' does not exist.", border_style="red"))
         sys.exit(1)
     
     display_welcome_banner()
@@ -276,7 +319,7 @@ def main():
     console.print(f"\n[cyan]Initializing neural engine with[/cyan] [bold white]{args.model}[/bold white]...")
     try:
         db_id, rag_chain = build_rag_chain(
-            [str(pdf_path)],
+            [str(doc_path)],
             model=args.model,
             chunk_size=args.chunk_size,
             chunk_overlap=args.chunk_overlap,
@@ -289,7 +332,7 @@ def main():
     
     # Session Summary Table
     display_session_info(
-        pdf_name=pdf_path.name,
+        pdf_name=doc_path.name,
         model=args.model,
         sensitivity=args.sensitivity,
         guardrails=not args.no_guardrails
@@ -303,7 +346,7 @@ def main():
     while True:
         try:
             # Enhanced prompt
-            question = Prompt.ask(f"[bold cyan]Query document ({pdf_path.name})[/bold cyan]").strip()
+            question = Prompt.ask(f"[bold cyan]Query document ({doc_path.name})[/bold cyan]").strip()
             
             if not question:
                 continue
@@ -360,6 +403,16 @@ def main():
                     if blocked_out:
                         answer = f"[bold red]{blocked_out}[/bold red]"
                 
+                # Collect citations if present
+                citations = []
+                if isinstance(result, dict) and "context" in result:
+                    for doc in result["context"]:
+                        src = doc.metadata.get("source", doc_path.name)
+                        page = doc.metadata.get("page")
+                        sheet = doc.metadata.get("sheet")
+                        loc = f" (Page {page + 1})" if page is not None else (f" (Sheet: {sheet})" if sheet else "")
+                        citations.append(f"{src}{loc}")
+
                 # Output Panel
                 console.print()
                 console.print(Panel(
@@ -369,6 +422,9 @@ def main():
                     title_align="left",
                     padding=(1, 2)
                 ))
+                if citations:
+                    dedup_citations = list(dict.fromkeys(citations))[:4]
+                    console.print(f"[dim]Sources: {', '.join(dedup_citations)}[/dim]")
                 console.print()
                 
                 # Store in history
