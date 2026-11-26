@@ -235,16 +235,36 @@ function StoryCard({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const on = useInView(ref, { once: true, amount: 0.45 });
+  const [spot, setSpot] = useState<{ x: number; y: number; active: boolean }>({
+    x: 0,
+    y: 0,
+    active: false,
+  });
 
   return (
     <div
       ref={ref}
-      className="card-hairline flex flex-col overflow-hidden rounded-2xl transition-colors duration-300 hover:border-white/[0.15]"
+      onMouseMove={(e) => {
+        const rect = ref.current?.getBoundingClientRect();
+        if (!rect) return;
+        setSpot({ x: e.clientX - rect.left, y: e.clientY - rect.top, active: true });
+      }}
+      onMouseLeave={() => setSpot((s) => ({ ...s, active: false }))}
+      className="card-hairline relative flex flex-col overflow-hidden rounded-2xl transition-colors duration-300 hover:border-white/[0.18]"
     >
+      {spot.active && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-20 transition-opacity duration-200"
+          style={{
+            background: `radial-gradient(280px circle at ${spot.x}px ${spot.y}px, rgba(0, 185, 30, 0.11), transparent 70%)`,
+          }}
+        />
+      )}
       <div className="relative flex h-[240px] items-center justify-center overflow-hidden border-b border-white/[0.06] bg-[#0a0a0e] px-5">
         {children(on)}
       </div>
-      <div className="p-6 sm:p-7">
+      <div className="relative z-10 p-6 sm:p-7">
         <h3 className="text-lg font-semibold tracking-tight text-white">{title}</h3>
         <p className="mt-2 text-sm leading-relaxed text-zinc-400">{body}</p>
       </div>

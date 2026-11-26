@@ -18,6 +18,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ isDocs = false, onOpenDocs, onGoHome }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hoveredNav, setHoveredNav] = useState<string | null>(null);
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, { stiffness: 280, damping: 32, restDelta: 0.001 });
 
@@ -28,20 +29,20 @@ export const Navbar: React.FC<NavbarProps> = ({ isDocs = false, onOpenDocs, onGo
   }, []);
 
   return (
-    <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'border-b border-white/[0.08] bg-[#09090b]/85 backdrop-blur-xl'
-          : 'border-b border-transparent bg-transparent'
-      }`}
-    >
+    <header className="fixed inset-x-0 top-0 z-50 px-3 pt-2.5 sm:px-6">
       <motion.div
         style={{ scaleX }}
-        className="absolute inset-x-0 top-0 h-[1.5px] origin-left bg-[#00b91e]"
+        className="fixed inset-x-0 top-0 z-50 h-[2px] origin-left bg-[#00b91e]"
       />
 
-      <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between px-4 sm:px-8 lg:px-12">
-        {/* Clean Brand Lockup */}
+      {/* 21st.dev Floating Glassmorphic Navbar */}
+      <div
+        className={`mx-auto flex h-14 w-full max-w-[1440px] items-center justify-between rounded-2xl px-4 transition-all duration-300 sm:px-6 ${
+          scrolled || isDocs
+            ? 'border border-white/[0.1] bg-[#0a0a0e]/85 shadow-[0_12px_40px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl'
+            : 'border border-white/[0.05] bg-[#0a0a0e]/45 backdrop-blur-md'
+        }`}
+      >
         <a
           href="#/"
           onClick={(e) => {
@@ -58,46 +59,68 @@ export const Navbar: React.FC<NavbarProps> = ({ isDocs = false, onOpenDocs, onGo
           <span className="text-[15px] font-semibold tracking-[-0.02em] text-white">
             Guard<span className="text-[#00b91e]">RAG</span>
           </span>
-          <span className="hidden font-mono text-[11px] text-zinc-500 sm:inline">
+          <span className="hidden rounded border border-white/[0.08] bg-white/[0.03] px-1.5 py-0.5 font-mono text-[10px] text-zinc-400 sm:inline">
             {REPO_META.version}
           </span>
         </a>
 
-        {/* Clean Borderless Navigation */}
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary navigation">
-          {NAV_LINKS.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={(e) => {
-                if (isDocs) {
-                  e.preventDefault();
-                  onGoHome(link.href);
-                }
-              }}
-              className="rounded-md px-3 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:text-white"
-            >
-              {link.label}
-            </a>
-          ))}
+        {/* Morphing Pill Navigation */}
+        <nav
+          className="hidden items-center gap-0.5 md:flex"
+          aria-label="Primary navigation"
+          onMouseLeave={() => setHoveredNav(null)}
+        >
+          {NAV_LINKS.map((link) => {
+            const active = hoveredNav === link.href;
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                onMouseEnter={() => setHoveredNav(link.href)}
+                onClick={(e) => {
+                  if (isDocs) {
+                    e.preventDefault();
+                    onGoHome(link.href);
+                  }
+                }}
+                className="relative rounded-lg px-3 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:text-white"
+              >
+                {active && (
+                  <motion.span
+                    layoutId="navMorphPill"
+                    transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                    className="absolute inset-0 rounded-lg border border-white/[0.08] bg-white/[0.06]"
+                  />
+                )}
+                <span className="relative z-10">{link.label}</span>
+              </a>
+            );
+          })}
           <button
             type="button"
+            onMouseEnter={() => setHoveredNav('docs')}
             onClick={onOpenDocs}
-            className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors ${
+            className={`relative rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors ${
               isDocs ? 'text-[#00b91e]' : 'text-zinc-400 hover:text-white'
             }`}
           >
-            Documentation
+            {(hoveredNav === 'docs' || isDocs) && (
+              <motion.span
+                layoutId="navMorphPill"
+                transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                className="absolute inset-0 rounded-lg border border-[#00b91e]/25 bg-[#00b91e]/10"
+              />
+            )}
+            <span className="relative z-10">Documentation</span>
           </button>
         </nav>
 
-        {/* Crisp Action Buttons (Authentic GitHub mark, zero generic icon clutter) */}
-        <div className="hidden items-center gap-2.5 md:flex">
+        <div className="hidden items-center gap-2 md:flex">
           <a
             href={REPO_META.githubUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-white/[0.09] bg-white/[0.03] px-3 py-1.5 text-[13px] font-medium text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/[0.06]"
+            className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/[0.1] bg-white/[0.03] px-3 text-[13px] font-medium text-zinc-200 transition-colors hover:border-white/25 hover:bg-white/[0.07]"
           >
             <svg className="h-3.5 w-3.5 fill-current text-zinc-300" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
@@ -106,13 +129,18 @@ export const Navbar: React.FC<NavbarProps> = ({ isDocs = false, onOpenDocs, onGo
           </a>
           <a
             href="#quickstart"
-            className="inline-flex items-center rounded-lg bg-[#00b91e] px-3.5 py-1.5 text-[13px] font-semibold text-black transition-colors hover:bg-[#14cf32]"
+            onClick={(e) => {
+              if (isDocs) {
+                e.preventDefault();
+                onGoHome('#quickstart');
+              }
+            }}
+            className="shimmer-btn inline-flex h-9 items-center rounded-lg bg-[#00b91e] px-3.5 text-[13px] font-semibold text-black shadow-[0_0_24px_rgba(0,185,30,0.25)] transition-colors hover:bg-[#14cf32]"
           >
             Run guard-rag
           </a>
         </div>
 
-        {/* Mobile menu toggle */}
         <button
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
@@ -130,7 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isDocs = false, onOpenDocs, onGo
       </div>
 
       {mobileOpen && (
-        <div className="border-b border-white/[0.08] bg-[#09090b]/95 px-4 pb-5 pt-2 backdrop-blur-xl md:hidden">
+        <div className="mx-auto mt-2 max-w-[1440px] rounded-2xl border border-white/[0.1] bg-[#0a0a0e]/95 px-4 pb-5 pt-2 backdrop-blur-2xl md:hidden">
           <div className="flex flex-col gap-1">
             {NAV_LINKS.map((link) => (
               <a

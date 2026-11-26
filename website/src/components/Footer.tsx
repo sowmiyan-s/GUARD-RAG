@@ -119,8 +119,13 @@ export const Footer: React.FC<{ onOpenDocs?: (sectionId?: string) => void }> = (
                 </a>
               </li>
               <li>
+                <a href={REPO_META.portfolioUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white">
+                  Portfolio: sowmiyan.me
+                </a>
+              </li>
+              <li>
                 <a href={REPO_META.authorUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                  Maintainer: {REPO_META.author}
+                  GitHub: {REPO_META.author}
                 </a>
               </li>
             </ul>
@@ -129,9 +134,9 @@ export const Footer: React.FC<{ onOpenDocs?: (sectionId?: string) => void }> = (
 
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/[0.06] pt-6 text-[11px] text-zinc-500 sm:flex-row">
           <div>
-            © {new Date().getFullYear()} GuardRAG ·{' '}
-            <a href={REPO_META.authorUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-300 hover:text-white">
-              {REPO_META.author}
+            © {new Date().getFullYear()} GuardRAG · Built by{' '}
+            <a href={REPO_META.portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-zinc-300 hover:text-[#00b91e]">
+              {REPO_META.author} (sowmiyan.me)
             </a>
           </div>
           <div className="font-mono">guard-rag · 100% Local Execution</div>

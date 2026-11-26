@@ -5,6 +5,7 @@ export const REPO_META = {
   version: 'v1.3.3',
   license: 'MIT',
   author: 'Sowmiyan S',
+  portfolioUrl: 'https://sowmiyan.me',
   authorUrl: 'https://github.com/sowmiyan-s',
   githubUrl: 'https://github.com/sowmiyan-s/GUARD-RAG',
   pypiUrl: 'https://pypi.org/project/guard-rag/',
