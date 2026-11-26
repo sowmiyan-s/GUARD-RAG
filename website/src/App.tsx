@@ -6,7 +6,6 @@ import { ProductShowcase } from './components/ProductShowcase';
 import { ProductStorySection } from './components/ProductStorySection';
 import { GuardrailsMatrix } from './components/GuardrailsMatrix';
 import { ComparisonMatrix } from './components/ComparisonMatrix';
-import { BenchmarksSection } from './components/BenchmarksSection';
 import { QuickstartSection } from './components/QuickstartSection';
 import { DocsPage, DOC_SECTIONS } from './components/DocsPage';
 import { Footer } from './components/Footer';
@@ -61,7 +60,6 @@ export const App: React.FC = () => {
             <ProductStorySection />
             <GuardrailsMatrix />
             <ComparisonMatrix />
-            <BenchmarksSection />
             <QuickstartSection />
           </main>
         )}

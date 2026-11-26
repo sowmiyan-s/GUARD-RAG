@@ -16,15 +16,15 @@ export const QuickstartSection: React.FC = () => {
 
   return (
     <section id="quickstart" className="relative border-t border-white/[0.06] py-24">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6">
-        <div className="text-center">
+      <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-8 lg:px-12">
+        <div className="max-w-3xl text-left">
           <div className="mb-3 font-mono text-xs uppercase tracking-wider text-[#00b91e]">
             Quickstart
           </div>
           <h2 className="text-3xl font-semibold tracking-[-0.03em] text-white sm:text-4xl">
             Run locally with guard-rag.
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-zinc-400">
+          <p className="mt-3 max-w-2xl text-sm text-zinc-400">
             Python 3.9–3.12+ · Works with Ollama models{' '}
             <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-xs text-zinc-200">llama3.2</code>,{' '}
             <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-xs text-zinc-200">gemma3:1b</code>,{' '}
@@ -86,7 +86,7 @@ export const QuickstartSection: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-10 flex flex-wrap items-center justify-start gap-3">
           <a
             href={REPO_META.githubUrl}
             target="_blank"

@@ -255,8 +255,8 @@ function StoryCard({
 export const ProductStorySection: React.FC = () => {
   return (
     <section id="story" className="relative border-t border-white/[0.06] py-24">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mb-12 max-w-2xl">
+      <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-8 lg:px-12">
+        <div className="mb-12 max-w-3xl">
           <div className="mb-3 font-mono text-xs uppercase tracking-wider text-[#00b91e]">
             How it works
           </div>

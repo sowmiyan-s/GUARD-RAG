@@ -6,7 +6,6 @@ const NAV_LINKS = [
   { label: 'Product', href: '#showcase' },
   { label: 'How It Works', href: '#story' },
   { label: 'Guardrails', href: '#guardrails' },
-  { label: 'Benchmarks', href: '#benchmarks' },
   { label: 'Quickstart', href: '#quickstart' },
 ];
 
@@ -41,7 +40,7 @@ export const Navbar: React.FC<NavbarProps> = ({ isDocs = false, onOpenDocs, onGo
         className="absolute inset-x-0 top-0 h-[1.5px] origin-left bg-[#00b91e]"
       />
 
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between px-4 sm:px-8 lg:px-12">
         {/* Clean Brand Lockup */}
         <a
           href="#/"

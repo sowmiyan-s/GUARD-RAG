@@ -19,9 +19,9 @@ export const ProductShowcase: React.FC = () => {
 
   return (
     <section id="showcase" ref={stageRef} className="relative pb-24 pt-2">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-8 lg:px-12">
         {/* Clean Pill Switcher (no generic icon clutter) */}
-        <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
+        <div className="mb-6 flex flex-wrap items-center justify-start gap-2">
           {PRODUCT_SCREENSHOTS.map((tab) => {
             const isActive = tab.id === activeId;
             return (

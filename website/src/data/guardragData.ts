@@ -219,44 +219,6 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   },
 ];
 
-export const BENCHMARKS = [
-  {
-    operation: 'Text Embedding',
-    engine: 'FastEmbed ONNX (BAAI/bge-small-en-v1.5)',
-    metric: '8.2 ms',
-    unit: '/ chunk',
-    footprint: '~60 MB RAM · Zero GPU VRAM',
-  },
-  {
-    operation: 'Vector Similarity Search',
-    engine: 'FAISS-CPU (Flat L2 · 10,000 chunks)',
-    metric: '< 1.0 ms',
-    unit: 'query',
-    footprint: 'In-Memory Flat Matrix',
-  },
-  {
-    operation: 'Time-to-First-Token (TTFT)',
-    engine: 'Ollama (llama3.1:8b)',
-    metric: '140 ms',
-    unit: 'TTFT',
-    footprint: '5.2 GB RAM · Local Daemon',
-  },
-  {
-    operation: 'CPU Generation Throughput',
-    engine: 'Ollama (gemma3:1b on CPU)',
-    metric: '24.5',
-    unit: 'tok/s',
-    footprint: '1.4 GB RAM',
-  },
-  {
-    operation: 'GPU Generation Throughput',
-    engine: 'Ollama (llama3.1:8b · RTX 4070)',
-    metric: '72.0',
-    unit: 'tok/s',
-    footprint: '6.1 GB VRAM',
-  },
-];
-
 export const SUPPORTED_FORMATS = [
   { ext: '.pdf', engine: 'pypdf', note: 'Page-level citation metadata' },
   { ext: '.xlsx / .xls', engine: 'openpyxl', note: 'Multi-sheet row alignment' },

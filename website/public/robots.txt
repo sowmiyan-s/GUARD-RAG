@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sowmiyan-s.github.io/GUARD-RAG/sitemap.xml

@@ -558,7 +558,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
 
   return (
     <div className="min-h-screen bg-[#09090b] pt-16 text-zinc-200">
-      <div className="mx-auto flex max-w-6xl flex-col px-4 sm:px-6 lg:flex-row lg:gap-10">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col px-4 sm:px-8 lg:flex-row lg:gap-12 lg:px-12">
         {/* Mobile section selector */}
         <div className="border-b border-white/[0.08] py-3 lg:hidden">
           <button
@@ -645,7 +645,7 @@ export const DocsPage: React.FC<DocsPageProps> = ({
 
         {/* Main Docs Content */}
         <article className="min-w-0 flex-1 py-10 lg:py-12">
-          <div className="max-w-3xl">
+          <div className="w-full max-w-none">
             <div className="mb-3 flex items-center gap-2 font-mono text-[11px] text-zinc-500">
               <span>Docs</span>
               <span>/</span>

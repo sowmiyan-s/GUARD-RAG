@@ -4,7 +4,7 @@ import { REPO_META } from '../data/guardragData';
 export const Footer: React.FC<{ onOpenDocs?: (sectionId?: string) => void }> = ({ onOpenDocs }) => {
   return (
     <footer className="border-t border-white/[0.08] bg-[#070709] py-14">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-8 lg:px-12">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-12">
           <div className="md:col-span-5">
             <div className="flex items-center gap-2.5">
@@ -43,11 +43,6 @@ export const Footer: React.FC<{ onOpenDocs?: (sectionId?: string) => void }> = (
               <li>
                 <a href="#guardrails" className="hover:text-white">
                   4-Tier Guardrails
-                </a>
-              </li>
-              <li>
-                <a href="#benchmarks" className="hover:text-white">
-                  Benchmarks
                 </a>
               </li>
               <li>
