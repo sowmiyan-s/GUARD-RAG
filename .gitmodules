@@ -1,0 +1,4 @@
+[submodule "extras/legacy_v1"]
+	path = extras/legacy_v1
+	url = ./
+	branch = legacy_v1
