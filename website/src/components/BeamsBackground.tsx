@@ -1,88 +1,53 @@
-/**
- * Animated beams background — inspired by 21st.dev id:1637 (kokonutd/beams-background)
- * and id:25483 (jahed/beams-background). Pure CSS/SVG, zero external deps.
- */
 import React from 'react';
 
 export const BeamsBackground: React.FC<{ className?: string }> = ({ className = '' }) => {
   return (
-    <div className={`pointer-events-none select-none ${className}`} aria-hidden="true">
+    <div className={`pointer-events-none select-none overflow-hidden ${className}`} aria-hidden="true">
+      {/* Premium Luxury Gradient Photo Backdrop (Tenerai / Linear style) */}
+      <div
+        className="absolute inset-0 bg-cover bg-top bg-no-repeat opacity-40 mix-blend-screen transition-opacity duration-1000"
+        style={{ backgroundImage: 'url("./assets/hero-gradient.jpg")' }}
+      />
+
+      {/* Atmospheric radial darkening to blend seamlessly into page body */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(circle at 50% 20%, transparent 20%, rgba(6, 7, 9, 0.6) 65%, #060709 100%)',
+        }}
+      />
+
+      {/* Subtle organic light rays */}
       <svg
-        className="absolute inset-0 h-full w-full"
+        className="absolute inset-0 h-full w-full opacity-40"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="xMidYMid slice"
       >
         <defs>
-          <radialGradient id="bg-rg" cx="50%" cy="0%" r="70%">
-            <stop offset="0%" stopColor="#00b91e" stopOpacity="0.07" />
-            <stop offset="100%" stopColor="#09090b" stopOpacity="0" />
-          </radialGradient>
-          <linearGradient id="beam1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient id="beamA" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#00b91e" stopOpacity="0" />
-            <stop offset="45%" stopColor="#00b91e" stopOpacity="0.18" />
+            <stop offset="50%" stopColor="#00b91e" stopOpacity="0.12" />
             <stop offset="100%" stopColor="#00b91e" stopOpacity="0" />
           </linearGradient>
-          <linearGradient id="beam2" x1="100%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#00b91e" stopOpacity="0" />
-            <stop offset="45%" stopColor="#00e030" stopOpacity="0.10" />
-            <stop offset="100%" stopColor="#00b91e" stopOpacity="0" />
+          <linearGradient id="beamB" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0" />
+            <stop offset="50%" stopColor="#10b981" stopOpacity="0.08" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
           </linearGradient>
-          <filter id="blur-sm">
-            <feGaussianBlur stdDeviation="1.5" />
-          </filter>
         </defs>
 
-        {/* Soft radial glow */}
-        <rect width="100%" height="100%" fill="url(#bg-rg)" />
+        <line x1="-10%" y1="25%" x2="110%" y2="15%" stroke="url(#beamA)" strokeWidth="1.2" opacity="0.6" />
+        <line x1="110%" y1="10%" x2="-10%" y2="80%" stroke="url(#beamB)" strokeWidth="0.8" opacity="0.4" />
 
-        {/* Beam 1 */}
-        <line
-          x1="-10%"
-          y1="30%"
-          x2="110%"
-          y2="10%"
-          stroke="url(#beam1)"
-          strokeWidth="1.5"
-          filter="url(#blur-sm)"
-          opacity="0.9"
-        >
-          <animate attributeName="opacity" values="0.4;0.9;0.4" dur="6s" repeatCount="indefinite" />
-        </line>
-
-        {/* Beam 2 */}
-        <line
-          x1="-10%"
-          y1="55%"
-          x2="110%"
-          y2="40%"
-          stroke="url(#beam1)"
-          strokeWidth="1"
-          filter="url(#blur-sm)"
-          opacity="0.5"
-        >
-          <animate attributeName="opacity" values="0.2;0.6;0.2" dur="8s" begin="2s" repeatCount="indefinite" />
-        </line>
-
-        {/* Beam 3 — crossing */}
-        <line
-          x1="110%"
-          y1="20%"
-          x2="-10%"
-          y2="80%"
-          stroke="url(#beam2)"
-          strokeWidth="0.8"
-          filter="url(#blur-sm)"
-          opacity="0.4"
-        >
-          <animate attributeName="opacity" values="0.1;0.4;0.1" dur="10s" begin="1s" repeatCount="indefinite" />
-        </line>
-
-        {/* Grid pattern overlay */}
-        <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-          <path d="M 48 0 L 0 0 0 48" fill="none" stroke="rgba(255,255,255,0.028)" strokeWidth="0.5" />
+        {/* Subtle geometric dot grid pattern */}
+        <pattern id="dotGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="0.8" fill="rgba(255, 255, 255, 0.04)" />
         </pattern>
-        <rect width="100%" height="100%" fill="url(#grid)" />
+        <rect width="100%" height="100%" fill="url(#dotGrid)" />
       </svg>
     </div>
   );
 };
+
+export default BeamsBackground;

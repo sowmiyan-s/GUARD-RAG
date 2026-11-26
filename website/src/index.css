@@ -2,9 +2,9 @@
 
 @layer base {
   :root {
-    --bg-obsidian: #050507;
-    --bg-surface: #0b0b0f;
-    --bg-elevated: #121218;
+    --bg-obsidian: #060709;
+    --bg-surface: #0b0c10;
+    --bg-elevated: #111219;
     --border-hairline: rgba(255, 255, 255, 0.08);
     --border-strong: rgba(255, 255, 255, 0.16);
     --accent-signal: #00b91e;
@@ -14,7 +14,7 @@
   html {
     scroll-behavior: smooth;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: #050507;
+    background-color: #060709;
     color: #f4f4f5;
   }
 

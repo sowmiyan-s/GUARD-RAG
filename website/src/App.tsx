@@ -45,7 +45,7 @@ export const App: React.FC = () => {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="min-h-screen bg-[#09090b] text-[#f4f4f5]">
+      <div className="min-h-screen bg-[#060709] text-[#f4f4f5]">
         <Navbar isDocs={route.isDocs} onOpenDocs={() => openDocs()} onGoHome={goHome} />
         {route.isDocs ? (
           <DocsPage

@@ -10,6 +10,7 @@ interface AnimatedCounterProps {
   unit?: string;    // e.g. "ms", "/83"
   label: string;
   delay?: number;
+  align?: 'left' | 'center';
 }
 
 function parseNumeric(v: string): { num: number; suffix: string; prefix: string } {
@@ -18,7 +19,13 @@ function parseNumeric(v: string): { num: number; suffix: string; prefix: string 
   return { prefix: m[1] ?? '', num: parseFloat(m[2]), suffix: m[3] ?? '' };
 }
 
-export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({ value, unit, label, delay = 0 }) => {
+export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
+  value,
+  unit,
+  label,
+  delay = 0,
+  align = 'left',
+}) => {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.8 });
   const { num, suffix, prefix } = parseNumeric(value);
@@ -46,9 +53,11 @@ export const AnimatedCounter: React.FC<AnimatedCounterProps> = ({ value, unit, l
       ? display.toFixed(1)
       : Math.round(display).toString();
 
+  const isCenter = align === 'center';
+
   return (
-    <div ref={ref} className="text-left">
-      <div className="flex items-baseline gap-0.5">
+    <div ref={ref} className={isCenter ? 'flex flex-col items-center text-center' : 'text-left'}>
+      <div className={`flex items-baseline gap-0.5 ${isCenter ? 'justify-center' : ''}`}>
         {prefix && <span className="font-mono text-lg text-zinc-500">{prefix}</span>}
         <span className="font-mono text-3xl font-semibold tabular-nums text-white">{formatted}</span>
         <span className="font-mono text-base text-zinc-400">{suffix}{unit}</span>

@@ -3,9 +3,10 @@ import { REPO_META, SUPPORTED_FORMATS, GUARDRAIL_TIERS } from '../data/guardragD
 
 export interface DocSection {
   id: string;
-  group: 'Getting Started' | 'Core Usage' | 'Architecture & API';
+  group: 'Getting Started' | 'Core Features' | 'Advanced & API';
   title: string;
   description: string;
+  headings: { id: string; label: string }[];
   render: (copy: (id: string, text: string) => void, copiedId: string | null) => React.ReactNode;
 }
 
@@ -16,26 +17,26 @@ const CodeBlock: React.FC<{
   copy: (id: string, text: string) => void;
   copiedId: string | null;
 }> = ({ id, title, code, copy, copiedId }) => (
-  <div className="my-4 overflow-hidden rounded-xl border border-white/[0.09] bg-[#0b0b0f]">
-    <div className="flex items-center justify-between border-b border-white/[0.07] bg-[#111116] px-4 py-2">
-      <span className="font-mono text-[11px] text-zinc-400">{title ?? 'bash'}</span>
+  <div className="my-6 w-full overflow-hidden rounded-xl border border-white/[0.08] bg-[#0b0c10] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+    <div className="flex items-center justify-between border-b border-white/[0.06] bg-[#101117] px-4 py-3">
+      <span className="font-mono text-sm font-medium text-zinc-300">{title ?? 'bash'}</span>
       <button
         type="button"
         onClick={() => copy(id, code)}
-        className="rounded border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 font-mono text-[10px] text-zinc-400 transition-colors hover:border-white/20 hover:text-white"
+        className="rounded-md border border-white/[0.1] bg-white/[0.04] px-3 py-1 font-mono text-xs font-semibold text-zinc-200 transition-colors hover:border-white/20 hover:text-white"
       >
-        {copiedId === id ? <span className="text-[#00b91e]">Copied</span> : 'Copy'}
+        {copiedId === id ? <span className="text-[#00b91e]">Copied!</span> : 'Copy'}
       </button>
     </div>
-    <pre className="overflow-x-auto p-4 font-mono text-xs leading-6 text-zinc-200">
+    <pre className="overflow-x-auto p-5 font-mono text-sm sm:text-[15px] leading-7 text-zinc-200">
       <code>{code}</code>
     </pre>
   </div>
 );
 
 const Callout: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="my-5 rounded-xl border border-[#00b91e]/25 bg-[#00b91e]/[0.05] px-4 py-3.5 text-xs leading-relaxed text-zinc-300">
-    <span className="mr-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-[#00b91e]">
+  <div className="my-6 w-full rounded-xl border border-emerald-500/25 bg-emerald-950/15 px-6 py-5 text-sm sm:text-base leading-relaxed text-zinc-200">
+    <span className="mr-2.5 inline-block rounded border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-1 font-mono text-xs font-bold uppercase tracking-wider text-emerald-400">
       {label}
     </span>
     {children}
@@ -48,42 +49,189 @@ export const DOC_SECTIONS: DocSection[] = [
     group: 'Getting Started',
     title: 'Introduction',
     description:
-      'GuardRAG is a 100% offline, air-gapped document Q&A system combining Hybrid BM25 + FAISS retrieval, 4-tier PII redaction, and local Ollama inference.',
+      'Learn what GuardRAG is, how it works, and why it provides absolute confidentiality for sensitive documents.',
+    headings: [
+      { id: 'overview', label: 'System Overview' },
+      { id: 'value-pillars', label: 'Core Value Pillars' },
+      { id: 'architecture', label: 'Local Architecture' },
+      { id: 'problem-solved', label: 'Threat Model & Security' },
+      { id: 'quick-comparison', label: 'Cloud AI vs GuardRAG' },
+    ],
     render: () => (
-      <div className="space-y-4 text-sm leading-relaxed text-zinc-300">
-        <p>
-          GuardRAG lets you index PDFs, Word documents, Excel spreadsheets, PowerPoint decks, HTML
-          pages, and entire local directories on your own machine—with zero cloud uploads and zero
-          external API keys.
-        </p>
-        <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
-          <div className="rounded-xl border border-white/[0.08] bg-[#101015] p-4">
-            <div className="font-mono text-xs font-semibold text-[#00b91e]">Hybrid Retrieval</div>
-            <p className="mt-1.5 text-xs text-zinc-400">
-              Combines BM25 keyword search with FastEmbed ONNX + FAISS dense vectors via Reciprocal
-              Rank Fusion (RRF).
-            </p>
+      <div className="space-y-12 text-base sm:text-[17px] leading-relaxed text-zinc-300">
+        {/* System Overview */}
+        <div id="overview" className="scroll-mt-24 space-y-4">
+          <p className="text-lg sm:text-xl leading-relaxed text-zinc-200">
+            <strong className="text-white font-semibold">GuardRAG</strong> is a 100% offline document intelligence system designed for individuals, legal teams, healthcare professionals, and enterprises that cannot upload confidential files to public cloud AI tools.
+          </p>
+          <p>
+            Drop in legal agreements, financial spreadsheets, medical records, PowerPoint decks, or entire folders. GuardRAG indexes and analyzes them directly on your computer, providing conversational answers with exact source citations and spoken audio briefings—all with zero network egress.
+          </p>
+
+          {/* Quick Security Badges */}
+          <div className="flex flex-wrap items-center gap-2.5 pt-2 font-mono text-xs">
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 font-semibold text-emerald-400">
+              ✓ 100% On-Device
+            </span>
+            <span className="rounded-full border border-sky-500/30 bg-sky-500/10 px-3.5 py-1 font-semibold text-sky-400">
+              ✓ Zero Cloud Telemetry
+            </span>
+            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3.5 py-1 font-semibold text-amber-400">
+              ✓ 4-Tier Automated Redaction
+            </span>
+            <span className="rounded-full border border-zinc-700 bg-white/[0.04] px-3.5 py-1 font-semibold text-zinc-300">
+              ✓ MIT Open Source
+            </span>
           </div>
-          <div className="rounded-xl border border-white/[0.08] bg-[#101015] p-4">
-            <div className="font-mono text-xs font-semibold text-[#00b91e]">4-Tier Guardrails</div>
-            <p className="mt-1.5 text-xs text-zinc-400">
-              Enforces Public, Internal, Confidential, and Restricted privacy policies with Luhn
-              card validation and prompt-injection stripping.
-            </p>
+        </div>
+
+        {/* 4 Elevated Core Value Pillars (React Bits / UIverse aesthetic) */}
+        <div id="value-pillars" className="scroll-mt-24">
+          <h3 className="mb-6 pt-2 text-xl sm:text-2xl font-bold text-white flex items-center gap-2.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#00b91e]" />
+            <span>Core Value Pillars</span>
+          </h3>
+
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {/* Pillar 1 */}
+            <div className="group relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0c0d12] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-300 hover:border-emerald-500/40 hover:shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#00b91e]/15 text-[#00b91e] border border-[#00b91e]/25">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h4 className="mt-5 text-lg font-bold text-white">100% On-Device</h4>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                Zero cloud uploads, zero telemetry, and zero third-party servers. Your documents and vectors never leave your physical hard drive.
+              </p>
+            </div>
+
+            {/* Pillar 2 */}
+            <div className="group relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0c0d12] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-300 hover:border-emerald-500/40 hover:shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400 border border-sky-500/25">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </div>
+              <h4 className="mt-5 text-lg font-bold text-white">Confidentiality Shield</h4>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                Automatically detects and masks credit cards, passwords, personal contacts, SSNs, and HIPAA data before reasoning occurs.
+              </p>
+            </div>
+
+            {/* Pillar 3 */}
+            <div className="group relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0c0d12] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-300 hover:border-emerald-500/40 hover:shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/25">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <h4 className="mt-5 text-lg font-bold text-white">Verifiable Citations</h4>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                Eliminates hallucinations by grounding every answer directly in source documents with exact page numbers and highlighted quotes.
+              </p>
+            </div>
+
+            {/* Pillar 4 */}
+            <div className="group relative overflow-hidden rounded-2xl border border-white/[0.09] bg-[#0c0d12] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-300 hover:border-emerald-500/40 hover:shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-fuchsia-500/15 text-fuchsia-400 border border-fuchsia-500/25">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+              </div>
+              <h4 className="mt-5 text-lg font-bold text-white">Spoken Audio Briefings</h4>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-300">
+                Synthesizes spoken executive summaries using your browser&apos;s native Web Speech API with zero external cloud voice fees.
+              </p>
+            </div>
           </div>
-          <div className="rounded-xl border border-white/[0.08] bg-[#101015] p-4">
-            <div className="font-mono text-xs font-semibold text-[#00b91e]">Web Studio &amp; CLI</div>
-            <p className="mt-1.5 text-xs text-zinc-400">
-              Launch an interactive browser studio with <code className="text-zinc-200">guard-rag</code> or run
-              headless queries in scripts.
-            </p>
+        </div>
+
+        {/* Local Architecture & Data Flow */}
+        <div id="architecture" className="scroll-mt-24 rounded-2xl border border-white/[0.09] bg-[#0c0d12] p-8">
+          <h3 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2.5 mb-3">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#00b91e]" />
+            <span>Air-Gapped Architecture &amp; Data Pipeline</span>
+          </h3>
+          <p className="text-zinc-300 text-sm sm:text-base leading-relaxed mb-6">
+            GuardRAG executes every stage of the document intelligence pipeline entirely within your device&apos;s local memory space:
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="rounded-xl border border-white/[0.08] bg-[#07080c] p-4.5">
+              <div className="font-mono text-xs font-semibold text-[#00b91e]">STEP 01</div>
+              <div className="mt-1.5 font-bold text-white text-base">Native File Ingest</div>
+              <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+                PyPDF, openpyxl, docx2txt, and python-pptx extract clean text and metadata locally.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.08] bg-[#07080c] p-4.5">
+              <div className="font-mono text-xs font-semibold text-sky-400">STEP 02</div>
+              <div className="mt-1.5 font-bold text-white text-base">Privacy Shield</div>
+              <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+                4-tier regex filter and Luhn checksum redact PII and strip prompt override attempts.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.08] bg-[#07080c] p-4.5">
+              <div className="font-mono text-xs font-semibold text-amber-400">STEP 03</div>
+              <div className="mt-1.5 font-bold text-white text-base">Hybrid Retrieval</div>
+              <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+                Dense semantic vector search + BM25 keyword matching blended using Reciprocal Rank Fusion.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.08] bg-[#07080c] p-4.5">
+              <div className="font-mono text-xs font-semibold text-fuchsia-400">STEP 04</div>
+              <div className="mt-1.5 font-bold text-white text-base">Local AI Stream</div>
+              <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+                Free local Ollama models stream answers with exact citations and native spoken audio.
+              </p>
+            </div>
           </div>
-          <div className="rounded-xl border border-white/[0.08] bg-[#101015] p-4">
-            <div className="font-mono text-xs font-semibold text-[#00b91e]">Python SDK &amp; REST API</div>
-            <p className="mt-1.5 text-xs text-zinc-400">
-              Import <code className="text-zinc-200">build_rag_chain</code> directly in Python or connect over HTTP on
-              localhost and office LAN.
-            </p>
+        </div>
+
+        {/* Threat Model */}
+        <div id="problem-solved" className="scroll-mt-24 rounded-2xl border border-white/[0.09] bg-[#0c0d12] p-8">
+          <h4 className="text-xl sm:text-2xl font-bold text-white mb-3">Why Cloud AI Poses a Confidentiality Risk</h4>
+          <p className="text-base leading-relaxed text-zinc-300">
+            When you upload private documents to public cloud AI tools (such as ChatGPT, Claude, or Google NotebookLM), your files travel over external networks and can be retained, reviewed, or used for model training. GuardRAG eliminates this exposure entirely by running parsing, indexing, and reasoning directly on your local CPU.
+          </p>
+        </div>
+
+        {/* Comparison Table */}
+        <div id="quick-comparison" className="scroll-mt-24">
+          <h3 className="mb-4 text-xl sm:text-2xl font-bold text-white">Cloud AI vs GuardRAG at a Glance</h3>
+          <div className="w-full overflow-x-auto rounded-2xl border border-white/[0.08] bg-[#0c0d12]">
+            <table className="w-full min-w-[560px] text-left text-sm sm:text-base">
+              <thead className="border-b border-white/[0.07] bg-[#101117] font-mono text-xs sm:text-sm font-semibold uppercase text-zinc-400">
+                <tr>
+                  <th className="px-6 py-4">Security Dimension</th>
+                  <th className="px-6 py-4 text-emerald-400">GuardRAG (Offline)</th>
+                  <th className="px-6 py-4 text-zinc-400">Public Cloud AI Tools</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.05] text-zinc-300">
+                <tr>
+                  <td className="px-6 py-4 font-semibold text-white">Data Storage</td>
+                  <td className="px-6 py-4 text-emerald-400 font-semibold">100% Local Hard Drive</td>
+                  <td className="px-6 py-4 text-zinc-400">Remote Cloud Servers</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 font-semibold text-white">Sensitive PII Redaction</td>
+                  <td className="px-6 py-4 text-emerald-400 font-semibold">Automatic 4-Tier Filtering</td>
+                  <td className="px-6 py-4 text-zinc-400">Manual / None</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 font-semibold text-white">Internet Requirement</td>
+                  <td className="px-6 py-4 text-emerald-400 font-semibold">Air-gapped (Zero Egress)</td>
+                  <td className="px-6 py-4 text-zinc-400">Always Connected</td>
+                </tr>
+                <tr>
+                  <td className="px-6 py-4 font-semibold text-white">Cost &amp; Licensing</td>
+                  <td className="px-6 py-4 text-emerald-400 font-semibold">Free &amp; Open Source (MIT)</td>
+                  <td className="px-6 py-4 text-zinc-400">Monthly Subscriptions</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -94,433 +242,499 @@ export const DOC_SECTIONS: DocSection[] = [
     group: 'Getting Started',
     title: 'Installation',
     description:
-      'Install GuardRAG from PyPI and configure a local Ollama model in under two minutes.',
+      'Set up GuardRAG and configure a free local model in under two minutes.',
+    headings: [
+      { id: 'step-1', label: '1. Install GuardRAG' },
+      { id: 'step-2', label: '2. Start Local Model' },
+      { id: 'hardware', label: 'Hardware Requirements' },
+    ],
     render: (copy, copiedId) => (
-      <div className="space-y-4 text-sm leading-relaxed text-zinc-300">
+      <div className="space-y-8 text-base sm:text-[17px] leading-relaxed text-zinc-300">
         <p>
-          GuardRAG requires <strong className="text-white">Python 3.9–3.12+</strong> and a local{' '}
-          <strong className="text-white">Ollama</strong> installation for LLM inference.
+          GuardRAG runs locally on Windows, macOS, and Linux. It requires <strong className="text-white">Python 3.9–3.12+</strong> and a free local model provider such as <strong className="text-white">Ollama</strong>.
         </p>
-        <h3 className="pt-2 text-base font-semibold text-white">1. Install the package</h3>
-        <CodeBlock
-          id="install-pip"
-          title="Terminal"
-          code={`pip install guard-rag`}
-          copy={copy}
-          copiedId={copiedId}
-        />
-        <h3 className="pt-2 text-base font-semibold text-white">2. Pull a local Ollama model</h3>
-        <p className="text-xs text-zinc-400">
-          Recommended models: <code className="text-zinc-200">llama3.2</code>,{' '}
-          <code className="text-zinc-200">gemma3:1b</code> (fast on CPU),{' '}
-          <code className="text-zinc-200">llama3.1</code>, or{' '}
-          <code className="text-zinc-200">deepseek-r1</code>.
-        </p>
-        <CodeBlock
-          id="install-ollama"
-          title="Terminal"
-          code={`ollama pull gemma3:1b
-ollama pull llama3.1`}
-          copy={copy}
-          copiedId={copiedId}
-        />
-        <Callout label="Note">
-          Embeddings run locally on CPU via FastEmbed ONNX (<code>BAAI/bge-small-en-v1.5</code>,
-          ~60 MB RAM), so no GPU is required for indexing or vector search.
-        </Callout>
+
+        <div id="step-1" className="scroll-mt-24">
+          <h3 className="text-xl sm:text-2xl font-bold text-white">Step 1: Install GuardRAG</h3>
+          <p className="mt-2 text-sm sm:text-base text-zinc-400">
+            Install the official package from PyPI in your terminal or virtual environment:
+          </p>
+          <CodeBlock
+            id="install-pip"
+            title="Terminal"
+            code={`pip install guard-rag`}
+            copy={copy}
+            copiedId={copiedId}
+          />
+        </div>
+
+        <div id="step-2" className="scroll-mt-24">
+          <h3 className="text-xl sm:text-2xl font-bold text-white">Step 2: Start a Free Local Model</h3>
+          <p className="mt-2 text-sm sm:text-base text-zinc-400">
+            If you don&apos;t have Ollama yet, download it from <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer" className="text-[#00b91e] underline">ollama.ai</a>. Then pull a recommended model:
+          </p>
+          <CodeBlock
+            id="install-ollama"
+            title="Terminal"
+            code={`# Fast and efficient on standard laptop CPUs
+ollama run llama3.2
+
+# Or try lightweight models
+ollama pull gemma3:1b
+ollama pull mistral`}
+            copy={copy}
+            copiedId={copiedId}
+          />
+        </div>
+
+        <div id="hardware" className="scroll-mt-24">
+          <Callout label="No GPU Required">
+            Document vectorization runs locally on CPU using SIMD-accelerated FastEmbed ONNX (~60 MB RAM). You do not need an expensive GPU or CUDA setup to index and search your documents.
+          </Callout>
+        </div>
       </div>
     ),
   },
   {
     id: 'quickstart',
     group: 'Getting Started',
-    title: 'Quickstart (Web Studio)',
+    title: 'Quickstart (Browser Studio)',
     description:
-      'Start the local FastAPI studio, upload your first document, and ask grounded questions.',
+      'Launch the local browser studio, upload your documents, and start asking questions.',
+    headings: [
+      { id: 'launch-cmd', label: 'Launch Command' },
+      { id: 'studio-workflow', label: '3-Step Studio Workflow' },
+    ],
     render: (copy, copiedId) => (
-      <div className="space-y-4 text-sm leading-relaxed text-zinc-300">
-        <p>Run GuardRAG with no arguments to launch the local web interface:</p>
-        <CodeBlock
-          id="qs-launch"
-          title="Terminal"
-          code={`guard-rag
-# Listening on http://127.0.0.1:8000`}
-          copy={copy}
-          copiedId={copiedId}
-        />
-        <ol className="list-decimal space-y-2 pl-5 text-xs text-zinc-300">
-          <li>Open <code className="text-zinc-200">http://127.0.0.1:8000</code> in your browser.</li>
-          <li>Select a sensitivity tier (<strong className="text-white">Public</strong>, <strong className="text-white">Internal</strong>, <strong className="text-white">Confidential</strong>, or <strong className="text-white">Restricted</strong>).</li>
-          <li>Upload one or more documents (PDF, DOCX, XLSX, PPTX, HTML, TXT, MD).</li>
-          <li>Ask questions—GuardRAG cites exact source chunks and supports offline Web Speech audio briefings.</li>
-        </ol>
-      </div>
-    ),
-  },
-  {
-    id: 'cli-reference',
-    group: 'Core Usage',
-    title: 'CLI Reference',
-    description:
-      'Use the guard-rag terminal command for single files, recursive directories, and scripted queries.',
-    render: (copy, copiedId) => (
-      <div className="space-y-4 text-sm leading-relaxed text-zinc-300">
-        <CodeBlock
-          id="cli-examples"
-          title="Terminal"
-          code={`# Launch the web UI on a custom host/port
-guard-rag --host 127.0.0.1 --port 8000
+      <div className="space-y-8 text-base sm:text-[17px] leading-relaxed text-zinc-300">
+        <div id="launch-cmd" className="scroll-mt-24">
+          <p>
+            To open the private document workspace in your default browser, run GuardRAG with no arguments:
+          </p>
+          <CodeBlock
+            id="qs-launch"
+            title="Terminal"
+            code={`guard-rag`}
+            copy={copy}
+            copiedId={copiedId}
+          />
+        </div>
 
-# Query a single document headlessly
-guard-rag --pdf contracts/NDA.pdf \\
-  --query "Summarize confidentiality terms" \\
-  --model llama3.1 \\
-  --sensitivity Confidential \\
-  --output-format markdown
-
-# Recursively index and query a folder
-guard-rag ./docs/`}
-          copy={copy}
-          copiedId={copiedId}
-        />
-        <div className="overflow-x-auto rounded-xl border border-white/[0.08]">
-          <table className="w-full min-w-[540px] text-left text-xs">
-            <thead className="border-b border-white/[0.07] bg-[#111116] font-mono text-[10px] uppercase text-zinc-400">
-              <tr>
-                <th className="px-4 py-3">Flag</th>
-                <th className="px-4 py-3">Short</th>
-                <th className="px-4 py-3">Default</th>
-                <th className="px-4 py-3">Description</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.05] text-zinc-300">
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">--pdf &lt;path&gt;</td>
-                <td className="px-4 py-2.5 font-mono">-p</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">None</td>
-                <td className="px-4 py-2.5">Document file path (launches Web UI if omitted)</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">--query &lt;str&gt;</td>
-                <td className="px-4 py-2.5 font-mono">-q</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">Interactive</td>
-                <td className="px-4 py-2.5">Question to run against the indexed file</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">--model &lt;str&gt;</td>
-                <td className="px-4 py-2.5 font-mono">-m</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">gemma3:1b</td>
-                <td className="px-4 py-2.5">Local Ollama model name</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">--sensitivity &lt;str&gt;</td>
-                <td className="px-4 py-2.5 font-mono">-s</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">Internal</td>
-                <td className="px-4 py-2.5">Public, Internal, Confidential, or Restricted</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">--chunk-size &lt;int&gt;</td>
-                <td className="px-4 py-2.5 font-mono">—</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">1000</td>
-                <td className="px-4 py-2.5">Characters per text chunk (500–4000)</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">--output-format</td>
-                <td className="px-4 py-2.5 font-mono">—</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">text</td>
-                <td className="px-4 py-2.5">Output format: text, json, or markdown</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">--port / --host</td>
-                <td className="px-4 py-2.5 font-mono">—</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">8000 / 0.0.0.0</td>
-                <td className="px-4 py-2.5">Web UI server host and port</td>
-              </tr>
-            </tbody>
-          </table>
+        <div id="studio-workflow" className="scroll-mt-24">
+          <h3 className="mb-4 pt-2 text-xl sm:text-2xl font-bold text-white">How to Use the Workspace</h3>
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+            <div className="rounded-xl border border-white/[0.08] bg-[#0c0d12] p-6 shadow-sm">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00b91e]/15 text-base font-bold text-[#00b91e]">
+                1
+              </span>
+              <h4 className="mt-4 text-base sm:text-lg font-bold text-white">Choose a Sensitivity Level</h4>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Select from <em>Public</em>, <em>Internal</em>, <em>Confidential</em>, or <em>Restricted</em> depending on your document&apos;s privacy needs.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.08] bg-[#0c0d12] p-6 shadow-sm">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00b91e]/15 text-base font-bold text-[#00b91e]">
+                2
+              </span>
+              <h4 className="mt-4 text-base sm:text-lg font-bold text-white">Drop in Your Files</h4>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Add PDFs, Word docs, Excel spreadsheets, PowerPoint slides, or text files. GuardRAG parses and indexes them locally.
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/[0.08] bg-[#0c0d12] p-6 shadow-sm">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00b91e]/15 text-base font-bold text-[#00b91e]">
+                3
+              </span>
+              <h4 className="mt-4 text-base sm:text-lg font-bold text-white">Ask in Plain English</h4>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Ask questions naturally. Review verifiable citations or click &quot;Audio Overview&quot; for a hands-free spoken summary.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     ),
   },
   {
-    id: 'python-sdk',
-    group: 'Core Usage',
-    title: 'Python SDK',
+    id: 'cli-reference',
+    group: 'Core Features',
+    title: 'Command Line Guide',
     description:
-      'Build, query, and reload persistent RAG chains directly inside your Python applications.',
+      'Query documents headlessly or index entire directories straight from your terminal.',
+    headings: [
+      { id: 'cli-examples', label: 'Command Examples' },
+      { id: 'cli-options', label: 'CLI Options Table' },
+    ],
     render: (copy, copiedId) => (
-      <div className="space-y-4 text-sm leading-relaxed text-zinc-300">
-        <h3 className="text-base font-semibold text-white">Step 1: Build &amp; index a chain</h3>
-        <p className="text-xs text-zinc-400">
-          <code className="text-zinc-200">build_rag_chain()</code> parses files, applies PII
-          redaction, builds the FAISS + BM25 index, and returns <code className="text-zinc-200">(db_id, chain)</code>.
-        </p>
-        <CodeBlock
-          id="sdk-build"
-          title="python"
-          code={`from guardrag.rag.core import build_rag_chain
+      <div className="space-y-8 text-base sm:text-[17px] leading-relaxed text-zinc-300">
+        <div id="cli-examples" className="scroll-mt-24">
+          <p>
+            Prefer the command line? You can query single documents or entire folders directly from your terminal:
+          </p>
+          <CodeBlock
+            id="cli-examples"
+            title="Terminal"
+            code={`# Query a single document headlessly
+guard-rag --file contracts/NDA.pdf \\
+  --query "What are our non-disclosure obligations?" \\
+  --sensitivity Confidential
 
-db_id, chain = build_rag_chain(
-    file_paths=["data/legal_agreement.pdf"],
-    model="llama3.1",
-    chunk_size=1000,
-    chunk_overlap=200,
-    ollama_host="http://localhost:11434",
-    storage_dir=".guardrag_storage",
-    redact_pii=True,
-    manual_redactions=["Acme Corp", "Project Titan"],
-    temperature=0.0,
-)`}
-          copy={copy}
-          copiedId={copiedId}
-        />
+# Recursively index and query an entire folder
+guard-rag ./financial_reports/
 
-        <h3 className="pt-2 text-base font-semibold text-white">
-          Step 2: Query &amp; reload cached indexes
-        </h3>
-        <p className="text-xs text-zinc-400">
-          Pass <code className="text-zinc-200">db_id</code> to{' '}
-          <code className="text-zinc-200">load_stored_rag_chain()</code> on subsequent runs to skip
-          re-embedding.
-        </p>
-        <CodeBlock
-          id="sdk-load"
-          title="python"
-          code={`from guardrag.rag.core import load_stored_rag_chain
+# Launch the web studio on custom port
+guard-rag --port 8080`}
+            copy={copy}
+            copiedId={copiedId}
+          />
+        </div>
 
-chain = load_stored_rag_chain(
-    db_id=db_id,
-    model="llama3.1",
-    ollama_host="http://localhost:11434",
-    storage_dir=".guardrag_storage",
-    temperature=0.0,
-)
+        <div id="cli-options" className="scroll-mt-24">
+          <h3 className="mb-4 text-xl sm:text-2xl font-bold text-white">Common CLI Options</h3>
+          <div className="w-full overflow-x-auto rounded-xl border border-white/[0.08]">
+            <table className="w-full min-w-[540px] text-left text-sm sm:text-base">
+              <thead className="border-b border-white/[0.07] bg-[#101117] font-mono text-xs sm:text-sm font-semibold uppercase text-zinc-400">
+                <tr>
+                  <th className="px-5 py-3.5">Option</th>
+                  <th className="px-5 py-3.5">Short</th>
+                  <th className="px-5 py-3.5">Default</th>
+                  <th className="px-5 py-3.5">Purpose</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.05] text-zinc-300">
+                <tr>
+                  <td className="px-5 py-3.5 font-mono text-emerald-400">--file &lt;path&gt;</td>
+                  <td className="px-5 py-3.5 font-mono">-f</td>
+                  <td className="px-5 py-3.5 font-mono text-zinc-400">None</td>
+                  <td className="px-5 py-3.5">Path to document (opens Web UI if omitted)</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-mono text-emerald-400">--query &lt;text&gt;</td>
+                  <td className="px-5 py-3.5 font-mono">-q</td>
+                  <td className="px-5 py-3.5 font-mono text-zinc-400">Interactive</td>
+                  <td className="px-5 py-3.5">Question to answer from the document</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-mono text-emerald-400">--sensitivity &lt;tier&gt;</td>
+                  <td className="px-5 py-3.5 font-mono">-s</td>
+                  <td className="px-5 py-3.5 font-mono text-zinc-400">Internal</td>
+                  <td className="px-5 py-3.5">Public, Internal, Confidential, or Restricted</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-mono text-emerald-400">--model &lt;name&gt;</td>
+                  <td className="px-5 py-3.5 font-mono">-m</td>
+                  <td className="px-5 py-3.5 font-mono text-zinc-400">llama3.2</td>
+                  <td className="px-5 py-3.5">Local Ollama model name</td>
+                </tr>
+                <tr>
+                  <td className="px-5 py-3.5 font-mono text-emerald-400">--port &lt;int&gt;</td>
+                  <td className="px-5 py-3.5 font-mono">-p</td>
+                  <td className="px-5 py-3.5 font-mono text-zinc-400">8000</td>
+                  <td className="px-5 py-3.5">Port for the web dashboard</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'supported-formats',
+    group: 'Core Features',
+    title: 'Supported File Formats',
+    description:
+      'Universal document parsing across contracts, spreadsheets, slide decks, web pages, and folders.',
+    headings: [
+      { id: 'native-engines', label: 'Native Document Engines' },
+      { id: 'folder-support', label: 'Directory Ingestion' },
+    ],
+    render: () => (
+      <div className="space-y-8 text-base sm:text-[17px] leading-relaxed text-zinc-300">
+        <div id="native-engines" className="scroll-mt-24">
+          <p>
+            GuardRAG includes native document parsers that extract clean text, tables, and slide notes
+            directly on your local machine without using any third-party conversion APIs:
+          </p>
 
-result = chain.invoke({
-    "input": "What are the termination liabilities?",
-    "chat_history": [],
-})
-print(result["answer"])`}
-          copy={copy}
-          copiedId={copiedId}
-        />
+          <div className="mt-4 w-full overflow-x-auto rounded-xl border border-white/[0.08]">
+            <table className="w-full min-w-[540px] text-left text-sm sm:text-base">
+              <thead className="border-b border-white/[0.07] bg-[#101117] font-mono text-xs sm:text-sm font-semibold uppercase text-zinc-400">
+                <tr>
+                  <th className="px-5 py-3.5">Format</th>
+                  <th className="px-5 py-3.5">Engine</th>
+                  <th className="px-5 py-3.5">Parsing Capability</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.05] text-zinc-300">
+                {SUPPORTED_FORMATS.map((fmt) => (
+                  <tr key={fmt.ext}>
+                    <td className="px-5 py-3.5 font-mono text-emerald-400 font-semibold">{fmt.ext}</td>
+                    <td className="px-5 py-3.5 font-mono text-zinc-300">{fmt.engine}</td>
+                    <td className="px-5 py-3.5 text-zinc-300">{fmt.note}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-        <h3 className="pt-2 text-base font-semibold text-white">Parameters Reference</h3>
-        <div className="overflow-x-auto rounded-xl border border-white/[0.08]">
-          <table className="w-full min-w-[540px] text-left text-xs">
-            <thead className="border-b border-white/[0.07] bg-[#111116] font-mono text-[10px] uppercase text-zinc-400">
-              <tr>
-                <th className="px-4 py-3">Parameter</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Default</th>
-                <th className="px-4 py-3">Description</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.05] text-zinc-300">
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">file_paths</td>
-                <td className="px-4 py-2.5 font-mono">List[str]</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">Required</td>
-                <td className="px-4 py-2.5">Document paths to parse and embed</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">model</td>
-                <td className="px-4 py-2.5 font-mono">str</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">&quot;gemma3:1b&quot;</td>
-                <td className="px-4 py-2.5">Target Ollama model name</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">chunk_size</td>
-                <td className="px-4 py-2.5 font-mono">int</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">1000</td>
-                <td className="px-4 py-2.5">Max character count per chunk</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">chunk_overlap</td>
-                <td className="px-4 py-2.5 font-mono">int</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">200</td>
-                <td className="px-4 py-2.5">Overlapping characters between chunks</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">redact_pii</td>
-                <td className="px-4 py-2.5 font-mono">bool</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">False</td>
-                <td className="px-4 py-2.5">Redact names, emails, phones, cards, and secrets</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">manual_redactions</td>
-                <td className="px-4 py-2.5 font-mono">List[str]</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">None</td>
-                <td className="px-4 py-2.5">Custom entities or terms to mask</td>
-              </tr>
-              <tr>
-                <td className="px-4 py-2.5 font-mono text-[#00b91e]">storage_dir</td>
-                <td className="px-4 py-2.5 font-mono">str</td>
-                <td className="px-4 py-2.5 font-mono text-zinc-400">&quot;.guardrag_storage&quot;</td>
-                <td className="px-4 py-2.5">Directory storing persisted vector indexes</td>
-              </tr>
-            </tbody>
-          </table>
+        <div id="folder-support" className="scroll-mt-24 rounded-xl border border-white/[0.08] bg-[#0c0d12] p-7">
+          <h4 className="text-lg sm:text-xl font-bold text-white">Batch Directory Ingestion</h4>
+          <p className="mt-2.5 text-sm sm:text-base leading-relaxed text-zinc-300">
+            Have dozens of files across subdirectories? Run <code className="text-emerald-400">guard-rag ./my_folder/</code> to automatically traverse and index all compatible documents in a single unified knowledge base.
+          </p>
         </div>
       </div>
     ),
   },
   {
     id: 'safety-redaction',
-    group: 'Core Usage',
-    title: 'Safety & PII Redaction',
+    group: 'Core Features',
+    title: 'Confidentiality Shield',
     description:
-      'Use GuardRAG guardrails standalone to sanitize untrusted documents, mask PII, and block prompt injections.',
+      'Understand how GuardRAG prevents accidental leaks with 4 sensitivity protection levels.',
+    headings: [
+      { id: 'sensitivity-tiers', label: '4 Protection Levels' },
+      { id: 'python-redactor', label: 'Programmatic Redaction' },
+    ],
     render: (copy, copiedId) => (
-      <div className="space-y-4 text-sm leading-relaxed text-zinc-300">
-        <CodeBlock
-          id="sdk-safety"
-          title="python"
-          code={`from guardrag.utils.safety import check_input_safety, sanitize_document_content
+      <div className="space-y-8 text-base sm:text-[17px] leading-relaxed text-zinc-300">
+        <p>
+          GuardRAG enforces real-time confidentiality checks on both uploaded documents and generated answers.
+        </p>
+
+        <div id="sensitivity-tiers" className="scroll-mt-24">
+          <h3 className="mb-4 text-xl sm:text-2xl font-bold text-white">4 Sensitivity Protection Levels</h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {GUARDRAIL_TIERS.map((tier) => (
+              <div key={tier.id} className="rounded-xl border border-white/[0.08] bg-[#0c0d12] p-6 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-base sm:text-lg font-bold text-white">{tier.id}</span>
+                  <span className="rounded border border-white/[0.1] bg-white/[0.03] px-2.5 py-0.5 text-xs text-zinc-300 font-mono">
+                    {tier.badge}
+                  </span>
+                </div>
+                <p className="mt-2.5 text-sm sm:text-[15px] leading-relaxed text-zinc-300">{tier.summary}</p>
+                <div className="mt-3.5 text-xs sm:text-sm text-zinc-400">
+                  <strong className="text-zinc-300">Best for:</strong> {tier.useCase}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div id="python-redactor" className="scroll-mt-24">
+          <h3 className="mb-2 text-xl sm:text-2xl font-bold text-white">Using Safety in Python</h3>
+          <CodeBlock
+            id="sdk-safety"
+            title="python"
+            code={`from guardrag.utils.safety import check_input_safety, sanitize_document_content
 from guardrag.utils.redactor import redact_and_map
 
-# 1. Strip indirect prompt injections from untrusted documents
-clean_text = sanitize_document_content(raw_document_text)
+# 1. Neutralize indirect prompt injection payloads
+clean_text = sanitize_document_content(untrusted_document_text)
 
-# 2. Context-aware PII tokenization with reversible mapping
-anonymized, mapping = redact_and_map(
-    "Contact Alice at alice@corp.com",
-    redact_names=True,
-)
-# -> "Contact [PERSON_1] at [EMAIL_1]"
+# 2. Context-preserving PII masking with reversible mapping
+anonymized, mapping = redact_and_map("Contact Alice at alice@company.com")
+# Output: "Contact [PERSON_1] at [EMAIL_1]"
 
-# 3. Inspect user query against a sensitivity tier
-is_safe, reason = check_input_safety(user_query, tier="Confidential")
-if not is_safe:
-    print(f"Blocked: {reason}")`}
-          copy={copy}
-          copiedId={copiedId}
-        />
-        <h3 className="pt-2 text-base font-semibold text-white">4 Cumulative Sensitivity Tiers</h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {GUARDRAIL_TIERS.map((tier) => (
-            <div key={tier.id} className="rounded-xl border border-white/[0.08] bg-[#101015] p-4">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-white">{tier.id}</span>
-                <span className="font-mono text-[10px] text-zinc-400">{tier.badge}</span>
-              </div>
-              <p className="mt-1.5 text-xs text-zinc-400">{tier.summary}</p>
-            </div>
-          ))}
+# 3. Test queries against sensitivity tiers
+is_safe, reason = check_input_safety(user_query, tier="Confidential")`}
+            copy={copy}
+            copiedId={copiedId}
+          />
         </div>
       </div>
     ),
   },
   {
-    id: 'formats-retrieval',
-    group: 'Architecture & API',
-    title: 'Hybrid Retrieval & Formats',
+    id: 'offline-audio',
+    group: 'Core Features',
+    title: 'Offline Audio Overviews',
     description:
-      'How GuardRAG parses 9+ document formats and fuses BM25 + FAISS dense search.',
+      'Generate and listen to hands-free spoken document briefings without sending audio to the cloud.',
+    headings: [
+      { id: 'how-audio-works', label: 'How Audio Overviews Work' },
+      { id: 'audio-benefits', label: 'Privacy & Cost Benefits' },
+    ],
     render: () => (
-      <div className="space-y-4 text-sm leading-relaxed text-zinc-300">
+      <div className="space-y-8 text-base sm:text-[17px] leading-relaxed text-zinc-300">
         <p>
-          Every query runs both lexical BM25 matching (for exact invoice IDs, error codes, and
-          section numbers) and dense vector similarity in FAISS-CPU, then merges rankings with
-          Reciprocal Rank Fusion (RRF).
+          GuardRAG brings the viral NotebookLM audio briefing experience to completely offline setups.
         </p>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-          {SUPPORTED_FORMATS.map((fmt) => (
-            <div key={fmt.ext} className="rounded-xl border border-white/[0.08] bg-[#101015] p-3.5">
-              <div className="font-mono text-xs font-semibold text-[#00b91e]">{fmt.ext}</div>
-              <div className="mt-1 font-mono text-[11px] text-zinc-300">{fmt.engine}</div>
-              <div className="mt-1 text-[11px] text-zinc-500">{fmt.note}</div>
-            </div>
-          ))}
+
+        <div id="how-audio-works" className="scroll-mt-24 rounded-xl border border-white/[0.08] bg-[#0c0d12] p-7 space-y-4">
+          <h4 className="text-lg sm:text-xl font-bold text-white">How Offline Audio Works</h4>
+          <ol className="list-decimal space-y-3 pl-5 text-sm sm:text-base text-zinc-300">
+            <li>Ingest any document (PDF contract, spreadsheet, or slide deck).</li>
+            <li>Click the <strong className="text-white">Audio Overview</strong> button in the document header.</li>
+            <li>Your browser&apos;s native speech engine (<code className="text-emerald-400">window.speechSynthesis</code>) synthesizes the briefing instantly.</li>
+            <li>Control playback with standard Play, Pause, and Resume controls.</li>
+          </ol>
+        </div>
+
+        <div id="audio-benefits" className="scroll-mt-24 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="rounded-xl border border-white/[0.08] bg-[#08080c] p-6 text-sm sm:text-base leading-relaxed text-zinc-300">
+            <strong className="text-white font-semibold">Zero Cloud Voice Fees:</strong> No ElevenLabs or OpenAI audio API subscriptions required.
+          </div>
+          <div className="rounded-xl border border-white/[0.08] bg-[#08080c] p-6 text-sm sm:text-base leading-relaxed text-zinc-300">
+            <strong className="text-white font-semibold">Zero Data Egress:</strong> Audio waveform data never leaves your computer or browser.
+          </div>
         </div>
       </div>
     ),
   },
   {
-    id: 'rest-api',
-    group: 'Architecture & API',
-    title: 'REST API',
+    id: 'lan-sharing',
+    group: 'Core Features',
+    title: 'Office LAN Collaboration',
     description:
-      'Integrate GuardRAG from any language over HTTP with optional API key authentication.',
-    render: (copy, copiedId) => (
-      <div className="space-y-4 text-sm leading-relaxed text-zinc-300">
-        <p className="text-xs text-zinc-400">
-          Set <code className="text-zinc-200">GUARDRAG_API_KEY</code> on the server to enforce{' '}
-          <code className="text-zinc-200">X-API-Key</code> or{' '}
-          <code className="text-zinc-200">Authorization: Bearer</code> authentication on upload and
-          policy routes.
+      'Share document Q&A across your office Wi-Fi with host-enforced access controls.',
+    headings: [
+      { id: 'host-authority', label: 'Host Authority Principle' },
+      { id: 'guest-experience', label: 'Guest Browser Experience' },
+    ],
+    render: () => (
+      <div className="space-y-8 text-base sm:text-[17px] leading-relaxed text-zinc-300">
+        <p>
+          Need colleagues to review the same documents? GuardRAG lets you share an interactive Q&amp;A link across your office Wi-Fi or local network without uploading files to the internet.
         </p>
-        <CodeBlock
-          id="api-curl"
-          title="Terminal"
-          code={`# 1. Start server with optional API key protection
-export GUARDRAG_API_KEY="your-secure-token"
-guard-rag --host 0.0.0.0 --port 8000
 
-# 2. Upload & index a document
-curl -X POST http://localhost:8000/api/upload \\
-  -H "X-API-Key: your-secure-token" \\
-  -F "files=@contract_q4.pdf" \\
-  -F "sensitivity=Confidential" \\
-  -F "chunk_size=1000"
+        <div id="host-authority" className="scroll-mt-24">
+          <h3 className="mb-2 text-xl sm:text-2xl font-bold text-white">The Host Authority Principle</h3>
+          <p className="text-sm sm:text-base text-zinc-400">
+            GuardRAG enforces strict security boundaries between the host machine and guest viewers:
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="rounded-xl border border-white/[0.08] bg-[#0c0d12] p-6">
+              <div className="text-base sm:text-lg font-bold text-white">Host Privileges (Your PC)</div>
+              <ul className="mt-3 space-y-2 text-sm sm:text-[15px] text-zinc-300">
+                <li>✓ Ingest &amp; delete documents</li>
+                <li>✓ Toggle sensitivity tiers &amp; model parameters</li>
+                <li>✓ Control share link permissions &amp; access status</li>
+              </ul>
+            </div>
+            <div className="rounded-xl border border-white/[0.08] bg-[#0c0d12] p-6">
+              <div className="text-base sm:text-lg font-bold text-white">Guest Privileges (Colleagues)</div>
+              <ul className="mt-3 space-y-2 text-sm sm:text-[15px] text-zinc-300">
+                <li>✓ Chat with indexed documents in any web browser</li>
+                <li>✓ Inspect highlighted citations &amp; listen to audio</li>
+                <li>✕ Zero file upload or vector setting access</li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
-# 3. Inspect health & stored vector indexes
-curl http://localhost:8000/api/health
-curl http://localhost:8000/api/storage`}
-          copy={copy}
-          copiedId={copiedId}
-        />
+        <div id="guest-experience" className="scroll-mt-24">
+          <Callout label="Zero Setup for Guests">
+            Colleagues only need a standard web browser on the same Wi-Fi. They do not need to install Python, Ollama, or any software.
+          </Callout>
+        </div>
+      </div>
+    ),
+  },
+  {
+    id: 'python-sdk',
+    group: 'Advanced & API',
+    title: 'Python SDK Integration',
+    description:
+      'Embed local RAG pipelines and PII redaction directly inside Python applications.',
+    headings: [
+      { id: 'sdk-usage', label: 'build_rag_chain() Usage' },
+    ],
+    render: (copy, copiedId) => (
+      <div className="space-y-8 text-base sm:text-[17px] leading-relaxed text-zinc-300">
+        <div id="sdk-usage" className="scroll-mt-24">
+          <p>
+            Import <code className="text-emerald-400">build_rag_chain</code> directly into your scripts or backend services:
+          </p>
+          <CodeBlock
+            id="sdk-code"
+            title="python"
+            code={`from guardrag.rag.core import build_rag_chain
+
+db_id, chain = build_rag_chain(
+    file_paths=["documents/partnership_agreement.pdf"],
+    model="llama3.2",
+    chunk_size=1000,
+    chunk_overlap=200,
+    redact_pii=True,
+    storage_dir=".guardrag_storage",
+)
+
+response = chain.invoke({
+    "input": "What are the intellectual property terms?",
+    "chat_history": [],
+})
+print(response["answer"])`}
+            copy={copy}
+            copiedId={copiedId}
+          />
+        </div>
       </div>
     ),
   },
   {
     id: 'docker-tests',
-    group: 'Architecture & API',
+    group: 'Advanced & API',
     title: 'Docker & Testing',
     description:
-      'Run GuardRAG with Ollama in containers or verify all 83 automated pytest checks locally.',
+      'Deploy containerized GuardRAG services or run automated pytest checks.',
+    headings: [
+      { id: 'docker-deploy', label: 'Docker Compose' },
+      { id: 'pytest-suite', label: 'Automated Tests' },
+    ],
     render: (copy, copiedId) => (
-      <div className="space-y-4 text-sm leading-relaxed text-zinc-300">
-        <CodeBlock
-          id="docker-cmd"
-          title="Terminal"
-          code={`# Clone and start GuardRAG + Ollama containers
+      <div className="space-y-8 text-base sm:text-[17px] leading-relaxed text-zinc-300">
+        <div id="docker-deploy" className="scroll-mt-24">
+          <p>
+            Deploy GuardRAG in containerized environments with persistent volume storage:
+          </p>
+          <CodeBlock
+            id="docker-cmd"
+            title="Terminal"
+            code={`# Clone repository
 git clone https://github.com/sowmiyan-s/GUARD-RAG.git
 cd GUARD-RAG
-docker-compose up -d
 
-# Run the automated test suite (83 tests)
+# Launch bundled GuardRAG + Ollama services
+docker-compose up -d`}
+            copy={copy}
+            copiedId={copiedId}
+          />
+        </div>
+
+        <div id="pytest-suite" className="scroll-mt-24">
+          <h4 className="text-lg sm:text-xl font-bold text-white">Running the Test Suite</h4>
+          <CodeBlock
+            id="pytest-cmd"
+            title="Terminal"
+            code={`# Run the automated pytest suite (84 tests passing)
 pytest -v`}
-          copy={copy}
-          copiedId={copiedId}
-        />
-        <Callout label="Source Docs">
-          Full markdown specifications are also maintained in{' '}
-          <a
-            href={REPO_META.apiReferenceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white underline hover:text-[#00b91e]"
-          >
-            docs/API_REFERENCE.md
-          </a>{' '}
-          and{' '}
-          <a
-            href={REPO_META.architectureUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-white underline hover:text-[#00b91e]"
-          >
-            docs/ARCHITECTURE.md
-          </a>
-          .
-        </Callout>
+            copy={copy}
+            copiedId={copiedId}
+          />
+
+          <Callout label="Full Documentation">
+            Detailed architecture diagrams, API schemas, and deployment instructions are available on{' '}
+            <a
+              href={REPO_META.docsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white underline hover:text-[#00b91e]"
+            >
+              GitHub Docs
+            </a>
+            .
+          </Callout>
+        </div>
       </div>
     ),
   },
 ];
 
-const GROUPS: DocSection['group'][] = ['Getting Started', 'Core Usage', 'Architecture & API'];
+const GROUPS: DocSection['group'][] = ['Getting Started', 'Core Features', 'Advanced & API'];
 
 interface DocsPageProps {
   activeSectionId: string;
@@ -557,14 +771,15 @@ export const DocsPage: React.FC<DocsPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] pt-16 text-zinc-200">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col px-4 sm:px-8 lg:flex-row lg:gap-12 lg:px-12">
+    <div className="min-h-screen w-full bg-[#060709] pt-20 pb-24 text-zinc-200">
+      {/* Expansive Full-Width 3-Column Documentation Architecture */}
+      <div className="mx-auto flex w-full max-w-[1840px] flex-col px-4 sm:px-8 lg:flex-row lg:gap-10 xl:gap-12 xl:px-12 2xl:px-16">
         {/* Mobile section selector */}
-        <div className="border-b border-white/[0.08] py-3 lg:hidden">
+        <div className="border-b border-white/[0.08] py-4 lg:hidden">
           <button
             type="button"
             onClick={() => setMobileMenuOpen((v) => !v)}
-            className="flex w-full items-center justify-between rounded-lg border border-white/[0.1] bg-[#101015] px-3.5 py-2 text-xs font-medium text-white"
+            className="flex w-full items-center justify-between rounded-xl border border-white/[0.1] bg-[#0c0d12] px-4 py-2.5 text-xs font-medium text-white shadow-sm"
           >
             <span>
               <span className="text-zinc-500">{current.group} / </span>
@@ -573,21 +788,21 @@ export const DocsPage: React.FC<DocsPageProps> = ({
             <span className="font-mono text-zinc-400">{mobileMenuOpen ? '−' : '+'}</span>
           </button>
           {mobileMenuOpen && (
-            <nav className="mt-2 space-y-4 rounded-xl border border-white/[0.08] bg-[#0e0e13] p-4">
+            <nav className="mt-2 space-y-4 rounded-xl border border-white/[0.08] bg-[#0c0d12] p-5">
               {GROUPS.map((group) => (
                 <div key={group}>
-                  <div className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+                  <div className="mb-2 font-mono text-[10px] uppercase tracking-wider text-zinc-500">
                     {group}
                   </div>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     {DOC_SECTIONS.filter((s) => s.group === group).map((s) => (
                       <button
                         key={s.id}
                         type="button"
                         onClick={() => selectAndScroll(s.id)}
-                        className={`block w-full rounded-md px-2.5 py-1.5 text-left text-xs ${
+                        className={`block w-full rounded-lg px-3 py-2 text-left text-xs ${
                           s.id === current.id
-                            ? 'bg-[#00b91e]/15 font-medium text-[#00b91e]'
+                            ? 'bg-[#00b91e]/15 font-semibold text-[#00b91e]'
                             : 'text-zinc-400 hover:text-white'
                         }`}
                       >
@@ -601,24 +816,24 @@ export const DocsPage: React.FC<DocsPageProps> = ({
           )}
         </div>
 
-        {/* Desktop Left Sidebar */}
-        <aside className="hidden w-64 shrink-0 border-r border-white/[0.07] py-10 pr-6 lg:block">
-          <div className="sticky top-24 space-y-7">
+        {/* Desktop Left Navigation Sidebar */}
+        <aside className="hidden w-64 shrink-0 border-r border-white/[0.07] py-10 pr-6 lg:block 2xl:w-72">
+          <div className="sticky top-24 space-y-8">
             <button
               type="button"
               onClick={onBackHome}
-              className="inline-flex items-center gap-1.5 font-mono text-xs text-zinc-400 transition-colors hover:text-white"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/[0.08] bg-[#0c0d12] px-3.5 py-1.5 font-mono text-xs text-zinc-400 transition-colors hover:border-white/20 hover:text-white"
             >
               <span aria-hidden="true">←</span>
-              <span>Back to Product</span>
+              <span>Back to Overview</span>
             </button>
 
             {GROUPS.map((group) => (
               <div key={group}>
-                <div className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                <div className="mb-3 font-mono text-xs font-semibold uppercase tracking-wider text-zinc-400">
                   {group}
                 </div>
-                <ul className="space-y-1 border-l border-white/[0.07]">
+                <ul className="space-y-1.5 border-l border-white/[0.08]">
                   {DOC_SECTIONS.filter((s) => s.group === group).map((s) => {
                     const active = s.id === current.id;
                     return (
@@ -626,9 +841,9 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                         <button
                           type="button"
                           onClick={() => selectAndScroll(s.id)}
-                          className={`-ml-px block w-full border-l-2 py-1.5 pl-3.5 text-left text-[13px] transition-colors ${
+                          className={`-ml-px block w-full border-l-2 py-2 pl-4 text-left text-sm transition-colors ${
                             active
-                              ? 'border-[#00b91e] font-medium text-[#00b91e]'
+                              ? 'border-[#00b91e] font-semibold text-[#00b91e]'
                               : 'border-transparent text-zinc-400 hover:border-white/20 hover:text-white'
                           }`}
                         >
@@ -643,38 +858,38 @@ export const DocsPage: React.FC<DocsPageProps> = ({
           </div>
         </aside>
 
-        {/* Main Docs Content */}
+        {/* Main Docs Content — Expands dynamically across screen */}
         <article className="min-w-0 flex-1 py-10 lg:py-12">
-          <div className="w-full max-w-none">
-            <div className="mb-3 flex items-center gap-2 font-mono text-[11px] text-zinc-500">
+          <div className="w-full">
+            <div className="mb-3 flex items-center gap-2 font-mono text-xs sm:text-sm text-zinc-400">
               <span>Docs</span>
               <span>/</span>
               <span>{current.group}</span>
               <span>/</span>
-              <span className="text-[#00b91e]">{current.title}</span>
+              <span className="text-emerald-400">{current.title}</span>
             </div>
 
-            <h1 className="text-3xl font-semibold tracking-[-0.03em] text-white sm:text-4xl">
+            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
               {current.title}
             </h1>
-            <p className="mt-3 border-b border-white/[0.07] pb-6 text-sm leading-relaxed text-zinc-400">
+            <p className="mt-4 border-b border-white/[0.08] pb-8 text-lg sm:text-xl leading-relaxed text-zinc-300">
               {current.description}
             </p>
 
-            <div className="pt-6">{current.render(copy, copiedId)}</div>
+            <div className="pt-8">{current.render(copy, copiedId)}</div>
 
-            {/* Ordered Previous / Next Navigation (LangChain style) */}
-            <div className="mt-14 grid grid-cols-1 gap-3 border-t border-white/[0.08] pt-8 sm:grid-cols-2">
+            {/* Previous / Next Navigation Cards — Span full width */}
+            <div className="mt-16 grid grid-cols-1 gap-5 border-t border-white/[0.08] pt-8 sm:grid-cols-2">
               {prev ? (
                 <button
                   type="button"
                   onClick={() => selectAndScroll(prev.id)}
-                  className="rounded-xl border border-white/[0.08] bg-[#0e0e13] p-4 text-left transition-colors hover:border-white/20"
+                  className="rounded-xl border border-white/[0.08] bg-[#0c0d12] p-6 text-left transition-colors hover:border-white/20"
                 >
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
+                  <div className="font-mono text-xs font-semibold uppercase tracking-wider text-zinc-400">
                     ← Previous
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-white">{prev.title}</div>
+                  <div className="mt-1.5 text-base sm:text-lg font-semibold text-white">{prev.title}</div>
                 </button>
               ) : (
                 <div />
@@ -684,18 +899,92 @@ export const DocsPage: React.FC<DocsPageProps> = ({
                 <button
                   type="button"
                   onClick={() => selectAndScroll(next.id)}
-                  className="rounded-xl border border-white/[0.08] bg-[#0e0e13] p-4 text-right transition-colors hover:border-[#00b91e]/40"
+                  className="rounded-xl border border-white/[0.08] bg-[#0c0d12] p-6 text-right transition-colors hover:border-[#00b91e]/40"
                 >
-                  <div className="font-mono text-[10px] uppercase tracking-wider text-[#00b91e]">
+                  <div className="font-mono text-xs font-semibold uppercase tracking-wider text-[#00b91e]">
                     Next →
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-white">{next.title}</div>
+                  <div className="mt-1.5 text-base sm:text-lg font-semibold text-white">{next.title}</div>
                 </button>
               )}
             </div>
           </div>
         </article>
+
+        {/* Desktop Right Rail: "On this page" & Quick Resources (Linear/Next.js/Stripe style) */}
+        <aside className="hidden w-64 lg:w-72 xl:w-80 shrink-0 border-l border-white/[0.07] py-10 pl-8 lg:block">
+          <div className="sticky top-24 space-y-8">
+            {/* Quick Jumps */}
+            {current.headings && current.headings.length > 0 && (
+              <div>
+                <div className="mb-3 font-mono text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                  On this page
+                </div>
+                <ul className="space-y-2.5 border-l border-white/[0.08] text-sm">
+                  {current.headings.map((h) => (
+                    <li key={h.id}>
+                      <a
+                        href={`#${h.id}`}
+                        className="-ml-px block border-l-2 border-transparent pl-4 text-zinc-400 transition-colors hover:border-[#00b91e] hover:text-white"
+                      >
+                        {h.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Community & Quick Links */}
+            <div className="rounded-xl border border-white/[0.08] bg-[#0c0d12] p-5 text-sm">
+              <div className="font-bold text-white text-base">Community &amp; Code</div>
+              <ul className="mt-3.5 space-y-2.5 text-zinc-300">
+                <li>
+                  <a
+                    href={REPO_META.githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between hover:text-white"
+                  >
+                    <span>GitHub Repository</span>
+                    <span>↗</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={REPO_META.pypiUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between hover:text-white"
+                  >
+                    <span>PyPI Package</span>
+                    <span>↗</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={REPO_META.architectureUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between hover:text-white"
+                  >
+                    <span>Architecture Guide</span>
+                    <span>↗</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Offline Assurance Badge */}
+            <div className="flex items-center gap-2.5 rounded-lg border border-[#00b91e]/25 bg-[#00b91e]/[0.06] p-3.5 text-xs text-zinc-200">
+              <span className="h-2 w-2 rounded-full bg-[#00b91e] animate-pulse" />
+              <span>100% Offline · Zero Telemetry</span>
+            </div>
+          </div>
+        </aside>
       </div>
     </div>
   );
 };
+
+export default DocsPage;

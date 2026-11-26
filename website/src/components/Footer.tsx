@@ -3,8 +3,8 @@ import { REPO_META } from '../data/guardragData';
 
 export const Footer: React.FC<{ onOpenDocs?: (sectionId?: string) => void }> = ({ onOpenDocs }) => {
   return (
-    <footer className="border-t border-white/[0.08] bg-[#070709] py-14">
-      <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-8 lg:px-12">
+    <footer className="border-t border-white/[0.08] bg-[#060709] py-14">
+      <div className="mx-auto w-full max-w-[1840px] px-6 sm:px-12 lg:px-16 2xl:px-20">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-12">
           <div className="md:col-span-5">
             <div className="flex items-center gap-2.5">
@@ -17,22 +17,22 @@ export const Footer: React.FC<{ onOpenDocs?: (sectionId?: string) => void }> = (
                 Guard<span className="text-[#00b91e]">RAG</span>
               </span>
             </div>
-            <p className="mt-4 max-w-sm text-xs leading-relaxed text-zinc-400">
-              100% offline, air-gapped document Q&amp;A secured by 4-tier safety guardrails, Hybrid
-              BM25+Dense RRF retrieval, and local Ollama inference.
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-zinc-300">
+              100% offline, private document intelligence with automatic confidentiality protection,
+              verifiable citations, and hands-free spoken audio summaries.
             </p>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.02] px-2.5 py-1 font-mono text-[11px] text-zinc-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#00b91e]" />
-              <span>{REPO_META.version} · MIT License</span>
+            <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-white/[0.08] bg-white/[0.02] px-3 py-1.5 text-xs text-zinc-300">
+              <span className="h-2 w-2 rounded-full bg-[#00b91e]" />
+              <span>Private Document Intelligence · MIT Open Source</span>
             </div>
           </div>
 
           <div className="md:col-span-2">
-            <div className="text-xs font-semibold text-white">Product</div>
-            <ul className="mt-3 space-y-2 text-xs text-zinc-400">
+            <div className="text-sm font-bold text-white">Navigation</div>
+            <ul className="mt-3.5 space-y-2.5 text-sm text-zinc-300">
               <li>
                 <a href="#showcase" className="hover:text-white">
-                  Interface
+                  Overview
                 </a>
               </li>
               <li>
@@ -42,20 +42,25 @@ export const Footer: React.FC<{ onOpenDocs?: (sectionId?: string) => void }> = (
               </li>
               <li>
                 <a href="#guardrails" className="hover:text-white">
-                  4-Tier Guardrails
+                  Privacy Shield
+                </a>
+              </li>
+              <li>
+                <a href="#comparison" className="hover:text-white">
+                  Comparison
                 </a>
               </li>
               <li>
                 <a href="#quickstart" className="hover:text-white">
-                  Quickstart
+                  Get Started
                 </a>
               </li>
             </ul>
           </div>
 
           <div className="md:col-span-3">
-            <div className="text-xs font-semibold text-white">Documentation</div>
-            <ul className="mt-3 space-y-2 text-xs text-zinc-400">
+            <div className="text-sm font-bold text-white">Documentation</div>
+            <ul className="mt-3.5 space-y-2.5 text-sm text-zinc-300">
               <li>
                 <button
                   type="button"
@@ -86,10 +91,10 @@ export const Footer: React.FC<{ onOpenDocs?: (sectionId?: string) => void }> = (
               <li>
                 <button
                   type="button"
-                  onClick={() => onOpenDocs?.('rest-api')}
+                  onClick={() => onOpenDocs?.('docker-tests')}
                   className="hover:text-white"
                 >
-                  REST API
+                  Docker &amp; Testing
                 </button>
               </li>
               <li>
