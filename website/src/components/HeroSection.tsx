@@ -13,7 +13,7 @@ const STATS = [
   { value: '83', unit: '/83', label: 'Automated pytest checks' },
 ];
 
-export const HeroSection: React.FC = () => {
+export const HeroSection: React.FC<{ onOpenDocs?: () => void }> = ({ onOpenDocs }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -121,12 +121,13 @@ export const HeroSection: React.FC = () => {
               </button>
             </div>
 
-            <a
-              href="#sdk-docs"
+            <button
+              type="button"
+              onClick={onOpenDocs}
               className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-white/[0.11] bg-white/[0.03] px-4 text-sm font-medium text-zinc-200 transition-colors hover:border-white/20 hover:bg-white/[0.06] sm:w-auto"
             >
-              <span>SDK Docs</span>
-            </a>
+              <span>Documentation</span>
+            </button>
 
             <a
               href={REPO_META.githubUrl}

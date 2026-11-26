@@ -1,7 +1,7 @@
 import React from 'react';
 import { REPO_META } from '../data/guardragData';
 
-export const Footer: React.FC = () => {
+export const Footer: React.FC<{ onOpenDocs?: (sectionId?: string) => void }> = ({ onOpenDocs }) => {
   return (
     <footer className="border-t border-white/[0.08] bg-[#070709] py-14">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -62,24 +62,40 @@ export const Footer: React.FC = () => {
             <div className="text-xs font-semibold text-white">Documentation</div>
             <ul className="mt-3 space-y-2 text-xs text-zinc-400">
               <li>
-                <a href={REPO_META.docsUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                  Docs Overview
-                </a>
+                <button
+                  type="button"
+                  onClick={() => onOpenDocs?.('introduction')}
+                  className="hover:text-white"
+                >
+                  Getting Started
+                </button>
               </li>
               <li>
-                <a href={REPO_META.architectureUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                  System Architecture
-                </a>
+                <button
+                  type="button"
+                  onClick={() => onOpenDocs?.('cli-reference')}
+                  className="hover:text-white"
+                >
+                  CLI Reference
+                </button>
               </li>
               <li>
-                <a href={REPO_META.apiReferenceUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                  API &amp; SDK Reference
-                </a>
+                <button
+                  type="button"
+                  onClick={() => onOpenDocs?.('python-sdk')}
+                  className="hover:text-white"
+                >
+                  Python SDK
+                </button>
               </li>
               <li>
-                <a href={REPO_META.deploymentUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                  Docker &amp; Deployment
-                </a>
+                <button
+                  type="button"
+                  onClick={() => onOpenDocs?.('rest-api')}
+                  className="hover:text-white"
+                >
+                  REST API
+                </button>
               </li>
               <li>
                 <a href={REPO_META.securityUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white">

@@ -8,10 +8,15 @@ const NAV_LINKS = [
   { label: 'Guardrails', href: '#guardrails' },
   { label: 'Benchmarks', href: '#benchmarks' },
   { label: 'Quickstart', href: '#quickstart' },
-  { label: 'SDK Docs', href: '#sdk-docs' },
 ];
 
-export const Navbar: React.FC = () => {
+interface NavbarProps {
+  isDocs?: boolean;
+  onOpenDocs: () => void;
+  onGoHome: (anchor?: string) => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ isDocs = false, onOpenDocs, onGoHome }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { scrollYProgress } = useScroll();
@@ -38,7 +43,14 @@ export const Navbar: React.FC = () => {
 
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         {/* Clean Brand Lockup */}
-        <a href="#" className="group flex items-center gap-2.5 focus:outline-none">
+        <a
+          href="#/"
+          onClick={(e) => {
+            e.preventDefault();
+            onGoHome();
+          }}
+          className="group flex items-center gap-2.5 focus:outline-none"
+        >
           <img
             src="./assets/duck-mark.png"
             alt="GuardRAG"
@@ -58,11 +70,26 @@ export const Navbar: React.FC = () => {
             <a
               key={link.href}
               href={link.href}
+              onClick={(e) => {
+                if (isDocs) {
+                  e.preventDefault();
+                  onGoHome(link.href);
+                }
+              }}
               className="rounded-md px-3 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:text-white"
             >
               {link.label}
             </a>
           ))}
+          <button
+            type="button"
+            onClick={onOpenDocs}
+            className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors ${
+              isDocs ? 'text-[#00b91e]' : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            Documentation
+          </button>
         </nav>
 
         {/* Crisp Action Buttons (Authentic GitHub mark, zero generic icon clutter) */}
@@ -110,12 +137,30 @@ export const Navbar: React.FC = () => {
               <a
                 key={link.href}
                 href={link.href}
-                onClick={() => setMobileOpen(false)}
+                onClick={(e) => {
+                  setMobileOpen(false);
+                  if (isDocs) {
+                    e.preventDefault();
+                    onGoHome(link.href);
+                  }
+                }}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 hover:bg-white/[0.05] hover:text-white"
               >
                 {link.label}
               </a>
             ))}
+            <button
+              type="button"
+              onClick={() => {
+                setMobileOpen(false);
+                onOpenDocs();
+              }}
+              className={`rounded-lg px-3 py-2 text-left text-sm font-medium ${
+                isDocs ? 'text-[#00b91e]' : 'text-zinc-300 hover:bg-white/[0.05] hover:text-white'
+              }`}
+            >
+              Documentation
+            </button>
             <div className="mt-3 flex gap-2 border-t border-white/[0.08] pt-3">
               <a
                 href={REPO_META.githubUrl}
