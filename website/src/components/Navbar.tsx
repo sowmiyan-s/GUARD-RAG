@@ -8,6 +8,7 @@ const NAV_LINKS = [
   { label: 'Guardrails', href: '#guardrails' },
   { label: 'Benchmarks', href: '#benchmarks' },
   { label: 'Quickstart', href: '#quickstart' },
+  { label: 'SDK Docs', href: '#sdk-docs' },
 ];
 
 export const Navbar: React.FC = () => {

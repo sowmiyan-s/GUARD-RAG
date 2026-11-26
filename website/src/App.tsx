@@ -8,6 +8,7 @@ import { GuardrailsMatrix } from './components/GuardrailsMatrix';
 import { ComparisonMatrix } from './components/ComparisonMatrix';
 import { BenchmarksSection } from './components/BenchmarksSection';
 import { QuickstartSection } from './components/QuickstartSection';
+import { SdkDocsSection } from './components/SdkDocsSection';
 import { Footer } from './components/Footer';
 
 export const App: React.FC = () => {
@@ -23,6 +24,7 @@ export const App: React.FC = () => {
           <ComparisonMatrix />
           <BenchmarksSection />
           <QuickstartSection />
+          <SdkDocsSection />
         </main>
         <Footer />
       </div>

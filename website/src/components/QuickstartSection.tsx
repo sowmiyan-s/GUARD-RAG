@@ -25,8 +25,11 @@ export const QuickstartSection: React.FC = () => {
             Run locally with guard-rag.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-zinc-400">
-            Python 3.9–3.12+ · Works with Ollama models (`llama3.2`, `gemma3:1b`, `deepseek-r1`,
-            `mistral`).
+            Python 3.9–3.12+ · Works with Ollama models{' '}
+            <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-xs text-zinc-200">llama3.2</code>,{' '}
+            <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-xs text-zinc-200">gemma3:1b</code>,{' '}
+            <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-xs text-zinc-200">deepseek-r1</code>,{' '}
+            <code className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-xs text-zinc-200">mistral</code>.
           </p>
         </div>
 
