@@ -1,0 +1,15 @@
+# GuardRAG (guard-rag)
+
+> 100% Offline, Air-Gapped Document Q&A, AI Safety & 4-Tier LLM Guardrails powered by local Ollama, FastEmbed ONNX, and Hybrid BM25 + FAISS RRF.
+
+- Website: https://sowmiyan-s.github.io/GUARD-RAG/
+- Documentation: https://sowmiyan-s.github.io/GUARD-RAG/#/docs/introduction
+- PyPI Package: https://pypi.org/project/guard-rag/
+- GitHub Repository: https://github.com/sowmiyan-s/GUARD-RAG
+- Developer / Maintainer: Sowmiyan S (https://sowmiyan.me)
+
+## Core Capabilities
+- **AI Safety & 4-Tier Guardrails**: Cumulative Public, Internal, Confidential, and Restricted tiers with jailbreak/prompt-injection stripping, API credential blocking, Luhn-verified credit card masking, and HIPAA/PHI filters.
+- **100% Offline & Air-Gapped**: Zero external API calls or cloud uploads; embeddings run on CPU via FastEmbed (`BAAI/bge-small-en-v1.5`) and inference runs locally via Ollama.
+- **Hybrid Retrieval**: Combines lexical BM25 keyword search with dense FAISS vector search using Reciprocal Rank Fusion (RRF).
+- **CLI, Web Studio, Python SDK & REST API**: Install with `pip install guard-rag` and launch with `guard-rag`.

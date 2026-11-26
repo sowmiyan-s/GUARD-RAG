@@ -1,0 +1,21 @@
+{
+  "name": "GuardRAG (guard-rag)",
+  "short_name": "GuardRAG",
+  "description": "100% offline, air-gapped AI document Q&A with 4-tier PII guardrails, prompt injection defense, Hybrid BM25+FAISS search, and local Ollama.",
+  "start_url": "/GUARD-RAG/",
+  "display": "standalone",
+  "background_color": "#050507",
+  "theme_color": "#00b91e",
+  "icons": [
+    {
+      "src": "./favicon.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/duck-mark.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

@@ -3,38 +3,47 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GuardRAG (guard-rag) — Offline, Air-Gapped Document Q&amp;A &amp; Local RAG</title>
+    <title>GuardRAG (guard-rag) — AI Safety, LLM Guardrails &amp; Offline Air-Gapped RAG</title>
     <meta
       name="description"
-      content="GuardRAG (guard-rag) is a 100% offline, air-gapped AI workspace for confidential PDFs, Excel, PowerPoint, and docs. Hybrid BM25+FAISS search, 4-tier PII redaction, Python SDK, and local Ollama inference."
+      content="GuardRAG (guard-rag) is an open-source, 100% offline AI workspace &amp; Python SDK with 4-tier LLM guardrails, PII redaction, prompt injection defense, Hybrid BM25+FAISS search, and local Ollama inference. Built by Sowmiyan S (sowmiyan.me)."
     />
     <meta
       name="keywords"
-      content="guardrag, guard-rag, offline rag, private document qa, air-gapped ai, local ollama rag, pii redaction, python rag sdk, local notebooklm alternative, hybrid bm25 faiss"
+      content="guardrag, guard-rag, ai safety, llm guardrails, pii redaction, prompt injection defense, offline rag, air-gapped ai, private document qa, local ollama rag, python rag sdk, hybrid bm25 faiss, sowmiyan.me"
     />
-    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Sowmiyan S (https://sowmiyan.me)" />
+    <meta name="theme-color" content="#00b91e" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="https://sowmiyan-s.github.io/GUARD-RAG/" />
+
+    <!-- Search Result & Browser Favicons -->
+    <link rel="icon" type="image/png" sizes="48x48" href="./favicon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/duck-mark.png" />
+    <link rel="shortcut icon" href="./favicon.png" />
+    <link rel="apple-touch-icon" href="./assets/duck-mark.png" />
+    <link rel="manifest" href="./site.webmanifest" />
 
     <!-- Open Graph / Social -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="GuardRAG (guard-rag)" />
     <meta property="og:url" content="https://sowmiyan-s.github.io/GUARD-RAG/" />
-    <meta property="og:title" content="GuardRAG (guard-rag) — Private Offline AI for Confidential Files" />
+    <meta property="og:title" content="GuardRAG (guard-rag) — AI Safety, Guardrails &amp; Offline Document Q&amp;A" />
     <meta
       property="og:description"
-      content="Ask your PDFs, spreadsheets, slides, and folders anything with zero cloud uploads. Powered by guard-rag, FastEmbed, Hybrid BM25+FAISS, and Ollama."
+      content="100% offline AI for confidential files. 4-tier PII guardrails, prompt injection defense, Hybrid BM25+FAISS search, and local Ollama. Built by Sowmiyan S (sowmiyan.me)."
     />
     <meta property="og:image" content="https://sowmiyan-s.github.io/GUARD-RAG/assets/banner.png" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="GuardRAG (guard-rag) — Offline, Air-Gapped Document Q&amp;A" />
+    <meta name="twitter:title" content="GuardRAG (guard-rag) — AI Safety &amp; Offline Air-Gapped RAG" />
     <meta
       name="twitter:description"
-      content="100% offline document Q&amp;A with 4-tier PII guardrails, Python SDK, CLI, and local Ollama."
+      content="Private document Q&amp;A with 4-tier LLM guardrails, PII redaction, Python SDK, CLI, and local Ollama."
     />
     <meta name="twitter:image" content="https://sowmiyan-s.github.io/GUARD-RAG/assets/banner.png" />
 
-    <link rel="icon" type="image/png" href="./favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -42,15 +51,32 @@
       rel="stylesheet"
     />
 
-    <!-- AEO Structured Data: SoftwareApplication + FAQPage -->
+    <!-- AEO / GEO Structured Data: Person + WebSite + SoftwareApplication + FAQPage -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@graph": [
           {
+            "@type": "Person",
+            "@id": "https://sowmiyan.me/#person",
+            "name": "Sowmiyan S",
+            "url": "https://sowmiyan.me",
+            "sameAs": [
+              "https://sowmiyan.me",
+              "https://github.com/sowmiyan-s"
+            ]
+          },
+          {
+            "@type": "WebSite",
+            "name": "GuardRAG (guard-rag)",
+            "alternateName": ["GuardRAG", "guard-rag"],
+            "url": "https://sowmiyan-s.github.io/GUARD-RAG/",
+            "publisher": { "@id": "https://sowmiyan.me/#person" }
+          },
+          {
             "@type": "SoftwareApplication",
             "name": "GuardRAG",
-            "alternateName": ["guard-rag", "Guard-RAG"],
+            "alternateName": ["guard-rag", "Guard-RAG", "GuardRAG AI Safety"],
             "operatingSystem": "Windows, macOS, Linux",
             "applicationCategory": "DeveloperApplication",
             "softwareVersion": "1.3.3",
@@ -58,7 +84,22 @@
             "url": "https://sowmiyan-s.github.io/GUARD-RAG/",
             "downloadUrl": "https://pypi.org/project/guard-rag/",
             "codeRepository": "https://github.com/sowmiyan-s/GUARD-RAG",
-            "description": "GuardRAG (guard-rag) is a 100% offline, air-gapped document Q&A tool and Python SDK featuring Hybrid BM25+FAISS retrieval, 4-tier PII redaction guardrails, offline Web Speech audio briefings, and local Ollama inference."
+            "screenshot": "https://sowmiyan-s.github.io/GUARD-RAG/screenshots/dashboard-security.png",
+            "author": { "@id": "https://sowmiyan.me/#person" },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "keywords": "guardrag, guard-rag, ai safety, llm guardrails, pii redaction, offline rag, air-gapped ai, ollama",
+            "featureList": [
+              "4-tier AI safety guardrails (Public, Internal, Confidential, Restricted)",
+              "Prompt injection and jailbreak stripping",
+              "Luhn-verified credit card, email, phone, SSN, and credential redaction",
+              "100% offline Hybrid BM25 + FAISS RRF retrieval",
+              "Local Ollama LLM inference with Python SDK, CLI, and Web Studio"
+            ],
+            "description": "GuardRAG (guard-rag) is an open-source, 100% offline AI safety and document Q&amp;A platform featuring 4-tier LLM guardrails, PII redaction, Hybrid BM25+FAISS retrieval, and local Ollama inference."
           },
           {
             "@type": "FAQPage",
@@ -68,7 +109,15 @@
                 "name": "What is GuardRAG (guard-rag)?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "GuardRAG (installed via pip install guard-rag) is an open-source, 100% offline document Q&A web studio, CLI, and Python SDK that lets you chat with PDFs, Excel, PowerPoint, Word, and local folders using Ollama with zero cloud uploads."
+                  "text": "GuardRAG (pip install guard-rag) is an open-source, 100% offline AI safety and document Q&amp;A tool built by Sowmiyan S (sowmiyan.me). It lets teams query PDFs, Excel, PowerPoint, Word, and local folders using Ollama with zero cloud uploads."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How do GuardRAG AI safety guardrails and PII redaction work?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "GuardRAG enforces four cumulative sensitivity tiers (Public, Internal, Confidential, Restricted) that strip indirect prompt injections, block API credentials, mask emails/phones/SSNs/Luhn-verified cards, and protect HIPAA/financial terms before indexing or streaming."
                 }
               },
               {
@@ -76,15 +125,7 @@
                 "name": "How do I install and run guard-rag?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Install with pip install guard-rag, pull a local Ollama model such as llama3.2 or gemma3:1b, and run guard-rag to launch the local web studio at http://127.0.0.1:8000."
-                }
-              },
-              {
-                "@type": "Question",
-                "name": "How does GuardRAG protect sensitive data and PII?",
-                "acceptedAnswer": {
-                  "@type": "Answer",
-                  "text": "GuardRAG runs completely offline and enforces four cumulative sensitivity tiers (Public, Internal, Confidential, Restricted) with automatic credential blocking, Luhn-verified card masking, email/phone/SSN redaction, and prompt-injection stripping."
+                  "text": "Run pip install guard-rag, pull a local Ollama model such as llama3.2 or gemma3:1b, and launch the studio with guard-rag or integrate build_rag_chain() in Python."
                 }
               }
             ]
@@ -92,10 +133,10 @@
         ]
       }
     </script>
-    <script type="module" crossorigin src="/GUARD-RAG/assets/index-CI2J59Ky.js"></script>
-    <link rel="stylesheet" crossorigin href="/GUARD-RAG/assets/index-wEFhAati.css">
+    <script type="module" crossorigin src="/GUARD-RAG/assets/index-R7mapzTG.js"></script>
+    <link rel="stylesheet" crossorigin href="/GUARD-RAG/assets/index-BiP5V0oo.css">
   </head>
-  <body class="bg-[#09090b] text-[#f4f4f5] antialiased selection:bg-[#00b91e]/25 selection:text-white">
-    <div id="root"></div>
+  <body class="bg-[#050507] text-[#f4f4f5] antialiased selection:bg-[#00b91e]/25 selection:text-white">
+    <div id="root"></div>
   </body>
 </html>
