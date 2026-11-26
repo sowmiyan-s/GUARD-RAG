@@ -9,7 +9,7 @@ export const Footer: React.FC = () => {
           <div className="md:col-span-5">
             <div className="flex items-center gap-2.5">
               <img
-                src="/assets/duck-mark.png"
+                src="./assets/duck-mark.png"
                 alt="GuardRAG"
                 className="h-7 w-7 rounded-md object-contain"
               />

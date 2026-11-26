@@ -57,7 +57,7 @@ export const ComparisonMatrix: React.FC = () => {
                   <th className="px-5 py-4">Capability</th>
                   <th className="border-x border-[#00b91e]/25 bg-[#00b91e]/[0.06] px-5 py-4 text-white">
                     <div className="flex items-center gap-2">
-                      <img src="/assets/duck-mark.png" alt="" className="h-4 w-4 rounded-sm" />
+                      <img src="./assets/duck-mark.png" alt="" className="h-4 w-4 rounded-sm" />
                       <span>GuardRAG</span>
                     </div>
                   </th>

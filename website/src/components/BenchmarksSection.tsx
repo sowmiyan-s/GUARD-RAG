@@ -193,7 +193,7 @@ export const BenchmarksSection: React.FC = () => {
             <div>
               <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-white p-3">
                 <img
-                  src="/assets/banner.png"
+                  src="./assets/banner.png"
                   alt="GuardRAG Banner"
                   className="h-auto w-full object-contain"
                 />

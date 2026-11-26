@@ -99,7 +99,7 @@ export const ProductShowcase: React.FC = () => {
                 <p className="mt-0.5 text-xs leading-relaxed text-zinc-400">{activeTab.caption}</p>
               </div>
               <div className="hidden shrink-0 items-center gap-2 font-mono text-[11px] text-zinc-400 sm:flex">
-                <img src="/assets/duck-avatar.png" alt="" className="h-5 w-5 rounded-full" />
+                <img src="./assets/duck-avatar.png" alt="" className="h-5 w-5 rounded-full" />
                 <span>guard-rag v1.3.3</span>
               </div>
             </div>

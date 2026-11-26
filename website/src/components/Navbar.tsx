@@ -39,7 +39,7 @@ export const Navbar: React.FC = () => {
         {/* Clean Brand Lockup */}
         <a href="#" className="group flex items-center gap-2.5 focus:outline-none">
           <img
-            src="/assets/duck-mark.png"
+            src="./assets/duck-mark.png"
             alt="GuardRAG"
             className="h-7 w-7 rounded-md object-contain transition-transform duration-200 group-hover:scale-105"
           />

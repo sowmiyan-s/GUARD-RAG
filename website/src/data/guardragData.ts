@@ -33,7 +33,7 @@ export const PRODUCT_SCREENSHOTS: ScreenshotTab[] = [
     title: 'Local Document Studio & Auto-Launched Ollama',
     caption:
       'Detects local Ollama installations, enforces the active sensitivity tier prior to indexing, and prevents pre-upload query errors.',
-    src: '/screenshots/dashboard-workspace.png',
+    src: './screenshots/dashboard-workspace.png',
   },
   {
     id: 'chat',
@@ -42,7 +42,7 @@ export const PRODUCT_SCREENSHOTS: ScreenshotTab[] = [
     title: 'Grounded Citations, Reasoning Blocks & Audio Overview',
     caption:
       'Renders collapsible <think> blocks, cites exact document chunks with retrieval latency, and plays offline Web Speech API briefings.',
-    src: '/screenshots/dashboard-chat.png',
+    src: './screenshots/dashboard-chat.png',
   },
   {
     id: 'security',
@@ -51,7 +51,7 @@ export const PRODUCT_SCREENSHOTS: ScreenshotTab[] = [
     title: 'Cumulative Sensitivity Tiers & PII Redaction',
     caption:
       'Switch between Public, Internal, Confidential, and Restricted policies with real-time Luhn card checksum validation and credential blocking.',
-    src: '/screenshots/dashboard-security.png',
+    src: './screenshots/dashboard-security.png',
   },
   {
     id: 'share',
@@ -60,7 +60,7 @@ export const PRODUCT_SCREENSHOTS: ScreenshotTab[] = [
     title: 'Host-Controlled Local Network Collaboration',
     caption:
       'Share read-only or interactive Q&A links over your local network. Guests query indexed documents in any browser without installing Python or Ollama.',
-    src: '/screenshots/dashboard-share.png',
+    src: './screenshots/dashboard-share.png',
   },
 ];
 
