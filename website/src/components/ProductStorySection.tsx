@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
+import { SUPPORTED_FORMATS } from '../data/guardragData';
 
 const EASE = [0.42, 0, 0, 1] as const;
 
@@ -296,6 +297,32 @@ export const ProductStorySection: React.FC = () => {
           >
             {(on) => <AudioAndShareVisual on={on} />}
           </StoryCard>
+        </div>
+
+        {/* Supported Formats Strip */}
+        <div className="card-hairline mt-4 rounded-2xl p-5 sm:p-6">
+          <div className="mb-3 flex items-center justify-between">
+            <span className="font-mono text-[11px] uppercase tracking-wider text-zinc-400">
+              Supported Local Formats
+            </span>
+            <span className="font-mono text-[11px] text-[#00b91e]">
+              9+ Native Loaders · Zero Cloud Parsing
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-9">
+            {SUPPORTED_FORMATS.map((fmt) => (
+              <div
+                key={fmt.ext}
+                className="rounded-lg border border-white/[0.07] bg-[#0a0a0e] px-2.5 py-2"
+                title={fmt.note}
+              >
+                <div className="font-mono text-xs font-semibold text-white">{fmt.ext}</div>
+                <div className="mt-0.5 truncate font-mono text-[10px] text-zinc-500">
+                  {fmt.engine}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

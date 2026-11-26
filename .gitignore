@@ -73,6 +73,7 @@ logs/
 # Note: .dockerignore is intentionally tracked in git
 
 # ── Website (website/) ────────────────────────────────────────────────────────
+node_modules/
 website/node_modules/
 website/dist/
 website/.vite/
